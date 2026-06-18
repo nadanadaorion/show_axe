@@ -1,0 +1,2582 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orion — Portafolio</title>
+<link href="https://fonts.googleapis.com/css2?family=Tahoma:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ─── RESET ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ─── GLOBALS ─── */
+:root {
+  --xp-blue:       #0a246a;
+  --xp-blue2:      #3a6ea5;
+  --xp-blue-light: #4a90d9;
+  --xp-title-from: #0058ee;
+  --xp-title-to:   #3a9af5;
+  --xp-green:      #3a7a00;
+  --xp-green2:     #6abf00;
+  --xp-silver:     #ece9d8;
+  --xp-silver2:    #d4d0c8;
+  --xp-silver3:    #f0ede3;
+  --xp-white:      #ffffff;
+  --xp-text:       #000000;
+  --xp-text2:      #444444;
+  --xp-shadow:     rgba(0,0,0,0.4);
+  --xp-hilite:     #316ac5;
+  --xp-hilite-txt: #ffffff;
+  --xp-border-lt:  #ffffff;
+  --xp-border-dk:  #888878;
+  --xp-border-md:  #aca899;
+  --taskbar-h:     30px;
+  --xp-taskbar1:   #245edc;
+  --xp-taskbar2:   #1a5ad4;
+  --xp-taskbar-edge: #1a3fa0;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  font-family: Tahoma, 'MS Sans Serif', Arial, sans-serif;
+  font-size: 11px;
+}
+
+/* ─── DESKTOP ─── */
+.desktop {
+  width: 100%;
+  height: 100%;
+  background-image: url("fondo.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Desktop icons */
+.desktop-icons {
+  flex: 1;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 8px;
+}
+.desktop-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  width: 72px;
+  padding: 4px;
+  border-radius: 2px;
+  transition: background .1s;
+  user-select: none;
+}
+.desktop-icon:hover .icon-label { background: var(--xp-hilite); color: #fff; }
+.desktop-icon:active { opacity: .8; }
+.icon-img {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+  filter: drop-shadow(1px 2px 2px rgba(0,0,0,.5));
+}
+.icon-label {
+  font-size: 10px;
+  color: white;
+  text-align: center;
+  text-shadow: 1px 1px 2px rgba(0,0,0,.8);
+  padding: 1px 3px;
+  border-radius: 2px;
+  line-height: 1.3;
+  max-width: 72px;
+  word-break: break-word;
+}
+
+/* ─── TASKBAR ─── */
+.taskbar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: var(--taskbar-h);
+
+  background: linear-gradient(to bottom,
+    var(--xp-taskbar1) 0%,
+    color-mix(in srgb, var(--xp-taskbar1) 80%, #fff) 8%,
+    color-mix(in srgb, var(--xp-taskbar1) 85%, #000) 50%,
+    color-mix(in srgb, var(--xp-taskbar2) 80%, #000) 51%,
+    var(--xp-taskbar2) 100%);
+
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 2px;
+  border-top: 1px solid var(--xp-taskbar-edge);
+
+  z-index: 1000;
+}
+/* Start button */
+.start-btn {
+  height: 26px;
+  background: linear-gradient(to bottom, #5bbf00 0%, #3da000 50%, #2d8000 51%, #4ab800 100%);
+  border: 1px solid #1a6000;
+  border-radius: 0 12px 12px 0;
+  padding: 0 10px 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+  color: white;
+  font-style: italic;
+  text-shadow: 1px 1px 2px rgba(0,0,0,.5);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 2px 2px 4px rgba(0,0,0,.4);
+  margin-left: 2px;
+  transition: filter .1s;
+  position: relative;
+}
+.start-btn:hover { filter: brightness(1.1); }
+.start-btn:active { filter: brightness(.9); }
+.start-logo {
+  width: 16px; height: 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+
+/* Taskbar buttons */
+.taskbar-btn {
+  height: 22px;
+  min-width: 100px;
+  max-width: 160px;
+  background: linear-gradient(to bottom, #4a7fd4 0%, #3a6fc4 50%, #2a5db8 51%, #3a6fc4 100%);
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 3px;
+  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  color: white;
+  font-size: 10px;
+  font-family: Tahoma, sans-serif;
+  text-shadow: 1px 1px 1px rgba(0,0,0,.4);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: filter .1s;
+}
+.taskbar-btn:hover { filter: brightness(1.15); }
+.taskbar-btn.active {
+  background: linear-gradient(to bottom, #2a4fa0 0%, #3a5fb0 100%);
+  box-shadow: inset 1px 1px 2px rgba(0,0,0,.3);
+}
+.taskbar-btn-icon { font-size: 12px; }
+
+/* System tray */
+.systray {
+  margin-left: auto;
+  height: 24px;
+  background: linear-gradient(to bottom, #1a4fd4 0%, #1a44c0 50%, #1038a8 51%, #1a44c0 100%);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 3px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: white;
+  font-size: 10px;
+}
+.clock {
+  font-size: 10px;
+  color: white;
+  white-space: nowrap;
+}
+
+/* ─── WINDOWS ─── */
+.window {
+  position: absolute;
+  background: var(--xp-silver);
+  border-radius: 8px 8px 0 0;
+  box-shadow:
+    2px 2px 0 rgba(0,0,0,.15),
+    4px 4px 8px rgba(0,0,0,.35),
+    inset 0 0 0 1px rgba(255,255,255,.6);
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.window.hidden { display: none; }
+
+/* Title bar */
+.titlebar {
+  height: 28px;
+  background: linear-gradient(to bottom,
+    var(--xp-title-from) 0%,
+    var(--xp-title-to) 60%,
+    #1a6ae0 100%);
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  gap: 4px;
+  cursor: default;
+  user-select: none;
+  border-radius: 7px 7px 0 0;
+  border-bottom: 1px solid #1244b8;
+}
+.titlebar-icon { font-size: 13px; }
+.titlebar-text {
+  flex: 1;
+  color: white;
+  font-weight: 700;
+  font-size: 11px;
+  text-shadow: 1px 1px 2px rgba(0,0,0,.4);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Window control buttons */
+.win-btns { display: flex; gap: 2px; }
+.win-btn {
+  width: 21px; height: 21px;
+  border-radius: 4px;
+  border: 1px solid rgba(0,0,0,.4);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  transition: filter .1s;
+  color: white;
+  text-shadow: 1px 1px 1px rgba(0,0,0,.5);
+}
+.win-btn:hover { filter: brightness(1.15); }
+.win-btn:active { filter: brightness(.85); }
+.btn-min { background: linear-gradient(to bottom, #6ab0f0 0%, #4090d8 50%, #2878c8 51%, #4090d8 100%); }
+.btn-max { background: linear-gradient(to bottom, #6ab0f0 0%, #4090d8 50%, #2878c8 51%, #4090d8 100%); }
+.btn-close {
+  background: linear-gradient(to bottom, #f07060 0%, #d84030 50%, #c02020 51%, #d84030 100%);
+  border-color: #800000;
+}
+
+/* Menu bar */
+.menubar {
+  height: 20px;
+  background: var(--xp-silver3);
+  display: flex;
+  align-items: center;
+  padding: 0 2px;
+  border-bottom: 1px solid var(--xp-border-md);
+  gap: 0;
+}
+.menu-item {
+  padding: 1px 6px;
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: 2px;
+  color: var(--xp-text);
+}
+.menu-item:hover { background: var(--xp-hilite); color: white; }
+
+/* Toolbar */
+.toolbar {
+  height: 28px;
+  background: var(--xp-silver3);
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  border-bottom: 1px solid var(--xp-border-md);
+  gap: 2px;
+}
+.toolbar-btn {
+  height: 22px;
+  padding: 0 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: Tahoma, sans-serif;
+  display: flex; align-items: center; gap: 3px;
+  color: var(--xp-text);
+  transition: background .1s, border-color .1s;
+}
+.toolbar-btn:hover {
+  background: linear-gradient(to bottom, #fff 0%, #e8e4d8 100%);
+  border-color: var(--xp-border-dk);
+}
+.toolbar-sep {
+  width: 1px; height: 18px;
+  background: var(--xp-border-md);
+  margin: 0 2px;
+}
+
+/* Address bar */
+.addrbar {
+  height: 24px;
+  background: var(--xp-silver3);
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  border-bottom: 1px solid var(--xp-border-md);
+  gap: 4px;
+  font-size: 11px;
+}
+.addr-label { color: var(--xp-text2); }
+.addr-input {
+  flex: 1;
+  height: 18px;
+  background: white;
+  border: 1px solid var(--xp-border-dk);
+  border-radius: 0;
+  padding: 0 4px;
+  font-size: 11px;
+  font-family: Tahoma, sans-serif;
+  color: var(--xp-text);
+  outline: none;
+}
+.addr-input:focus { border-color: var(--xp-blue-light); }
+
+/* Window body with sidebar */
+.window-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+.win-sidebar {
+  width: 160px;
+  flex-shrink: 0;
+  background: linear-gradient(to bottom, #6a9fd8 0%, #3a70b8 100%);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  border-right: 1px solid #1a4fa0;
+}
+.win-sidebar-section {
+  padding: 0 0 8px 0;
+}
+.win-sidebar-header {
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0,0,0,.5);
+  padding: 6px 8px 4px;
+  border-bottom: 1px solid rgba(255,255,255,.2);
+  background: rgba(0,0,0,.15);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.win-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  color: white;
+  font-size: 11px;
+  cursor: pointer;
+  text-shadow: 1px 1px 1px rgba(0,0,0,.4);
+  transition: background .1s;
+  text-decoration: none;
+}
+.win-sidebar-item:hover { background: rgba(255,255,255,.2); }
+.win-sidebar-item.active { background: rgba(255,255,255,.25); font-weight: 700; }
+.win-sidebar-icon { font-size: 14px; }
+
+/* Main content area */
+.win-content {
+  flex: 1;
+  overflow-y: auto;
+  background: white;
+}
+
+/* Status bar */
+.statusbar {
+  height: 18px;
+  background: var(--xp-silver);
+  border-top: 1px solid var(--xp-border-md);
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+.status-panel {
+  flex: 1;
+  padding: 0 8px;
+  font-size: 10px;
+  color: var(--xp-text2);
+  border-right: 1px solid var(--xp-border-md);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.status-panel:last-child { border-right: none; flex: 0; padding: 0 8px; }
+
+/* ─── CONTENT: MY COMPUTER (PROJECTS) ─── */
+.icon-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 2px;
+  padding: 8px;
+}
+.file-icon {
+  width: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background .1s;
+  user-select: none;
+}
+.file-icon:hover { background: rgba(49,106,197,.15); border-radius: 2px; }
+.file-icon.selected { background: rgba(49,106,197,.3); }
+.file-icon-img { font-size: 32px; filter: drop-shadow(1px 1px 1px rgba(0,0,0,.2)); }
+.file-icon-name {
+  font-size: 10px;
+  color: var(--xp-text);
+  text-align: center;
+  line-height: 1.2;
+  word-break: break-word;
+  max-width: 76px;
+}
+.file-icon.selected .file-icon-name {
+  background: var(--xp-hilite);
+  color: white;
+}
+
+/* Section divider inside content */
+.content-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1a4fa0;
+  background: #d9e8f8;
+  border-top: 1px solid #aac0e0;
+  border-bottom: 1px solid #aac0e0;
+  padding: 4px 10px;
+  margin-top: 4px;
+}
+
+/* ─── CONTENT: BIO (NOTEPAD STYLE) ─── */
+.notepad-area {
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 12px;
+  border: none;
+  outline: none;
+  resize: none;
+  color: #000;
+  background: white;
+}
+
+/* ─── CONTENT: SERVICES (PROPERTIES DIALOG) ─── */
+.props-tabs {
+  display: flex;
+  padding: 6px 6px 0;
+  gap: 2px;
+  border-bottom: 2px solid var(--xp-silver2);
+  background: var(--xp-silver);
+}
+.props-tab {
+  padding: 4px 12px;
+  background: var(--xp-silver2);
+  border: 1px solid var(--xp-border-md);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--xp-text);
+  transition: background .1s;
+  position: relative;
+  bottom: -1px;
+}
+.props-tab:hover { background: var(--xp-silver3); }
+.props-tab.active {
+  background: white;
+  border-color: var(--xp-border-dk);
+  border-bottom: 2px solid white;
+  font-weight: 700;
+  z-index: 1;
+}
+.props-tab-content { display: none; padding: 12px; background: white; flex: 1; overflow-y: auto; }
+.props-tab-content.active { display: block; }
+.props-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 5px 0;
+  border-bottom: 1px solid #f0ede3;
+  gap: 8px;
+}
+.props-row:last-child { border-bottom: none; }
+.props-key {
+  width: 110px;
+  flex-shrink: 0;
+  font-weight: 700;
+  color: var(--xp-text2);
+  font-size: 11px;
+}
+.props-val { color: var(--xp-text); font-size: 11px; line-height: 1.5; }
+.props-icon { font-size: 22px; margin-right: 6px; }
+.service-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  border: 1px solid var(--xp-silver2);
+  border-radius: 2px;
+  margin-bottom: 4px;
+  background: var(--xp-silver3);
+  cursor: pointer;
+  gap: 8px;
+  transition: background .1s;
+}
+.service-item:hover { background: #dff0ff; border-color: #aac8ee; }
+.service-name-xp { font-weight: 700; font-size: 11px; }
+.service-desc-xp { font-size: 10px; color: var(--xp-text2); }
+
+/* ─── CONTENT: SOCIAL (IE STYLE) ─── */
+.ie-content {
+  padding: 12px;
+  background: white;
+}
+.ie-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a4fa0;
+  border-bottom: 2px solid #1a4fa0;
+  padding-bottom: 4px;
+  margin-bottom: 10px;
+  font-family: 'Times New Roman', serif;
+}
+.ie-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  margin-bottom: 3px;
+  border: 1px solid #d0d8e8;
+  border-radius: 2px;
+  background: #f8f8ff;
+  cursor: pointer;
+  text-decoration: none;
+  color: #1a4fa0;
+  transition: background .1s;
+}
+.ie-link:hover { background: #e8f0ff; text-decoration: underline; }
+.ie-link-icon { font-size: 18px; }
+.ie-link-name { font-weight: 700; font-size: 12px; }
+.ie-link-url { font-size: 10px; color: #008000; }
+
+/* ─── START MENU ─── */
+.start-menu {
+  position: absolute;
+  bottom: var(--taskbar-h);
+  left: 0;
+  width: 300px;
+  background: white;
+  border: 2px solid #1a4fa0;
+  border-radius: 8px 8px 0 0;
+  box-shadow: 4px 4px 12px rgba(0,0,0,.4);
+  display: none;
+  flex-direction: column;
+  z-index: 9999;
+  overflow: hidden;
+}
+.start-menu.open { display: flex; }
+.start-menu-header {
+  background: linear-gradient(to right, var(--xp-title-from), var(--xp-title-to));
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 54px;
+}
+.start-menu-avatar {
+  width: 36px; height: 36px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #ff9a00, #ee0979);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  border: 2px solid rgba(255,255,255,.4);
+}
+.start-menu-username { color: white; font-weight: 700; font-size: 13px; }
+.start-menu-body { display: flex; flex: 1; }
+.start-menu-left {
+  flex: 1;
+  border-right: 1px solid var(--xp-silver2);
+  padding: 4px 0;
+}
+.start-menu-right {
+  width: 130px;
+  background: #dce8f8;
+  padding: 4px 0;
+}
+.start-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--xp-text);
+  transition: background .1s;
+}
+.start-menu-item:hover { background: var(--xp-hilite); color: white; }
+.start-menu-item-icon { font-size: 18px; }
+.start-menu-sep { height: 1px; background: var(--xp-silver2); margin: 3px 0; }
+.start-menu-footer {
+  background: linear-gradient(to right, #1a4fa0, #3a7ff0);
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 4px 6px;
+}
+.start-footer-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: linear-gradient(to bottom, #5a80cc 0%, #3a60b8 100%);
+  border: 1px solid #1a3a80;
+  border-radius: 3px;
+  color: white;
+  font-size: 10px;
+  cursor: pointer;
+}
+.start-footer-btn:hover { filter: brightness(1.15); }
+
+/* ─── ERROR DIALOG ─── */
+.error-dialog {
+  position: absolute;
+  width: 340px;
+  background: var(--xp-silver);
+  border-radius: 8px 8px 0 0;
+  box-shadow: 3px 3px 8px rgba(0,0,0,.4);
+  z-index: 9000;
+  display: none;
+}
+.error-dialog.open { display: flex; flex-direction: column; }
+.error-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+}
+.error-icon { font-size: 32px; flex-shrink: 0; }
+.error-text { font-size: 11px; line-height: 1.5; color: var(--xp-text); }
+.error-btns {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 14px 14px;
+}
+.xp-btn {
+  min-width: 75px;
+  height: 23px;
+  background: linear-gradient(to bottom, var(--xp-silver3) 0%, var(--xp-silver2) 100%);
+  border: 1px solid var(--xp-border-dk);
+  border-radius: 3px;
+  font-size: 11px;
+  font-family: Tahoma, sans-serif;
+  cursor: pointer;
+  padding: 0 10px;
+  transition: background .1s;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+}
+.xp-btn:hover {
+  background: linear-gradient(to bottom, #dce8ff 0%, #b8d0f8 100%);
+  border-color: var(--xp-blue-light);
+}
+.xp-btn:active { box-shadow: inset 1px 1px 2px rgba(0,0,0,.2); }
+.xp-btn.default { border-color: #1a4fa0; box-shadow: 0 0 0 1px #1a4fa0, inset 0 1px 0 rgba(255,255,255,.8); }
+
+/* ─── PROJECT MODAL (VENTANA DE PROYECTO) ─── */
+#win-project-modal {
+  top: 50px; left: 80px; width: 580px; height: 480px;
+  display: none;
+  z-index: 9500;
+}
+.project-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: 100%;
+  overflow: hidden;
+  background: white;
+}
+.project-modal-header-bar {
+  background: linear-gradient(to right, #d9e8f8, #eef4fd);
+  border-bottom: 1px solid #aac0e0;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.project-modal-icon { font-size: 36px; flex-shrink: 0; }
+.project-modal-title-block { flex: 1; }
+.project-modal-title { font-size: 14px; font-weight: 700; color: #1a4fa0; margin-bottom: 2px; }
+.project-modal-subtitle { font-size: 10px; color: #666; }
+.project-modal-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.project-modal-desc {
+  font-size: 11px;
+  line-height: 1.7;
+  color: #222;
+  padding: 8px 10px;
+  background: #f8f8f8;
+  border: 1px solid #e0ddd4;
+  border-radius: 2px;
+}
+.project-modal-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: #1a4fa0;
+  background: #d9e8f8;
+  border-top: 1px solid #aac0e0;
+  border-bottom: 1px solid #aac0e0;
+  padding: 3px 8px;
+  margin: 4px -14px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.project-modal-media-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0;
+}
+.project-media-thumb {
+  width: 80px; height: 60px;
+  object-fit: cover;
+  border: 1px solid #c0bca8;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: border-color .1s, box-shadow .1s;
+}
+.project-media-thumb:hover {
+  border-color: var(--xp-blue-light);
+  box-shadow: 0 0 0 1px var(--xp-blue-light);
+}
+.project-media-audio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  background: #f0ede3;
+  border: 1px solid #c0bca8;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: background .1s;
+}
+.project-media-audio:hover { background: #dff0ff; border-color: #aac8ee; }
+.project-media-video {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  background: #f0ede3;
+  border: 1px solid #c0bca8;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: background .1s;
+}
+.project-media-video:hover { background: #dff0ff; border-color: #aac8ee; }
+.project-modal-links {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.project-ext-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border: 1px solid #d0d8e8;
+  border-radius: 2px;
+  background: #f8f8ff;
+  cursor: pointer;
+  text-decoration: none;
+  color: #1a4fa0;
+  font-size: 11px;
+  transition: background .1s;
+}
+.project-ext-link:hover { background: #e8f0ff; text-decoration: underline; }
+.project-modal-footer {
+  background: var(--xp-silver);
+  border-top: 1px solid var(--xp-border-md);
+  padding: 6px 10px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+/* Desktop project icons */
+.desktop-project-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  width: 72px;
+  padding: 4px;
+  border-radius: 2px;
+  transition: background .1s;
+  user-select: none;
+  position: relative;
+}
+.desktop-project-icon:hover .icon-label { background: var(--xp-hilite); color: #fff; }
+.desktop-project-icon:active { opacity: .8; }
+.project-badge {
+  position: absolute;
+  top: 2px; right: 4px;
+  width: 10px; height: 10px;
+  background: #f07060;
+  border-radius: 50%;
+  border: 1px solid #800000;
+}
+
+/* Scrollbar XP style */
+::-webkit-scrollbar { width: 16px; }
+::-webkit-scrollbar-track { background: var(--xp-silver2); }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(to right, #d8d4c8 0%, #c0bca8 50%, #b0aca0 100%);
+  border: 1px solid var(--xp-border-md);
+}
+::-webkit-scrollbar-button {
+  background: var(--xp-silver2);
+  border: 1px solid var(--xp-border-md);
+  height: 16px;
+}
+
+/* ─── WINDOW POSITIONS ─── */
+#win-projects { top: 30px; left: 40px; width: 620px; height: 400px; }
+#win-bio      { top: 60px; left: 100px; width: 480px; height: 340px; display: none; }
+#win-services { top: 80px; left: 80px; width: 500px; height: 380px; display: none; }
+#win-social   { top: 50px; left: 60px; width: 420px; height: 340px; display: none; }
+#win-error    { top: 140px; left: 200px; }
+
+/* ─── WINDOW POSITIONS (NUEVAS) ─── */
+#win-wmp      { top: 90px; left: 120px; width: 340px; height: auto; display: none; }
+#win-viewer   { top: 70px; left: 160px; width: 520px; height: 440px; display: none; }
+
+/* ─── WINDOWS MEDIA PLAYER ─── */
+.wmp-container {
+  background: linear-gradient(180deg, #1c3c73 0%, #2e59a1 40%, #1a335c 100%);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+}
+.wmp-screen {
+  background: black;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border: 1px solid #102040;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+  overflow: hidden;
+}
+.wmp-screen video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.wmp-visualizer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  width: 140px;
+  height: 70px;
+}
+.wmp-vis-bar {
+  width: 8px;
+  background: linear-gradient(to top, #00ff00 0%, #ffff00 75%, #ff0000 100%);
+  height: 15%;
+  border-radius: 1px;
+  transition: height 0.05s ease;
+}
+.wmp-visualizer.playing .wmp-vis-bar {
+  animation: wmp-eq 0.7s ease infinite alternate;
+}
+.wmp-visualizer.playing .wmp-vis-bar:nth-child(1) { animation-delay: 0.1s; }
+.wmp-visualizer.playing .wmp-vis-bar:nth-child(2) { animation-delay: 0.3s; }
+.wmp-visualizer.playing .wmp-vis-bar:nth-child(3) { animation-delay: 0.2s; }
+.wmp-visualizer.playing .wmp-vis-bar:nth-child(4) { animation-delay: 0.4s; }
+.wmp-visualizer.playing .wmp-vis-bar:nth-child(5) { animation-delay: 0.15s; }
+.wmp-visualizer.playing .wmp-vis-bar:nth-child(6) { animation-delay: 0.35s; }
+.wmp-visualizer.playing .wmp-vis-bar:nth-child(7) { animation-delay: 0.05s; }
+.wmp-visualizer.playing .wmp-vis-bar:nth-child(8) { animation-delay: 0.25s; }
+
+@keyframes wmp-eq {
+  0% { height: 10%; }
+  100% { height: 95%; }
+}
+.wmp-info-marquee {
+  background: #000;
+  border: 1px solid #3e6ea1;
+  color: #00ff00;
+  font-family: monospace;
+  font-size: 11px;
+  padding: 4px 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-shadow: 0 0 2px #005500;
+}
+.wmp-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.wmp-seekbar-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: white;
+}
+.wmp-seekbar {
+  flex: 1;
+  -webkit-appearance: none;
+  background: #3e6ea1;
+  height: 6px;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+.wmp-seekbar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ece9d8;
+  border: 1px solid #1a335c;
+  box-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  cursor: pointer;
+}
+.wmp-btn-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 4px;
+}
+.wmp-play-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.wmp-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #ece9d8 0%, #b5b2a1 100%);
+  border: 1px solid #787564;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 10px;
+  box-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+  color: #000;
+}
+.wmp-btn:hover {
+  background: linear-gradient(180deg, #ffffff 0%, #d4d0c8 100%);
+}
+.wmp-btn:active {
+  background: linear-gradient(180deg, #d4d0c8 0%, #888574 100%);
+  box-shadow: inset 1px 1px 2px rgba(0,0,0,0.3);
+}
+.wmp-btn.wmp-play {
+  width: 30px;
+  height: 30px;
+  background: linear-gradient(180deg, #81c850 0%, #468c18 100%);
+  border-color: #28500c;
+  color: white;
+  font-size: 12px;
+}
+.wmp-btn.wmp-play:hover {
+  background: linear-gradient(180deg, #a1e870 0%, #5ba42c 100%);
+}
+.wmp-volume-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: white;
+}
+.wmp-volbar {
+  width: 60px;
+  -webkit-appearance: none;
+  background: #3e6ea1;
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+.wmp-volbar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ece9d8;
+  border: 1px solid #1a335c;
+  cursor: pointer;
+}
+
+/* ─── WINDOW PICTURE & FAX VIEWER ─── */
+.viewer-container {
+  background: var(--xp-silver3);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.viewer-workspace {
+  flex: 1;
+  background: #555;
+  border: 2px inset var(--xp-border-dk);
+  margin: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+.viewer-img-container {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s ease;
+  transform-origin: center center;
+}
+.viewer-workspace img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+}
+.viewer-toolbar {
+  height: 38px;
+  background: var(--xp-silver);
+  border-top: 1px solid var(--xp-border-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px;
+}
+.viewer-tool-btn {
+  height: 26px;
+  min-width: 26px;
+  padding: 0 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  border-radius: 3px;
+  color: #333;
+}
+.viewer-tool-btn:hover {
+  background: linear-gradient(to bottom, #fff 0%, #d4d0c8 100%);
+  border-color: var(--xp-border-dk);
+  box-shadow: 1px 1px 1px rgba(0,0,0,0.1);
+}
+.viewer-tool-btn:active {
+  background: #d4d0c8;
+  border-color: var(--xp-border-dk);
+  box-shadow: inset 1px 1px 1px rgba(0,0,0,0.2);
+}
+.viewer-tool-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--xp-border-md);
+  margin: 0 4px;
+}
+
+
+
+/* ════════ CAPA DE TEMA Y GADGETS (generado por el editor) ════════ */
+.gadget {
+  position: absolute;
+  z-index: 50;
+  background: rgba(20,28,48,.78);
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 8px;
+  box-shadow: 0 4px 18px rgba(0,0,0,.45);
+  color: #fff;
+  font-family: inherit;
+  padding: 10px 12px;
+  backdrop-filter: blur(4px);
+  user-select: none;
+  cursor: default;
+}
+.gadget-clock { text-align: center; min-width: 120px; }
+.gadget-clock .gc-time { font-size: 30px; font-weight: 700; line-height: 1; letter-spacing: 1px; }
+.gadget-clock .gc-date { font-size: 10px; opacity: .8; margin-top: 4px; }
+.gadget-link {
+  display: flex; align-items: center; gap: 8px;
+  text-decoration: none; color: #fff; cursor: pointer;
+  font-size: 12px; font-weight: 700; min-width: 90px;
+}
+.gadget-link .gl-icon { font-size: 22px; }
+.gadget-link:hover { filter: brightness(1.2); }
+.gadget-gif { padding: 4px; background: rgba(0,0,0,.55); }
+.gadget-gif img { display: block; border-radius: 4px; max-width: 220px; max-height: 220px; }
+.gadget-gif .gg-cap { font-size: 9px; text-align: center; opacity: .8; margin-top: 3px; }
+</style>
+</head>
+<body>
+
+<div class="desktop" id="desktop">
+
+  <!-- Desktop icons -->
+  <div class="desktop-icons">
+    <div class="desktop-icon" ondblclick="openWindow('win-projects')">
+      <div class="icon-img">🖥️</div>
+      <div class="icon-label">Mi Portafolio</div>
+    </div>
+    <div class="desktop-icon" ondblclick="openWindow('win-bio')">
+      <div class="icon-img">📄</div>
+      <div class="icon-label">Sobre Mí.txt</div>
+    </div>
+    <div class="desktop-icon" ondblclick="openWindow('win-services')">
+      <div class="icon-img">⚙️</div>
+      <div class="icon-label">Servicios</div>
+    </div>
+    <div class="desktop-icon" ondblclick="openWindow('win-social')">
+      <div class="icon-img">🌐</div>
+      <div class="icon-label">Links</div>
+    </div>
+    <div class="desktop-icon" ondblclick="showError()">
+      <div class="icon-img">🗑️</div>
+      <div class="icon-label">Papelera</div>
+    </div>
+    <!-- Proyectos principales -->
+    <div id="desktop-project-icons"></div>
+  </div>
+
+  <!-- Gadgets personalizados -->
+  <div id="desktop-gadgets"></div>
+
+  <!-- ──── WINDOW: PROJECTS ──── -->
+  <div class="window" id="win-projects" onclick="bringToFront('win-projects')">
+    <div class="titlebar" onmousedown="startDrag(event, 'win-projects')">
+      <span class="titlebar-icon">🖥️</span>
+      <span class="titlebar-text">Mi Portafolio — Explorador de Windows</span>
+      <div class="win-btns">
+        <button class="win-btn btn-min" onclick.stop onclick="minimizeWindow('win-projects', event)">&#x2013;</button>
+        <button class="win-btn btn-max">&#x25A1;</button>
+        <button class="win-btn btn-close" onclick="closeWindow('win-projects', event)">✕</button>
+      </div>
+    </div>
+    <div class="menubar">
+      <span class="menu-item">Archivo</span>
+      <span class="menu-item">Editar</span>
+      <span class="menu-item">Ver</span>
+      <span class="menu-item">Favoritos</span>
+      <span class="menu-item">Herramientas</span>
+      <span class="menu-item">Ayuda</span>
+    </div>
+    <div class="toolbar">
+      <button class="toolbar-btn">◀ Atrás</button>
+      <button class="toolbar-btn">▶ Adelante</button>
+      <div class="toolbar-sep"></div>
+      <button class="toolbar-btn">🔼 Arriba</button>
+      <div class="toolbar-sep"></div>
+      <button class="toolbar-btn">🔍 Buscar</button>
+      <button class="toolbar-btn">📁 Carpetas</button>
+    </div>
+    <div class="addrbar">
+      <span class="addr-label">Dirección</span>
+      <input class="addr-input" value="C:\Portafolio\Proyectos" readonly>
+    </div>
+    <div class="window-body" style="flex:1;overflow:hidden">
+      <div class="win-sidebar">
+        <div class="win-sidebar-section">
+          <div class="win-sidebar-header">Tareas de archivo</div>
+          <a class="win-sidebar-item" onclick="openWindow('win-bio')">
+            <span class="win-sidebar-icon">📄</span> Ver Bio
+          </a>
+          <a class="win-sidebar-item" onclick="openWindow('win-services')">
+            <span class="win-sidebar-icon">⚙️</span> Servicios
+          </a>
+          <a class="win-sidebar-item" onclick="openWindow('win-social')">
+            <span class="win-sidebar-icon">🌐</span> Links
+          </a>
+        </div>
+        <div class="win-sidebar-section">
+          <div class="win-sidebar-header">Otros sitios</div>
+          <a class="win-sidebar-item" href="https://www.soundcloud.com/nadanadaorion" target="_blank"><span class="win-sidebar-icon">🎵</span> SoundCloud</a>
+          <a class="win-sidebar-item" href="https://www.instagram.com/nadanadaorion" target="_blank"><span class="win-sidebar-icon">📸</span> Instagram</a>
+          <a class="win-sidebar-item" href="https://www.behance.net/nadanadaorion" target="_blank"><span class="win-sidebar-icon">🎨</span> Behance</a>
+        </div>
+        <div class="win-sidebar-section">
+          <div class="win-sidebar-header">Detalles</div>
+          <div style="padding:8px;font-size:10px;color:rgba(255,255,255,.8);line-height:1.7">
+            <div><b style="color:white">Portafolio</b></div>
+            <div>Tipo: Carpeta</div>
+            <div>Elementos: 12</div>
+            <div>Modificado: hoy</div>
+          </div>
+        </div>
+      </div>
+      <div class="win-content">
+        <div class="content-section-title">🎵 Música / Beats</div>
+        <div class="icon-grid" id="grid-music">
+          <!-- Se cargan dinámicamente -->
+        </div>
+        <div class="content-section-title">🎨 Diseño Gráfico</div>
+        <div class="icon-grid" id="grid-design">
+          <!-- Se cargan dinámicamente -->
+        </div>
+      </div>
+    </div>
+    <div class="statusbar">
+      <div class="status-panel" id="status-projects">12 objetos</div>
+      <div class="status-panel">2 objetos seleccionados</div>
+    </div>
+  </div>
+
+  <!-- ──── WINDOW: BIO (NOTEPAD) ──── -->
+  <div class="window" id="win-bio" onclick="bringToFront('win-bio')">
+    <div class="titlebar" onmousedown="startDrag(event, 'win-bio')">
+      <span class="titlebar-icon">📄</span>
+      <span class="titlebar-text">Sobre Mí.txt — Bloc de notas</span>
+      <div class="win-btns">
+        <button class="win-btn btn-min" onclick="minimizeWindow('win-bio', event)">&#x2013;</button>
+        <button class="win-btn btn-max">&#x25A1;</button>
+        <button class="win-btn btn-close" onclick="closeWindow('win-bio', event)">✕</button>
+      </div>
+    </div>
+    <div class="menubar">
+      <span class="menu-item">Archivo</span>
+      <span class="menu-item">Editar</span>
+      <span class="menu-item">Formato</span>
+      <span class="menu-item">Ver</span>
+      <span class="menu-item">Ayuda</span>
+    </div>
+    <div class="win-content" style="flex:1">
+      <textarea class="notepad-area" id="bio-text" readonly>====================================
+  SOBRE MÍ — Orion
+  Productor Musical & Diseñador Visual
+  Puebla, México
+====================================
+
+Hola, soy Orion.
+
+Trabajo en la intersección entre el sonido y la imagen.
+Produzco música electrónica y diseño identidades visuales
+para artistas independientes, sellos y marcas creativas.
+
+------------------------------------
+  EXPERIENCIA
+------------------------------------
+
+  • 6 años produciendo música
+  • 200+ beats originales
+  • 48 proyectos completados
+  • Géneros: Electronic, Trap, Ambient,
+    Hip Hop, Lo-fi
+
+------------------------------------
+  HERRAMIENTAS
+------------------------------------
+
+  DAW:     Ableton Live 11
+  Diseño:  Photoshop, Illustrator, Figma
+  Plugins: Serum, Omnisphere, Fab Filter
+
+------------------------------------
+  CONTACTO
+------------------------------------
+
+  📧 tu@email.com
+  🌐 orion.com
+
+====================================</textarea>
+    </div>
+    <div class="statusbar">
+      <div class="status-panel">Ln 1, Col 1</div>
+      <div class="status-panel" style="flex:0;padding:0 16px">100%</div>
+    </div>
+  </div>
+
+  <!-- ──── WINDOW: SERVICES (PROPERTIES) ──── -->
+  <div class="window" id="win-services" onclick="bringToFront('win-services')">
+    <div class="titlebar" onmousedown="startDrag(event, 'win-services')">
+      <span class="titlebar-icon">⚙️</span>
+      <span class="titlebar-text">Servicios — Propiedades</span>
+      <div class="win-btns">
+        <button class="win-btn btn-min" onclick="minimizeWindow('win-services', event)">&#x2013;</button>
+        <button class="win-btn btn-max">&#x25A1;</button>
+        <button class="win-btn btn-close" onclick="closeWindow('win-services', event)">✕</button>
+      </div>
+    </div>
+    <div class="props-tabs">
+      <div class="props-tab active" onclick="showTab('general')">General</div>
+      <div class="props-tab" onclick="showTab('music')">Música</div>
+      <div class="props-tab" onclick="showTab('design')">Diseño</div>
+      <div class="props-tab" onclick="showTab('contact')">Contacto</div>
+    </div>
+    <div class="win-content" id="services-content" style="flex:1;background:var(--xp-silver)">
+      <!-- General -->
+      <div class="props-tab-content active" id="tab-general">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <span style="font-size:36px">⚙️</span>
+          <div>
+            <div style="font-weight:700;font-size:13px">Orion</div>
+            <div style="font-size:11px;color:#666">Productor Musical & Diseñador Visual</div>
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--xp-border-md);padding-top:8px">
+          <div class="props-row"><div class="props-key">Nombre:</div><div class="props-val">Orion</div></div>
+          <div class="props-row"><div class="props-key">Tipo:</div><div class="props-val">Freelancer independiente</div></div>
+          <div class="props-row"><div class="props-key">Ubicación:</div><div class="props-val">Puebla, México</div></div>
+          <div class="props-row"><div class="props-key">Experiencia:</div><div class="props-val">6 años</div></div>
+          <div class="props-row"><div class="props-key">Disponible:</div><div class="props-val" style="color:green">✔ Sí, para proyectos nuevos</div></div>
+          <div class="props-row"><div class="props-key">Idiomas:</div><div class="props-val">Español, Inglés</div></div>
+        </div>
+      </div>
+      <!-- Música -->
+      <div class="props-tab-content" id="tab-music">
+        <div class="service-item"><span class="props-icon">🎵</span><div><div class="service-name-xp">Producción Musical</div><div class="service-desc-xp">Beats originales, arreglos completos para artistas y sellos</div></div></div>
+        <div class="service-item"><span class="props-icon">🎚️</span><div><div class="service-name-xp">Mixing & Mastering</div><div class="service-desc-xp">Mezcla profesional lista para plataformas de streaming</div></div></div>
+        <div class="service-item"><span class="props-icon">📦</span><div><div class="service-name-xp">Beat Packs & Sample Kits</div><div class="service-desc-xp">Packs de samples, drum kits y presets</div></div></div>
+        <div class="service-item"><span class="props-icon">🔑</span><div><div class="service-name-xp">Licensing de Beats</div><div class="service-desc-xp">Licencias para sync, cine y publicidad</div></div></div>
+      </div>
+      <!-- Diseño -->
+      <div class="props-tab-content" id="tab-design">
+        <div class="service-item"><span class="props-icon">🎨</span><div><div class="service-name-xp">Identidad Visual</div><div class="service-desc-xp">Logos, paletas y sistemas de diseño para artistas</div></div></div>
+        <div class="service-item"><span class="props-icon">🖼️</span><div><div class="service-name-xp">Cover Art</div><div class="service-desc-xp">Arte de portada para singles, EPs y álbumes</div></div></div>
+        <div class="service-item"><span class="props-icon">📱</span><div><div class="service-name-xp">Diseño para Redes</div><div class="service-desc-xp">Contenido visual para Instagram, YouTube y más</div></div></div>
+      </div>
+      <!-- Contacto -->
+      <div class="props-tab-content" id="tab-contact">
+        <div class="props-row"><div class="props-key">Email:</div><div class="props-val" style="color:#1a4fa0">tu@email.com</div></div>
+        <div class="props-row"><div class="props-key">Instagram:</div><div class="props-val">@nadanadaorion</div></div>
+        <div class="props-row"><div class="props-key">SoundCloud:</div><div class="props-val">soundcloud.com/nadanadaorion</div></div>
+        <div class="props-row"><div class="props-key">Behance:</div><div class="props-val">behance.net/nadanadaorion</div></div>
+        <div style="margin-top:16px;display:flex;justify-content:flex-end;gap:6px">
+          <button class="xp-btn default">Aceptar</button>
+          <button class="xp-btn">Cancelar</button>
+          <button class="xp-btn">Aplicar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──── WINDOW: SOCIAL (IE) ──── -->
+  <div class="window" id="win-social" onclick="bringToFront('win-social')">
+    <div class="titlebar" onmousedown="startDrag(event, 'win-social')">
+      <span class="titlebar-icon">🌐</span>
+      <span class="titlebar-text">Links — Microsoft Internet Explorer</span>
+      <div class="win-btns">
+        <button class="win-btn btn-min" onclick="minimizeWindow('win-social', event)">&#x2013;</button>
+        <button class="win-btn btn-max">&#x25A1;</button>
+        <button class="win-btn btn-close" onclick="closeWindow('win-social', event)">✕</button>
+      </div>
+    </div>
+    <div class="menubar">
+      <span class="menu-item">Archivo</span>
+      <span class="menu-item">Editar</span>
+      <span class="menu-item">Ver</span>
+      <span class="menu-item">Favoritos</span>
+      <span class="menu-item">Herramientas</span>
+      <span class="menu-item">Ayuda</span>
+    </div>
+    <div class="toolbar">
+      <button class="toolbar-btn">◀</button>
+      <button class="toolbar-btn">▶</button>
+      <button class="toolbar-btn">✕</button>
+      <button class="toolbar-btn">🔄</button>
+      <button class="toolbar-btn">🏠</button>
+      <div class="toolbar-sep"></div>
+      <button class="toolbar-btn">🔍 Buscar</button>
+      <button class="toolbar-btn">⭐ Favoritos</button>
+    </div>
+    <div class="addrbar">
+      <span class="addr-label">Dirección</span>
+      <input class="addr-input" value="http://www.nadanadaorion.com/links" readonly>
+    </div>
+    <div class="win-content" style="flex:1">
+      <div class="ie-content" id="links-content">
+        <div class="ie-title">🌐 Links — Orion</div>
+        <a class="ie-link" href="https://www.instagram.com/nadanadaorion" target="_blank">
+          <span class="ie-link-icon">📸</span>
+          <div><div class="ie-link-name">Instagram</div><div class="ie-link-url">www.instagram.com/nadanadaorion</div></div>
+        </a>
+        <a class="ie-link" href="https://www.soundcloud.com/nadanadaorion" target="_blank">
+          <span class="ie-link-icon">🎵</span>
+          <div><div class="ie-link-name">SoundCloud</div><div class="ie-link-url">www.soundcloud.com/nadanadaorion</div></div>
+        </a>
+        <a class="ie-link" href="https://open.spotify.com/artist/nadanadaorion" target="_blank">
+          <span class="ie-link-icon">🎧</span>
+          <div><div class="ie-link-name">Spotify</div><div class="ie-link-url">open.spotify.com/artist/nadanadaorion</div></div>
+        </a>
+        <a class="ie-link" href="https://www.behance.net/nadanadaorion" target="_blank">
+          <span class="ie-link-icon">🎨</span>
+          <div><div class="ie-link-name">Behance</div><div class="ie-link-url">www.behance.net/nadanadaorion</div></div>
+        </a>
+        <a class="ie-link" href="https://www.youtube.com/@nadanadaorion" target="_blank">
+          <span class="ie-link-icon">▶️</span>
+          <div><div class="ie-link-name">YouTube</div><div class="ie-link-url">www.youtube.com/@nadanadaorion</div></div>
+        </a>
+        <a class="ie-link" href="https://www.linktr.ee/nadanadaorion" target="_blank">
+          <span class="ie-link-icon">🔗</span>
+          <div><div class="ie-link-name">Linktree</div><div class="ie-link-url">www.linktr.ee/nadanadaorion</div></div>
+        </a>
+        <div style="margin-top:10px;padding-top:8px;border-top:1px solid #d0d8e8;font-size:10px;color:#666">
+          ⚠️ Algunos vínculos pueden requerir conexión a Internet Explorer 6.0 o superior.
+        </div>
+      </div>
+    </div>
+    <div class="statusbar">
+      <div class="status-panel">✔ Listo</div>
+      <div class="status-panel" style="flex:0;padding:0 16px">🌐 Internet</div>
+    </div>
+  </div>
+
+  <!-- ──── ERROR DIALOG ──── -->
+  <div class="window error-dialog" id="win-error">
+    <div class="titlebar" onmousedown="startDrag(event, 'win-error')">
+      <span class="titlebar-icon">⚠️</span>
+      <span class="titlebar-text">Papelera de reciclaje</span>
+      <div class="win-btns">
+        <button class="win-btn btn-close" onclick="closeWindow('win-error', event)">✕</button>
+      </div>
+    </div>
+    <div class="error-body">
+      <div class="error-icon">⚠️</div>
+      <div class="error-text" id="trash-text">
+        <b>La Papelera de reciclaje está vacía.</b><br><br>
+        No hay proyectos malos aquí.<br>
+        Todo lo que ves en este portafolio<br>
+        fue hecho con intención 🎵🎨
+      </div>
+    </div>
+    <div class="error-btns">
+      <button class="xp-btn default" onclick="closeWindow('win-error', event)">Aceptar</button>
+    </div>
+  </div>
+
+  <!-- ──── WINDOW: WINDOWS MEDIA PLAYER ──── -->
+  <div class="window" id="win-wmp" onclick="bringToFront('win-wmp')">
+    <div class="titlebar" onmousedown="startDrag(event, 'win-wmp')">
+      <span class="titlebar-icon">🎵</span>
+      <span class="titlebar-text" id="wmp-title-text">Windows Media Player</span>
+      <div class="win-btns">
+        <button class="win-btn btn-min" onclick="minimizeWindow('win-wmp', event)">&#x2013;</button>
+        <button class="win-btn btn-max">&#x25A1;</button>
+        <button class="win-btn btn-close" onclick="closeWindow('win-wmp', event)">✕</button>
+      </div>
+    </div>
+    <div class="menubar">
+      <span class="menu-item">Archivo</span>
+      <span class="menu-item">Reproducir</span>
+      <span class="menu-item">Ver</span>
+      <span class="menu-item">Ayuda</span>
+    </div>
+    <div class="window-body" style="flex:1;overflow:hidden">
+      <div class="wmp-container">
+        <!-- Elementos ocultos de reproducción HTML5 -->
+        <audio id="wmp-audio" style="display:none"></audio>
+        
+        <div class="wmp-screen" id="wmp-screen">
+          <video id="wmp-video" style="display:none" playsinline muted="false"></video>
+          
+          <!-- Ecualizador animado para audios -->
+          <div class="wmp-visualizer" id="wmp-visualizer">
+            <div class="wmp-vis-bar"></div>
+            <div class="wmp-vis-bar"></div>
+            <div class="wmp-vis-bar"></div>
+            <div class="wmp-vis-bar"></div>
+            <div class="wmp-vis-bar"></div>
+            <div class="wmp-vis-bar"></div>
+            <div class="wmp-vis-bar"></div>
+            <div class="wmp-vis-bar"></div>
+          </div>
+        </div>
+        
+        <div class="wmp-info-marquee" id="wmp-marquee">
+          Listo para reproducir...
+        </div>
+        
+        <div class="wmp-controls">
+          <div class="wmp-seekbar-container">
+            <span id="wmp-time-elapsed">00:00</span>
+            <input type="range" class="wmp-seekbar" id="wmp-seekbar" min="0" max="100" value="0">
+            <span id="wmp-time-total">00:00</span>
+          </div>
+          
+          <div class="wmp-btn-row">
+            <div class="wmp-play-controls">
+              <button class="wmp-btn" id="wmp-btn-prev" onclick="prevMedia()">⏮</button>
+              <button class="wmp-btn wmp-play" id="wmp-btn-play" onclick="togglePlayMedia()">▶</button>
+              <button class="wmp-btn" id="wmp-btn-stop" onclick="stopMedia()">■</button>
+              <button class="wmp-btn" id="wmp-btn-next" onclick="nextMedia()">⏭</button>
+            </div>
+            
+            <div class="wmp-volume-container">
+              <button class="wmp-btn" id="wmp-btn-mute" style="width:20px;height:20px;border-radius:2px;font-size:9px" onclick="toggleMuteMedia()">🔊</button>
+              <input type="range" class="wmp-volbar" id="wmp-volbar" min="0" max="1" step="0.05" value="0.8">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="statusbar">
+      <div class="status-panel" id="wmp-status">Listo</div>
+      <div class="status-panel" style="flex:0;padding:0 8px">Orion WMP</div>
+    </div>
+  </div>
+
+  <!-- ──── WINDOW: PICTURE & FAX VIEWER ──── -->
+  <div class="window" id="win-viewer" onclick="bringToFront('win-viewer')">
+    <div class="titlebar" onmousedown="startDrag(event, 'win-viewer')">
+      <span class="titlebar-icon">🖼️</span>
+      <span class="titlebar-text" id="viewer-title-text">Visor de imágenes y fax de Windows</span>
+      <div class="win-btns">
+        <button class="win-btn btn-min" onclick="minimizeWindow('win-viewer', event)">&#x2013;</button>
+        <button class="win-btn btn-max">&#x25A1;</button>
+        <button class="win-btn btn-close" onclick="closeWindow('win-viewer', event)">✕</button>
+      </div>
+    </div>
+    <div class="window-body" style="flex:1;overflow:hidden">
+      <div class="viewer-container">
+        <div class="viewer-workspace" id="viewer-workspace">
+          <div class="viewer-img-container" id="viewer-img-container">
+            <img id="viewer-img" src="" alt="Visor">
+          </div>
+        </div>
+        
+        <div class="viewer-toolbar">
+          <button class="viewer-tool-btn" title="Anterior" onclick="prevViewerImage()">◀</button>
+          <button class="viewer-tool-btn" title="Siguiente" onclick="nextViewerImage()">▶</button>
+          <div class="viewer-tool-sep"></div>
+          <button class="viewer-tool-btn" title="Acercar" onclick="zoomViewer(1.2)">🔍+</button>
+          <button class="viewer-tool-btn" title="Alejar" onclick="zoomViewer(0.8)">🔍-</button>
+          <button class="viewer-tool-btn" title="Restablecer" onclick="resetViewerTransform()">🖥️</button>
+          <div class="viewer-tool-sep"></div>
+          <button class="viewer-tool-btn" title="Rotar en sentido horario" onclick="rotateViewer(90)">🔄</button>
+          <button class="viewer-tool-btn" title="Rotar en sentido antihorario" onclick="rotateViewer(-90)">⟳</button>
+        </div>
+      </div>
+    </div>
+    <div class="statusbar">
+      <div class="status-panel" id="viewer-status">Listo</div>
+      <div class="status-panel" style="flex:0;padding:0 8px" id="viewer-info">100%</div>
+    </div>
+  </div>
+
+
+  <!-- ──── WINDOW: PROJECT MODAL ──── -->
+  <div class="window" id="win-project-modal" onclick="bringToFront('win-project-modal')">
+    <div class="titlebar" onmousedown="startDrag(event, 'win-project-modal')">
+      <span class="titlebar-icon" id="pm-title-icon">📁</span>
+      <span class="titlebar-text" id="pm-title-text">Proyecto — Explorador de Windows</span>
+      <div class="win-btns">
+        <button class="win-btn btn-min" onclick="minimizeWindow('win-project-modal', event)">&#x2013;</button>
+        <button class="win-btn btn-max">&#x25A1;</button>
+        <button class="win-btn btn-close" onclick="closeWindow('win-project-modal', event)">✕</button>
+      </div>
+    </div>
+    <div class="menubar">
+      <span class="menu-item">Archivo</span>
+      <span class="menu-item">Editar</span>
+      <span class="menu-item">Ver</span>
+      <span class="menu-item">Herramientas</span>
+      <span class="menu-item">Ayuda</span>
+    </div>
+    <div class="project-modal-body">
+      <div class="project-modal-header-bar">
+        <div class="project-modal-icon" id="pm-icon">📁</div>
+        <div class="project-modal-title-block">
+          <div class="project-modal-title" id="pm-name">Proyecto</div>
+          <div class="project-modal-subtitle" id="pm-category">Categoría</div>
+        </div>
+      </div>
+      <div class="project-modal-content" id="pm-content">
+        <!-- Se llena dinámicamente -->
+      </div>
+      <div class="project-modal-footer">
+        <button class="xp-btn default" onclick="closeWindow('win-project-modal', event)">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──── START MENU ──── -->
+  <div class="start-menu" id="start-menu">
+    <div class="start-menu-header">
+      <div class="start-menu-avatar">🎵</div>
+      <div class="start-menu-username">Orion</div>
+    </div>
+    <div class="start-menu-body">
+      <div class="start-menu-left">
+        <div class="start-menu-item" onclick="openWindow('win-projects');toggleStart()">
+          <span class="start-menu-item-icon">🖥️</span> Mi Portafolio
+        </div>
+        <div class="start-menu-item" onclick="openWindow('win-bio');toggleStart()">
+          <span class="start-menu-item-icon">📄</span> Sobre Mí
+        </div>
+        <div class="start-menu-item" onclick="openWindow('win-services');toggleStart()">
+          <span class="start-menu-item-icon">⚙️</span> Servicios
+        </div>
+        <div class="start-menu-item" onclick="openWindow('win-social');toggleStart()">
+          <span class="start-menu-item-icon">🌐</span> Links
+        </div>
+        <div class="start-menu-sep"></div>
+        <div class="start-menu-item"><span class="start-menu-item-icon">📧</span> tu@email.com</div>
+      </div>
+      <div class="start-menu-right">
+        <div class="start-menu-item"><span class="start-menu-item-icon">📁</span> Documentos</div>
+        <div class="start-menu-item"><span class="start-menu-item-icon">🖼️</span> Imágenes</div>
+        <div class="start-menu-item"><span class="start-menu-item-icon">🎵</span> Música</div>
+        <div class="start-menu-sep"></div>
+        <div class="start-menu-item"><span class="start-menu-item-icon">⚙️</span> Panel de control</div>
+        <div class="start-menu-item"><span class="start-menu-item-icon">🔍</span> Buscar</div>
+        <div class="start-menu-item"><span class="start-menu-item-icon">❓</span> Ayuda</div>
+      </div>
+    </div>
+    <div class="start-menu-footer">
+      <button class="start-footer-btn">🔴 Apagar</button>
+    </div>
+  </div>
+
+  <!-- ──── TASKBAR ──── -->
+  <div class="taskbar">
+    <button class="start-btn" onclick="toggleStart()">
+      <span class="start-logo">⊞</span> Inicio
+    </button>
+    <div style="width:1px;height:20px;background:rgba(255,255,255,.2);margin:0 2px"></div>
+    <button class="taskbar-btn active" id="tb-projects" onclick="toggleWindow('win-projects', 'tb-projects')">
+      <span class="taskbar-btn-icon">🖥️</span> Mi Portafolio
+    </button>
+    <button class="taskbar-btn" id="tb-bio" onclick="toggleWindow('win-bio', 'tb-bio')">
+      <span class="taskbar-btn-icon">📄</span> Sobre Mí.txt
+    </button>
+    <button class="taskbar-btn" id="tb-services" onclick="toggleWindow('win-services', 'tb-services')">
+      <span class="taskbar-btn-icon">⚙️</span> Servicios
+    </button>
+    <button class="taskbar-btn" id="tb-social" onclick="toggleWindow('win-social', 'tb-social')">
+      <span class="taskbar-btn-icon">🌐</span> Links
+    </button>
+    <button class="taskbar-btn" id="tb-wmp" style="display:none" onclick="toggleWindow('win-wmp', 'tb-wmp')">
+      <span class="taskbar-btn-icon">🎵</span> Windows Media Player
+    </button>
+    <button class="taskbar-btn" id="tb-viewer" style="display:none" onclick="toggleWindow('win-viewer', 'tb-viewer')">
+      <span class="taskbar-btn-icon">🖼️</span> Visor de imágenes
+    <div class="systray">
+      <span>🔊</span>
+      <span>🌐</span>
+      <div class="clock" id="clock">12:00</div>
+    </div>
+  </div>
+
+</div><!-- /desktop -->
+
+<script>
+// ─── Z-index manager ───
+let zTop = 100;
+const windowMap = {
+  'win-projects': 'tb-projects',
+  'win-bio':      'tb-bio',
+  'win-services': 'tb-services',
+  'win-social':   'tb-social',
+  'win-wmp':      'tb-wmp',
+  'win-viewer':   'tb-viewer',
+  'win-project-modal': null,
+};
+
+// ─── PROYECTOS PRINCIPALES ───
+// Agrega, edita o elimina proyectos aquí. Cada proyecto puede tener:
+//   name, icon, category, description
+//   media: array de { type:'audio'|'video'|'image', name, url }
+//   links: array de { icon, label, url }
+/* ═══════════════════════════════════════════════════════════
+   DATOS DEL PORTAFOLIO  —  generado por editor-portafolio.html
+   Este único objeto controla proyectos, archivos, gadgets y apariencia.
+   ═══════════════════════════════════════════════════════════ */
+const PORTFOLIO_DATA = /*__PORTFOLIO_DATA__*/{
+  "files": [
+    {
+      "name": "ASI SE SIENTE PERDER - ATLAZZZ",
+      "type": "audio",
+      "url": "ASI SE SIENTE PERDER M&M_3.wav",
+      "category": "music"
+    },
+    {
+      "name": "TODOS CONTRA MI - ATLAZZZ",
+      "type": "audio",
+      "url": "TODOS CONTRA MI M&M_4.wav",
+      "category": "music"
+    },
+    {
+      "name": "QUERIDA - ATLAZZZ",
+      "type": "audio",
+      "url": "QUERIDA M&M_1.wav",
+      "category": "music"
+    },
+    {
+      "name": "CROMA 1",
+      "type": "image",
+      "url": "CROMA\\CROMA_CARTEL.jpg",
+      "category": "design"
+    },
+    {
+      "name": "CROMAMEEE",
+      "type": "video",
+      "url": "CROMA\\oopal final .mov",
+      "category": "design"
+    }
+  ],
+  "projects": [
+    {
+      "id": "proj-atlazzz",
+      "name": "ATLAZZZ — BIG CHALE",
+      "icon": "🎵",
+      "thumb": "ICONS\\Music-Icon.png",
+      "category": "Producción Musical",
+      "description": "EP debut del artista ATLAZZZ, producido íntegramente por Orion. Tres tracks de trap melódico con influencias de lo-fi y electrónica de autor.",
+      "media": [
+        {
+          "type": "audio",
+          "name": "ASI SE SIENTE PERDER - ATLAZZZ",
+          "url": "ASI SE SIENTE PERDER M&M_3.wav"
+        },
+        {
+          "type": "audio",
+          "name": "TODOS CONTRA MI - ATLAZZZ",
+          "url": "TODOS CONTRA MI M&M_4.wav"
+        },
+        {
+          "type": "audio",
+          "name": "QUERIDA - ATLAZZZ",
+          "url": "QUERIDA M&M_1.wav"
+        }
+      ],
+      "links": [
+        {
+          "icon": "🎧",
+          "label": "Escuchar en Spotify",
+          "url": "https://open.spotify.com/artist/nadanadaorion"
+        },
+        {
+          "icon": "🎵",
+          "label": "SoundCloud",
+          "url": "https://www.soundcloud.com/nadanadaorion"
+        }
+      ],
+      "x": 782,
+      "y": 91
+    },
+    {
+      "id": "proj-croma",
+      "name": "CROMA",
+      "icon": "🎨",
+      "thumb": "CROMA\\CROMA_CARTEL.jpg",
+      "category": "Diseño Gráfico",
+      "description": "Sistema de identidad visual completo para el proyecto CROMA. Incluye cartel de evento, motion graphics y branding para redes.",
+      "media": [
+        {
+          "type": "image",
+          "name": "CROMA Cartel",
+          "url": "CROMA\\CROMA_CARTEL.jpg"
+        },
+        {
+          "type": "video",
+          "name": "CROMA Motion — OOPAL",
+          "url": "CROMA\\oopal final .mov"
+        }
+      ],
+      "links": [
+        {
+          "icon": "🎨",
+          "label": "Ver en Behance",
+          "url": "https://www.behance.net/nadanadaorion"
+        },
+        {
+          "icon": "📸",
+          "label": "Instagram",
+          "url": "https://www.instagram.com/nadanadaorion"
+        }
+      ],
+      "x": 659,
+      "y": 297
+    }
+  ],
+  "gadgets": [
+    {
+      "type": "clock",
+      "format": "24h",
+      "color": "#0080ff",
+      "showDate": true
+    },
+    {
+      "type": "gif",
+      "url": "GIFS\\POLLO.gif",
+      "label": ""
+    }
+  ],
+  "appearance": {
+    "theme": "xp_luna",
+    "customColors": true,
+    "titleFrom": "#0058ee",
+    "titleTo": "#3a9af5",
+    "silver": "#ece9d8",
+    "hilite": "#316ac5",
+    "wallpaper": "",
+    "fontFamily": "",
+    "openProjects": false
+  },
+  "content": {
+    "bio": "ORION",
+    "services": "",
+    "links": "",
+    "trash": ""
+  }
+}/*__END_DATA__*/;
+
+const MAIN_PROJECTS  = PORTFOLIO_DATA.projects || [];
+const PORTFOLIO_FILES = PORTFOLIO_DATA.files || [];
+
+// ─── Renderizar iconos de proyectos en el escritorio ───
+function renderProjectIcons() {
+  const container = document.getElementById('desktop-project-icons');
+  if (!container) return;
+  container.innerHTML = '';
+  const anyPos = MAIN_PROJECTS.some(p => p.x != null && p.y != null);
+  // Si hay posiciones libres, el contenedor flota sobre todo el escritorio.
+  if (anyPos) {
+    container.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:var(--taskbar-h);pointer-events:none;z-index:5;';
+  }
+  MAIN_PROJECTS.forEach(proj => {
+    const el = document.createElement('div');
+    el.className = 'desktop-icon';
+    const hasPos = (proj.x != null && proj.y != null);
+    if (hasPos) {
+      el.style.cssText = 'position:absolute;left:' + proj.x + 'px;top:' + proj.y + 'px;pointer-events:auto;';
+    } else {
+      el.style.cssText = 'position:relative;';
+    }
+    // Icono: imagen personalizada (thumb) con fallback al emoji
+    const iconHtml = proj.thumb
+      ? `<img src="${proj.thumb}" style="width:32px;height:32px;object-fit:contain;display:block;margin:0 auto;" onerror="this.outerHTML='${(proj.icon||'📁').replace(/'/g,"\\'")}'">`
+      : (proj.icon || '📁');
+    el.innerHTML = `
+      <div class="icon-img">${iconHtml}</div>
+      <div class="icon-label">${proj.name}</div>
+    `;
+    el.ondblclick = () => openProjectModal(proj);
+    container.appendChild(el);
+  });
+}
+
+// ─── Abrir modal de proyecto ───
+function openProjectModal(proj) {
+  // Actualizar titlebar
+  document.getElementById('pm-title-icon').textContent = proj.icon;
+  document.getElementById('pm-title-text').textContent = `${proj.name} — Explorador de Windows`;
+  document.getElementById('pm-icon').textContent = proj.icon;
+  document.getElementById('pm-name').textContent = proj.name;
+  document.getElementById('pm-category').textContent = proj.category;
+
+  // Construir contenido
+  const content = document.getElementById('pm-content');
+  let html = '';
+
+  // Descripción
+  html += `<div class="project-modal-desc">${proj.description}</div>`;
+
+  // Media
+  if (proj.media && proj.media.length > 0) {
+    const images = proj.media.filter(m => m.type === 'image');
+    const audios = proj.media.filter(m => m.type === 'audio');
+    const videos = proj.media.filter(m => m.type === 'video');
+
+    if (images.length > 0) {
+      html += `<div class="project-modal-section-title">🖼️ Imágenes</div>`;
+      html += `<div class="project-modal-media-grid">`;
+      images.forEach(m => {
+        html += `<img class="project-media-thumb" src="${m.url}" alt="${m.name}" title="${m.name}"
+          onclick="openFileFromModal({type:'image',name:'${m.name.replace(/'/g,"\\'")}',url:'${m.url.replace(/'/g,"\\'")}'})">`;
+      });
+      html += `</div>`;
+    }
+
+    if (audios.length > 0) {
+      html += `<div class="project-modal-section-title">🎵 Audio</div>`;
+      audios.forEach(m => {
+        html += `<div class="project-media-audio"
+          onclick="openFileFromModal({type:'audio',name:'${m.name.replace(/'/g,"\\'")}',url:'${m.url.replace(/'/g,"\\'")}'})">
+          <span style="font-size:16px">🎵</span>
+          <span>${m.name}</span>
+          <span style="margin-left:auto;font-size:10px;color:#666">▶ Reproducir</span>
+        </div>`;
+      });
+    }
+
+    if (videos.length > 0) {
+      html += `<div class="project-modal-section-title">📹 Video</div>`;
+      videos.forEach(m => {
+        html += `<div class="project-media-video"
+          onclick="openFileFromModal({type:'video',name:'${m.name.replace(/'/g,"\\'")}',url:'${m.url.replace(/'/g,"\\'")}'})">
+          <span style="font-size:16px">📹</span>
+          <span>${m.name}</span>
+          <span style="margin-left:auto;font-size:10px;color:#666">▶ Reproducir</span>
+        </div>`;
+      });
+    }
+  }
+
+  // Links externos
+  if (proj.links && proj.links.length > 0) {
+    html += `<div class="project-modal-section-title">🔗 Vínculos externos</div>`;
+    html += `<div class="project-modal-links">`;
+    proj.links.forEach(lk => {
+      html += `<a class="project-ext-link" href="${lk.url}" target="_blank">
+        <span style="font-size:16px">${lk.icon}</span>
+        <span>${lk.label}</span>
+        <span style="margin-left:auto;font-size:10px;color:#008000">${lk.url.replace('https://','')}</span>
+      </a>`;
+    });
+    html += `</div>`;
+  }
+
+  content.innerHTML = html;
+
+  openWindow('win-project-modal');
+}
+
+function openFileFromModal(file) {
+  if (file.type === 'audio' || file.type === 'video') {
+    openWindow('win-wmp');
+    playMedia(file);
+  } else if (file.type === 'image') {
+    openWindow('win-viewer');
+    showInViewer(file);
+  }
+}
+
+// ─── Datos del portafolio (Por defecto) ───
+function getActiveFiles() {
+  // El portafolio público solo lee PORTFOLIO_FILES directamente.
+  // Para agregar archivos, usa el editor-portafolio.html y pega el código generado aquí.
+  return PORTFOLIO_FILES;
+}
+
+let selectedFile = null;
+
+// ─── Renderizado de archivos ───
+function renderFiles() {
+  const gridMusic = document.getElementById('grid-music');
+  const gridDesign = document.getElementById('grid-design');
+  if (!gridMusic || !gridDesign) return;
+
+  gridMusic.innerHTML = '';
+  gridDesign.innerHTML = '';
+
+  const allFiles = getActiveFiles();
+
+  allFiles.forEach(file => {
+    const iconEl = document.createElement('div');
+    iconEl.className = 'file-icon';
+    iconEl.onclick = (e) => {
+      e.stopPropagation();
+      selectIcon(iconEl, file);
+    };
+    iconEl.ondblclick = (e) => {
+      e.stopPropagation();
+      openFile(file);
+    };
+
+    let emoji = '📄';
+    if (file.type === 'audio') emoji = '🎵';
+    else if (file.type === 'image') emoji = '🖼️';
+    else if (file.type === 'video') emoji = '📹';
+
+    iconEl.innerHTML = `
+      <div class="file-icon-img">${emoji}</div>
+      <div class="file-icon-name">${file.name}</div>
+    `;
+
+    if (file.category === 'music') {
+      gridMusic.appendChild(iconEl);
+    } else {
+      gridDesign.appendChild(iconEl);
+    }
+  });
+
+  const statusProjects = document.getElementById('status-projects');
+  if (statusProjects) {
+    statusProjects.textContent = `${allFiles.length} objetos`;
+  }
+}
+
+function selectIcon(el, file) {
+  document.querySelectorAll('.file-icon').forEach(i => i.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedFile = file;
+  const status = document.getElementById('status-projects');
+  if (status) status.textContent = file.name + ' seleccionado';
+}
+
+function openFile(file) {
+  if (file.type === 'audio' || file.type === 'video') {
+    openWindow('win-wmp');
+    playMedia(file);
+  } else if (file.type === 'image') {
+    openWindow('win-viewer');
+    showInViewer(file);
+  }
+}
+
+function bringToFront(id) {
+  zTop++;
+  const el = document.getElementById(id);
+  if (el) el.style.zIndex = zTop;
+  document.querySelectorAll('.taskbar-btn').forEach(b => b.classList.remove('active'));
+  const tb = document.getElementById(windowMap[id]);
+  if (tb) tb.classList.add('active');
+}
+
+function openWindow(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.display = 'flex';
+  el.classList.remove('hidden');
+  bringToFront(id);
+  const tb = document.getElementById(windowMap[id]);
+  if (tb) {
+    tb.style.display = 'inline-flex';
+    tb.classList.add('active');
+  }
+  closeStart();
+}
+
+function closeWindow(id, e) {
+  if (e) e.stopPropagation();
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+  const tb = document.getElementById(windowMap[id]);
+  if (tb) {
+    tb.classList.remove('active');
+    if (id === 'win-wmp' || id === 'win-viewer') {
+      tb.style.display = 'none';
+    }
+  }
+  if (id === 'win-wmp') {
+    stopMedia();
+  }
+}
+
+function minimizeWindow(id, e) {
+  if (e) e.stopPropagation();
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+  const tb = document.getElementById(windowMap[id]);
+  if (tb) tb.classList.remove('active');
+}
+
+function toggleWindow(winId, btnId) {
+  const el = document.getElementById(winId);
+  const isHidden = !el || el.style.display === 'none';
+  if (isHidden) {
+    openWindow(winId);
+  } else {
+    minimizeWindow(winId, null);
+  }
+  closeStart();
+}
+
+// ─── Drag ───
+let dragging = null, dragOffX = 0, dragOffY = 0;
+
+function startDrag(e, id) {
+  if (e.target.classList.contains('win-btn')) return;
+  dragging = id;
+  const el = document.getElementById(id);
+  const rect = el.getBoundingClientRect();
+  dragOffX = e.clientX - rect.left;
+  dragOffY = e.clientY - rect.top;
+  bringToFront(id);
+  e.preventDefault();
+}
+
+document.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const el = document.getElementById(dragging);
+  if (!el) return;
+  const x = Math.max(0, e.clientX - dragOffX);
+  const y = Math.max(0, e.clientY - dragOffY);
+  el.style.left = x + 'px';
+  el.style.top  = y + 'px';
+  el.style.right = 'auto';
+  el.style.bottom = 'auto';
+});
+
+document.addEventListener('mouseup', () => { dragging = null; });
+
+// ─── Tabs (Properties) ───
+function showTab(name) {
+  document.querySelectorAll('.props-tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.props-tab').forEach(t => t.classList.remove('active'));
+  const content = document.getElementById('tab-' + name);
+  if (content) content.classList.add('active');
+  const tabs = document.querySelectorAll('.props-tab');
+  const names = ['general', 'music', 'design', 'contact'];
+  const idx = names.indexOf(name);
+  if (tabs[idx]) tabs[idx].classList.add('active');
+}
+
+// ─── Start menu ───
+function toggleStart() {
+  document.getElementById('start-menu').classList.toggle('open');
+}
+function closeStart() {
+  document.getElementById('start-menu').classList.remove('open');
+}
+document.getElementById('desktop').addEventListener('click', e => {
+  if (!e.target.closest('.start-menu') && !e.target.closest('.start-btn')) {
+    closeStart();
+  }
+});
+
+// ─── Error dialog ───
+function showError() {
+  const el = document.getElementById('win-error');
+  el.classList.add('open');
+  el.style.display = 'flex';
+  bringToFront('win-error');
+}
+
+// ─── Clock ───
+function updateClock() {
+  const now = new Date();
+  const h = now.getHours().toString().padStart(2,'0');
+  const m = now.getMinutes().toString().padStart(2,'0');
+  document.getElementById('clock').textContent = h + ':' + m;
+}
+updateClock();
+setInterval(updateClock, 30000);
+
+// ─── LÓGICA WINDOWS MEDIA PLAYER (WMP) ───
+const audioPlayer = document.getElementById('wmp-audio');
+const videoPlayer = document.getElementById('wmp-video');
+const wmpPlayBtn = document.getElementById('wmp-btn-play');
+const wmpSeekbar = document.getElementById('wmp-seekbar');
+const wmpVolbar = document.getElementById('wmp-volbar');
+const wmpElapsed = document.getElementById('wmp-time-elapsed');
+const wmpTotal = document.getElementById('wmp-time-total');
+const wmpMarquee = document.getElementById('wmp-marquee');
+const wmpVisualizer = document.getElementById('wmp-visualizer');
+const wmpScreen = document.getElementById('wmp-screen');
+const wmpStatus = document.getElementById('wmp-status');
+const wmpTitleText = document.getElementById('wmp-title-text');
+
+let activePlayer = null;
+let currentPlayingFile = null;
+let currentPlaylist = [];
+let currentPlayIdx = -1;
+
+function playMedia(file) {
+  stopMedia();
+  
+  currentPlayingFile = file;
+  wmpTitleText.textContent = `${file.name} — Windows Media Player`;
+  wmpMarquee.textContent = `Reproduciendo: ${file.name}`;
+  wmpStatus.textContent = 'Reproduciendo';
+
+  const allFiles = getActiveFiles();
+  currentPlaylist = allFiles.filter(f => f.type === 'audio' || f.type === 'video');
+  currentPlayIdx = currentPlaylist.findIndex(f => f.name === file.name);
+
+  if (file.type === 'video') {
+    videoPlayer.style.display = 'block';
+    wmpVisualizer.style.display = 'none';
+    wmpScreen.style.background = 'black';
+    videoPlayer.muted = false;
+    videoPlayer.src = file.url;
+    activePlayer = videoPlayer;
+  } else {
+    videoPlayer.style.display = 'none';
+    wmpVisualizer.style.display = 'flex';
+    wmpScreen.style.background = 'linear-gradient(to bottom, #050510, #101030)';
+    audioPlayer.muted = false;
+    audioPlayer.src = file.url;
+    activePlayer = audioPlayer;
+  }
+
+  activePlayer.volume = parseFloat(wmpVolbar.value);
+  activePlayer.muted = false;
+  
+  activePlayer.play().then(() => {
+    wmpPlayBtn.textContent = '‖';
+    wmpVisualizer.classList.add('playing');
+    wmpStatus.textContent = 'Reproduciendo';
+  }).catch(err => {
+    // Autoplay policy: try muted first, then unmute on user interaction
+    console.warn("Autoplay bloqueado, intentando con mute temporal:", err);
+    activePlayer.muted = true;
+    activePlayer.play().then(() => {
+      activePlayer.muted = false;
+      wmpPlayBtn.textContent = '‖';
+      wmpVisualizer.classList.add('playing');
+      wmpStatus.textContent = 'Reproduciendo';
+    }).catch(err2 => {
+      console.error("Error al iniciar reproducción:", err2);
+      wmpMarquee.textContent = `Error al reproducir: ${file.name}`;
+      wmpStatus.textContent = 'Error';
+    });
+  });
+
+  activePlayer.ontimeupdate = updateProgress;
+  activePlayer.onloadedmetadata = () => {
+    wmpSeekbar.max = Math.floor(activePlayer.duration);
+    wmpTotal.textContent = formatTime(activePlayer.duration);
+  };
+  activePlayer.onended = () => {
+    nextMedia();
+  };
+}
+
+function updateProgress() {
+  if (!activePlayer) return;
+  wmpSeekbar.value = Math.floor(activePlayer.currentTime);
+  wmpElapsed.textContent = formatTime(activePlayer.currentTime);
+}
+
+wmpSeekbar.oninput = () => {
+  if (!activePlayer) return;
+  activePlayer.currentTime = wmpSeekbar.value;
+};
+
+wmpVolbar.oninput = () => {
+  if (audioPlayer) audioPlayer.volume = wmpVolbar.value;
+  if (videoPlayer) videoPlayer.volume = wmpVolbar.value;
+};
+
+function formatTime(secs) {
+  if (isNaN(secs)) return '00:00';
+  const m = Math.floor(secs / 60).toString().padStart(2, '0');
+  const s = Math.floor(secs % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+function togglePlayMedia() {
+  if (!activePlayer) return;
+  if (activePlayer.paused) {
+    activePlayer.play();
+    wmpPlayBtn.textContent = '‖';
+    wmpVisualizer.classList.add('playing');
+    wmpStatus.textContent = 'Reproduciendo';
+  } else {
+    activePlayer.pause();
+    wmpPlayBtn.textContent = '▶';
+    wmpVisualizer.classList.remove('playing');
+    wmpStatus.textContent = 'Pausado';
+  }
+}
+
+function stopMedia() {
+  if (audioPlayer) {
+    audioPlayer.pause();
+    audioPlayer.src = '';
+  }
+  if (videoPlayer) {
+    videoPlayer.pause();
+    videoPlayer.style.display = 'none';
+    videoPlayer.src = '';
+  }
+  wmpPlayBtn.textContent = '▶';
+  wmpVisualizer.style.display = 'flex';
+  wmpVisualizer.classList.remove('playing');
+  wmpScreen.style.background = 'black';
+  wmpSeekbar.value = 0;
+  wmpElapsed.textContent = '00:00';
+  wmpTotal.textContent = '00:00';
+  wmpMarquee.textContent = 'Listo';
+  wmpStatus.textContent = 'Listo';
+  wmpTitleText.textContent = 'Windows Media Player';
+  activePlayer = null;
+  currentPlayingFile = null;
+}
+
+function prevMedia() {
+  if (currentPlaylist.length <= 1 || currentPlayIdx === -1) return;
+  currentPlayIdx = (currentPlayIdx - 1 + currentPlaylist.length) % currentPlaylist.length;
+  playMedia(currentPlaylist[currentPlayIdx]);
+}
+
+function nextMedia() {
+  if (currentPlaylist.length <= 1 || currentPlayIdx === -1) return;
+  currentPlayIdx = (currentPlayIdx + 1) % currentPlaylist.length;
+  playMedia(currentPlaylist[currentPlayIdx]);
+}
+
+let isMuted = false;
+let prevVolVal = 0.8;
+function toggleMuteMedia() {
+  isMuted = !isMuted;
+  const muteBtn = document.getElementById('wmp-btn-mute');
+  if (isMuted) {
+    prevVolVal = wmpVolbar.value;
+    wmpVolbar.value = 0;
+    muteBtn.textContent = '🔇';
+    if (audioPlayer) audioPlayer.volume = 0;
+    if (videoPlayer) videoPlayer.volume = 0;
+  } else {
+    wmpVolbar.value = prevVolVal;
+    muteBtn.textContent = '🔊';
+    if (audioPlayer) audioPlayer.volume = prevVolVal;
+    if (videoPlayer) videoPlayer.volume = prevVolVal;
+  }
+}
+
+// ─── LÓGICA VISOR DE IMÁGENES Y FAX ───
+const viewerImg = document.getElementById('viewer-img');
+const viewerTitle = document.getElementById('viewer-title-text');
+const viewerImgContainer = document.getElementById('viewer-img-container');
+const viewerStatus = document.getElementById('viewer-status');
+const viewerInfo = document.getElementById('viewer-info');
+
+let viewerScale = 1.0;
+let viewerRotation = 0;
+let viewerPlaylist = [];
+let viewerPlayIdx = -1;
+
+function showInViewer(file) {
+  viewerImg.src = file.url;
+  viewerTitle.textContent = `${file.name} — Visor de imágenes y fax de Windows`;
+  viewerStatus.textContent = file.name;
+  
+  const allFiles = getActiveFiles();
+  viewerPlaylist = allFiles.filter(f => f.type === 'image');
+  viewerPlayIdx = viewerPlaylist.findIndex(f => f.name === file.name);
+  
+  resetViewerTransform();
+}
+
+function resetViewerTransform() {
+  viewerScale = 1.0;
+  viewerRotation = 0;
+  applyViewerTransform();
+  viewerInfo.textContent = '100%';
+}
+
+function applyViewerTransform() {
+  viewerImgContainer.style.transform = `scale(${viewerScale}) rotate(${viewerRotation}deg)`;
+}
+
+function zoomViewer(factor) {
+  viewerScale *= factor;
+  viewerScale = Math.max(0.1, Math.min(viewerScale, 10));
+  applyViewerTransform();
+  viewerInfo.textContent = `${Math.round(viewerScale * 100)}%`;
+}
+
+function rotateViewer(angle) {
+  viewerRotation = (viewerRotation + angle) % 360;
+  applyViewerTransform();
+}
+
+function prevViewerImage() {
+  if (viewerPlaylist.length <= 1 || viewerPlayIdx === -1) return;
+  viewerPlayIdx = (viewerPlayIdx - 1 + viewerPlaylist.length) % viewerPlaylist.length;
+  showInViewer(viewerPlaylist[viewerPlayIdx]);
+}
+
+function nextViewerImage() {
+  if (viewerPlaylist.length <= 1 || viewerPlayIdx === -1) return;
+  viewerPlayIdx = (viewerPlayIdx + 1) % viewerPlaylist.length;
+  showInViewer(viewerPlaylist[viewerPlayIdx]);
+}
+
+
+// ════════════════════════════════════════════════════════════
+// APARIENCIA (TEMA) — aplica variables sin tocar el CSS base
+// ════════════════════════════════════════════════════════════
+const THEME_PRESETS = {
+  xp_luna:    { '--xp-title-from':'#0058ee','--xp-title-to':'#3a9af5','--xp-silver':'#ece9d8','--xp-hilite':'#316ac5','--xp-taskbar1':'#245edc','--xp-taskbar2':'#1a5ad4' },
+  xp_olive:   { '--xp-title-from':'#7a8b4f','--xp-title-to':'#aebd83','--xp-silver':'#e7e8d2','--xp-hilite':'#94a35a','--xp-taskbar1':'#7d9b4e','--xp-taskbar2':'#5e7a34' },
+  xp_silver:  { '--xp-title-from':'#7e7e9a','--xp-title-to':'#b9b9cf','--xp-silver':'#e3e3ea','--xp-hilite':'#6f6f8e','--xp-taskbar1':'#8a8aa0','--xp-taskbar2':'#6a6a80' },
+  midnight:   { '--xp-title-from':'#1a1a3a','--xp-title-to':'#3a3a6a','--xp-silver':'#cfd0dd','--xp-hilite':'#4a4a8a','--xp-taskbar1':'#262651','--xp-taskbar2':'#15152e' },
+};
+function applyAppearance() {
+  const a = PORTFOLIO_DATA.appearance || {};
+  const root = document.documentElement.style;
+  // preset base (incluye taskbar)
+  const preset = THEME_PRESETS[a.theme] || THEME_PRESETS.xp_luna;
+  Object.entries(preset).forEach(([k,v]) => root.setProperty(k, v));
+  // overrides de color SOLO si el usuario activó "colores personalizados"
+  if (a.customColors) {
+    if (a.titleFrom) root.setProperty('--xp-title-from', a.titleFrom);
+    if (a.titleTo)   root.setProperty('--xp-title-to', a.titleTo);
+    if (a.silver)    root.setProperty('--xp-silver', a.silver);
+    if (a.hilite)    root.setProperty('--xp-hilite', a.hilite);
+  }
+  // fondo de escritorio
+  if (a.wallpaper) {
+    const d = document.getElementById('desktop');
+    if (d) d.style.backgroundImage = `url("${a.wallpaper}")`;
+  }
+  // fuente y tamaño
+  if (a.fontFamily) document.body.style.fontFamily = a.fontFamily;
+  if (a.fontSize)   document.body.style.fontSize = a.fontSize + 'px';
+  // dimensiones de la ventana principal de proyectos
+  if (a.winWidth || a.winHeight) {
+    const w = document.getElementById('win-projects');
+    if (w) {
+      if (a.winWidth)  w.style.width  = a.winWidth + 'px';
+      if (a.winHeight) w.style.height = a.winHeight + 'px';
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// GADGETS — reloj, enlace, gif en loop  (capa flotante de escritorio)
+// ════════════════════════════════════════════════════════════
+const _gadgetClocks = [];
+function renderGadgets() {
+  const layer = document.getElementById('desktop-gadgets');
+  if (!layer) return;
+  layer.innerHTML = '';
+  _gadgetClocks.length = 0;
+  (PORTFOLIO_DATA.gadgets || []).forEach((g, i) => {
+    const el = document.createElement('div');
+    el.className = 'gadget gadget-' + g.type;
+    const x = (g.x != null) ? g.x : (30 + i * 24);
+    const y = (g.y != null) ? g.y : (30 + i * 24);
+    el.style.left = x + 'px';
+    el.style.top  = y + 'px';
+
+    if (g.type === 'clock') {
+      if (g.color) el.style.color = g.color;
+      el.innerHTML = '<div class="gc-time"></div><div class="gc-date"></div>';
+      _gadgetClocks.push({ el, fmt: g.format || '24h', showDate: g.showDate !== false });
+    } else if (g.type === 'link') {
+      el.innerHTML = `<span class="gl-icon">${g.icon || '🔗'}</span><span>${g.label || 'Enlace'}</span>`;
+      el.classList.add('gadget-link');
+      el.onclick = () => { if (g.url) window.open(g.url, '_blank'); };
+    } else if (g.type === 'gif') {
+      el.innerHTML = `<img src="${g.url || ''}" alt="${g.label || 'gif'}">` +
+                     (g.label ? `<div class="gg-cap">${g.label}</div>` : '');
+    }
+    makeGadgetDraggable(el);
+    layer.appendChild(el);
+  });
+  tickGadgetClocks();
+}
+function tickGadgetClocks() {
+  const now = new Date();
+  _gadgetClocks.forEach(c => {
+    let h = now.getHours(), m = String(now.getMinutes()).padStart(2,'0'), suf = '';
+    if (c.fmt === '12h') { suf = h >= 12 ? ' PM' : ' AM'; h = h % 12 || 12; }
+    c.el.querySelector('.gc-time').textContent = h + ':' + m + suf;
+    if (c.showDate) {
+      c.el.querySelector('.gc-date').textContent =
+        now.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
+    } else {
+      c.el.querySelector('.gc-date').textContent = '';
+    }
+  });
+}
+setInterval(tickGadgetClocks, 1000);
+
+// arrastre simple e independiente para gadgets (no afecta el drag de ventanas)
+function makeGadgetDraggable(el) {
+  let sx, sy, ox, oy, drag = false;
+  el.addEventListener('mousedown', e => {
+    if (e.target.tagName === 'A') return;
+    drag = true; sx = e.clientX; sy = e.clientY;
+    ox = parseInt(el.style.left)||0; oy = parseInt(el.style.top)||0;
+    el.style.cursor = 'grabbing'; e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => {
+    if (!drag) return;
+    el.style.left = (ox + e.clientX - sx) + 'px';
+    el.style.top  = (oy + e.clientY - sy) + 'px';
+  });
+  document.addEventListener('mouseup', () => { drag = false; el.style.cursor = 'default'; });
+}
+
+
+// ════════════════════════════════════════════════════════════
+// CONTENIDO EDITABLE (Sobre Mí, Servicios, Links, Papelera)
+// ════════════════════════════════════════════════════════════
+function _nl2br(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+function applyContent() {
+  const c = PORTFOLIO_DATA.content || {};
+  // Sobre Mí (texto plano en textarea)
+  if (c.bio != null && c.bio !== '') {
+    const t = document.getElementById('bio-text');
+    if (t) t.value = c.bio;
+  }
+  // Servicios (reemplazo simple por texto)
+  if (c.services != null && c.services !== '') {
+    const s = document.getElementById('services-content');
+    if (s) s.innerHTML = '<div style="padding:14px;font-size:12px;line-height:1.7;color:#000;white-space:pre-wrap;">' + _nl2br(c.services) + '</div>';
+  }
+  // Links (reemplazo simple por texto)
+  if (c.links != null && c.links !== '') {
+    const l = document.getElementById('links-content');
+    if (l) l.innerHTML = '<div class="ie-title">🌐 Links</div><div style="font-size:12px;line-height:1.8;white-space:pre-wrap;">' + _nl2br(c.links) + '</div>';
+  }
+  // Papelera
+  if (c.trash != null && c.trash !== '') {
+    const tr = document.getElementById('trash-text');
+    if (tr) tr.innerHTML = _nl2br(c.trash);
+  }
+}
+
+// Abrir \"Mi Portafolio\" por defecto según preferencia
+function applyDefaultOpen() {
+  const open = !(PORTFOLIO_DATA.appearance && PORTFOLIO_DATA.appearance.openProjects === false);
+  const win = document.getElementById('win-projects');
+  const tb  = document.getElementById('tb-projects');
+  if (!open) {
+    if (win) win.style.display = 'none';
+    if (tb) tb.classList.remove('active');
+  }
+}
+
+// Inicializar archivos en carga
+applyAppearance();
+applyContent();
+renderFiles();
+renderProjectIcons();
+renderGadgets();
+applyDefaultOpen();
+</script>
+</body>
+</html>
