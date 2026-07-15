@@ -111,12 +111,13 @@ product features.
 
 - Monitor-return output collision detection — still not implemented (see "Output collisions" below);
   remains an open decision.
-- The Workspace conflict policy (`docs/25-DECISION_LOG.md`: "open decision requiring explicit approval") —
-  `tests/integration/workspace.test.ts` tests and documents the *existing* local-last retry behavior
-  exactly as implemented; no new field-level merge UI was built. `docs/21-ROADMAP.md`'s framing of this as
-  something Milestone 2 should "decide and implement" conflicts with the decision log's open status; per
-  `docs/00-SOURCE_OF_TRUTH.md`'s priority order the decision log wins. **This needs your explicit decision
-  before any implementation.**
+- The Workspace conflict policy — at the time this Milestone 2 PR was written, this was an open decision
+  (`docs/25-DECISION_LOG.md`), so `tests/integration/workspace.test.ts` tested and documented the *existing*
+  local-last retry behavior exactly as implemented; no new field-level merge UI was built.
+  **Since resolved**: D-214 (`docs/25-DECISION_LOG.md`) approves a remote-wins policy, replacing local-last
+  retry — see `docs/14-SYNC_OFFLINE_AND_LOCKS.md` "Workspace conflicts". The decision is now closed, but
+  `src/components/SyncController.tsx` and `tests/integration/workspace.test.ts` still implement/test the old
+  local-last behavior; implementing D-214 in code and tests is pending, targeted for the next milestone.
 - No accounts/auth/invitations were added (none existed; not requested).
 
 ## Milestone 0/1/2 verification
@@ -215,10 +216,12 @@ Anonymous policies intentionally allow all data mutations. Public read-only mode
 
 ### Workspace conflict policy
 
-Shows receive explicit conflict resolution, but Workspace conflicts currently retry with the local Workspace over the latest revision. Concurrent Library/Preset/Preferences edits can overwrite remote changes without a user comparison. This exact behavior is now tested and documented
-(`tests/integration/workspace.test.ts`), not changed — it remains an **open decision** per
-`docs/25-DECISION_LOG.md` requiring your explicit approval before either formalizing it as-is or replacing
-it with field-level merge/conflict UI.
+Shows receive explicit conflict resolution. Workspace conflicts currently *still implement* local-last
+retry (`src/components/SyncController.tsx`, tested as-is in `tests/integration/workspace.test.ts`), which
+can overwrite remote changes without a user comparison — but this is no longer the approved policy. D-214
+(`docs/25-DECISION_LOG.md`) closes the decision as **remote-wins**: on a confirmed conflict, discard the
+conflicting local Workspace change, load the latest remote Workspace, and notify the user, with no
+comparison dialog. Implementing D-214 (code + tests) is pending, not yet done in this codebase.
 
 ### Delete Undo and remote identity
 
@@ -259,7 +262,9 @@ and remaining risk. Before Milestone 3:
 1. Run `npm run test:integration` and `npm run test:e2e` for real against a reachable Supabase instance
    (locally with Docker via `supabase start`, or by letting this branch's CI run) and fix anything they
    reveal — they were verified for correctness by review and type-checking only, never executed here.
-2. Get an explicit decision on the open Workspace conflict policy (see "Workspace conflict policy" above).
+2. Implement the approved remote-wins Workspace conflict policy (D-214; see "Workspace conflict policy"
+   above), replacing local-last retry in `src/components/SyncController.tsx`, and update
+   `tests/integration/workspace.test.ts` to prove the new behavior.
 3. Decide on the two open items already flagged: monitor-return output collision handling, and
    permanent-delete-versus-Undo semantics after remote sync (`docs/25-DECISION_LOG.md`).
 

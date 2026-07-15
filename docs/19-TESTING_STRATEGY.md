@@ -66,7 +66,7 @@ Milestone 2 (shared-data hardening) is implemented:
   `@supabase/supabase-js` against the actual RPC/table contract — never mocked:
   - `shows.test.ts`: create, read from a second client, update, archive/restore, delete, and revision-conflict detection plus both resolution paths (keep local / keep online);
   - `locks.test.ts`: acquire, heartbeat renew, release, ten-minute inactivity expiry, and a second client rejected while the lock is held;
-  - `workspace.test.ts`: Library/Presets/Preferences as one Workspace document, and the existing (untouched) local-last Workspace conflict policy — see "Open decision surfaced, not resolved" below;
+  - `workspace.test.ts`: Library/Presets/Preferences as one Workspace document, and the existing (untouched) local-last Workspace conflict policy, now superseded by the approved remote-wins policy — see "Workspace conflict policy: decided, implementation pending" below;
   - `realtime.test.ts`: an INSERT is delivered to a second subscribed client;
   - `public.test.ts`: public lookup by slug while active/archived, gone after delete.
   All five skip themselves (`describe.skipIf`) with a clear console message when `SUPABASE_TEST_URL`/
@@ -111,15 +111,16 @@ platform. It proves the migrations and RPC/RLS logic are correct; it does **not*
 shapes or real Realtime delivery — that requires `supabase start` or a real project, which is exactly what
 the gated integration/E2E suites above are for.
 
-#### Open decision surfaced, not resolved
+#### Workspace conflict policy: decided, implementation pending
 
-`docs/21-ROADMAP.md` describes Milestone 2 as including "Workspace concurrent-edit policy decision and
-implementation," but `docs/25-DECISION_LOG.md` lists that same policy as an **open decision requiring
-explicit product-owner approval**, and `docs/00-SOURCE_OF_TRUTH.md` ranks the decision log above the
-roadmap. `tests/integration/workspace.test.ts` therefore tests and documents the *existing* local-last
-retry behavior (`src/components/SyncController.tsx`) exactly as implemented, and does not add a new
-field-level merge UI. Resolving the open decision (and, if the resolution requires new behavior,
-implementing it) is left for a future milestone once the product owner decides.
+At the time this Milestone 2 suite was written, `docs/25-DECISION_LOG.md` listed the Workspace
+concurrent-edit policy as an open decision, so `tests/integration/workspace.test.ts` tested and documented
+the *existing* local-last retry behavior (`src/components/SyncController.tsx`) exactly as implemented,
+without adding a new field-level merge UI. The decision is now closed: D-214 approves a **remote-wins**
+policy (see `docs/14-SYNC_OFFLINE_AND_LOCKS.md` "Workspace conflicts"). Updating
+`tests/integration/workspace.test.ts` to prove remote-wins, and the corresponding code change in
+`src/components/SyncController.tsx`, is scoped to a future milestone — this test file still exercises the
+old local-last behavior until then.
 
 ## Test layers
 

@@ -74,12 +74,22 @@ Conflict UI displays enough context to identify local and online versions and of
 
 ## Workspace conflicts
 
-The baseline currently uses a local-last retry policy for Workspace conflicts. This is an implementation policy, not an approved user-facing decision. It must be tested and either:
+Per D-214 (`docs/25-DECISION_LOG.md`), Workspace (Library/Presets/Preferences) conflicts are **remote-wins**:
 
-- explicitly accepted and documented; or
-- replaced with safer field-level merge/conflict behavior.
+- A Workspace conflict occurs the same way a Show conflict does: the remote revision differs from the
+  revision the pending local mutation expected.
+- On a confirmed conflict, discard the conflicting local Workspace mutation and apply the latest remote
+  Workspace locally — the remote version is the source of truth.
+- Show a clear notification that the online version was kept because a newer change existed from another
+  device.
+- There is no comparison dialog and no choice between local/online for Workspace conflicts (unlike Show
+  conflicts, which still offer Keep online/Keep local per D-210).
+- Never keep a duplicate or parallel copy of the discarded local Workspace change.
+- This applies only when a conflict is actually detected (revision mismatch). Ordinary, non-conflicting
+  local Workspace edits continue to sync normally and are never discarded.
 
-Until resolved, treat simultaneous Library/Preset/Preferences editing as a known risk.
+This replaces the previous local-last retry policy (which resubmitted the local Workspace over the latest
+remote revision, silently overwriting concurrent remote changes).
 
 ## Lock protocol
 

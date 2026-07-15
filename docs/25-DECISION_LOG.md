@@ -49,10 +49,10 @@
 | D-211 | Each Show has a permanent public read-only link. | Approved |
 | D-212 | Public link shows latest synchronized Show. | Approved |
 | D-213 | Archive preserves public link; delete disables it. | Approved |
+| D-214 | Workspace (Library/Presets/Preferences) conflicts: remote wins. When a conflict is confirmed (remote revision differs from expected), discard the conflicting local change, load the latest remote Workspace, and show a clear notification that the online version was kept because a newer change existed from another device. No comparison dialog, no parallel/duplicate Workspace copy. Non-conflicting local changes continue to sync normally. Replaces the local-last retry policy. | Approved |
 
 ## Open decisions requiring explicit approval
 
-- Workspace conflict behavior for simultaneous Library/Preset/Preferences edits.
 - Exact permanent-delete versus Undo semantics after remote synchronization.
 - Monitor-return output collision handling.
 - Whether Preferences remain shared or become device-local in a later version.

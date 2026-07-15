@@ -5,7 +5,6 @@ Items here are not approved scope unless moved into the decision log.
 ## High-value candidates
 
 - Soft delete with retention before permanent remote deletion.
-- Workspace conflict resolution instead of local-last overwrite.
 - Service Worker update banner.
 - Input/return overlap validation.
 - Duplicate-person detection with explicit override.
