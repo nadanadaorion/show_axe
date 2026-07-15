@@ -16,6 +16,7 @@ import {
 } from '../lib/supabase'
 import { pendingMutationCount, SYNC_NEEDED_EVENT } from '../lib/syncQueue'
 import { getClientId, now, uid } from '../lib/utils'
+import { processWorkspaceMutation } from '../lib/workspaceSync'
 import { useAppStore } from '../store'
 import { useSyncStore } from '../syncStore'
 import type { ShowConflict, WorkspaceData } from '../types'
@@ -100,14 +101,12 @@ export function SyncController({ children }: { children: ReactNode }) {
   const processMutation = useCallback(async (mutation: PendingMutation) => {
     if (mutation.kind === 'workspace-upsert') {
       const localWorkspace = mutation.workspace || workspaceFromStore()
-      let result = await saveRemoteWorkspace(localWorkspace, mutation.expectedRevision)
-      // Workspace metadata is shared with a simple local-last policy. Show conflicts are handled explicitly.
-      if (!result.applied && result.reason === 'conflict' && result.row) {
-        result = await saveRemoteWorkspace(localWorkspace, result.row.revision)
-      }
-      if (result.applied && result.row) {
-        await db.pendingMutations.delete(mutation.id)
-        await useAppStore.getState().applyRemoteWorkspace(result.row.data, result.row.revision)
+      const outcome = await processWorkspaceMutation(mutation, localWorkspace)
+      // D-214 (docs/25-DECISION_LOG.md): Workspace conflicts are remote-wins.
+      // processWorkspaceMutation already discarded the conflicting local mutation and replaced the
+      // local Workspace with the latest remote one; this only owns the user-facing notification.
+      if (outcome === 'remote-wins') {
+        showToast('Se conservaron los cambios en línea porque este espacio fue modificado desde otro dispositivo.')
       }
       return
     }
@@ -134,7 +133,7 @@ export function SyncController({ children }: { children: ReactNode }) {
         useSyncStore.getState().addConflict(conflictFrom(mutation, result.row))
       }
     }
-  }, [])
+  }, [showToast])
 
   const syncNow = useCallback(async () => {
     if (!isRuntimeConfigured()) {
