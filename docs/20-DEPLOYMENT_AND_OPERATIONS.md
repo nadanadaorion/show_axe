@@ -35,6 +35,14 @@ Never commit a service-role or secret key.
 
 Run `supabase/SETUP.sql` in Supabase SQL Editor for a fresh project. For later releases, use versioned migrations and verify before deploying frontend changes that depend on them.
 
+For local development/testing, `supabase/config.toml` configures the Supabase CLI's local stack
+(`supabase start`, requires Docker); it applies every migration under `supabase/migrations/` automatically
+from empty. Copy `.env.example` to `.env` and fill in `SUPABASE_TEST_URL`/`SUPABASE_TEST_ANON_KEY` (from
+`supabase status`) to run the Supabase-backed test suites — see `docs/19-TESTING_STRATEGY.md`. Verify a
+deployed schema with `supabase/VERIFY.sql`, or run `npm run test:supabase:sql` for a self-checking pass that
+works without Docker (native Postgres only; see that script's header for exactly what it does and does not
+prove).
+
 ## Deployment order
 
 For backward-compatible schema changes:

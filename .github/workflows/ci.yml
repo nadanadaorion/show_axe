@@ -17,4 +17,35 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run test
+      - run: npm run typecheck:tests
       - run: npm run build
+      - run: npm run check:secrets
+
+  # Runs the real Supabase-backed integration/E2E suites against a local
+  # `supabase start` stack. This needs Docker pulling images from Docker
+  # Hub/ghcr.io, which GitHub-hosted runners can do (unlike some sandboxed
+  # dev environments) — see docs/19-TESTING_STRATEGY.md for the equivalent
+  # local workflow and supabase/scripts/verify-sql-native.sh for a
+  # Docker-free fallback that checks the migrations/RPCs directly.
+  supabase-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: supabase start
+      - name: Export local Supabase connection details
+        run: |
+          echo "SUPABASE_TEST_URL=$(supabase status -o env | grep '^API_URL=' | cut -d= -f2- | tr -d '"')" >> "$GITHUB_ENV"
+          echo "SUPABASE_TEST_ANON_KEY=$(supabase status -o env | grep '^ANON_KEY=' | cut -d= -f2- | tr -d '"')" >> "$GITHUB_ENV"
+      - run: npm run test:integration
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e -- --grep supabase
+      - if: always()
+        run: supabase stop

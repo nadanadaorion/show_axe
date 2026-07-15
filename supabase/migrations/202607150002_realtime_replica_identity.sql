@@ -1,0 +1,11 @@
+-- Ori♡n Shows V2.0 · Realtime delete-filter fix
+--
+-- PublicShowPage subscribes to `orion_shows` DELETE events filtered by
+-- `public_slug` (a non-primary-key column). Postgres only ships full old-row
+-- data for DELETE/UPDATE events when the table's replica identity includes
+-- the filtered column; the default replica identity is primary-key-only, so
+-- that filter would silently miss delete events on a live public page
+-- (docs/16-PUBLIC_READ_ONLY.md: "Public routes always show the latest
+-- synchronized Show data"). REPLICA IDENTITY FULL fixes this. It is a
+-- metadata-only, idempotent statement — safe to rerun.
+alter table public.orion_shows replica identity full;
