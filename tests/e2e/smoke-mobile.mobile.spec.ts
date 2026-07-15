@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { configureSupabaseRuntime, getE2ESupabaseConfig } from './supabaseTestConfig'
-import { expectCenterReceivesPointer } from './browserAssertions'
+import { tapUnobstructedCenter } from './browserAssertions'
 
 const config = getE2ESupabaseConfig()
 
@@ -22,8 +22,7 @@ test.describe('Mobile smoke test: Shows listing, opening a Show, a modal, keyboa
     const name = `E2E Mobile Smoke ${Date.now()}`
     await page.getByPlaceholder('Ej. TABU — Foro Indie Rocks').fill(name)
     const createButton = page.getByRole('button', { name: 'Crear y abrir' })
-    await expectCenterReceivesPointer(createButton)
-    await createButton.click()
+    await tapUnobstructedCenter(page, createButton)
     await expect(page.getByLabel('Nombre del show')).toHaveValue(name)
 
     await page.getByRole('button', { name: 'Agregar equipo' }).click()

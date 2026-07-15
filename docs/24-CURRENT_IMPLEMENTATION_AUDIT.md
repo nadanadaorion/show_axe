@@ -168,6 +168,12 @@ CSS. Important size overrides now enforce 44×44 on mobile and 32×32 from `sm` 
 longer turns its status assertion into an accidental lazy-chunk precache test: it reads the persistent
 sidebar badge and confirms the edited Show value in Supabase after reconnect.
 
+Corrective run `29444552586` passed 10/13 Playwright cases, including offline and desktop focus. Only the
+three mobile cases failed: the diagnostic hit-test passed, then Playwright's locator auto-scroll shifted
+the layout before its mouse-style click. The mobile specs now perform a genuine Chromium touchscreen tap
+at the already-verified unobstructed center. They do not use `force`, synthetic DOM `.click()`, retries, or
+longer timeouts.
+
 **A. Modal accessibility + form label association** — `src/components/ui.tsx`'s `Modal` was rewritten:
 `role="dialog"`, `aria-modal="true"`, `aria-labelledby` pointing at the title, a focus trap (`Tab`/`Shift+Tab`
 cycle within the dialog), initial focus moved into the dialog on open (respecting native `autoFocus`), focus

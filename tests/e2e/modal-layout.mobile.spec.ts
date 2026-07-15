@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { expectCenterReceivesPointer } from './browserAssertions'
+import { tapUnobstructedCenter } from './browserAssertions'
 
 test('a mobile modal keeps its action footer separate from its scrollable content', async ({ page }) => {
   // A syntactically valid but unreachable local runtime lets the local-first editor render
@@ -35,8 +35,6 @@ test('a mobile modal keeps its action footer separate from its scrollable conten
   expect(submitBox).not.toBeNull()
   expect(formBox!.y + formBox!.height).toBeLessThanOrEqual(submitBox!.y)
 
-  await expectCenterReceivesPointer(submit)
-
-  await submit.click()
+  await tapUnobstructedCenter(page, submit)
   await expect(dialog).toHaveCount(0)
 })

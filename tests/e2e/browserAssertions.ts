@@ -1,6 +1,6 @@
-import { expect, type Locator } from '@playwright/test'
+import { expect, type Locator, type Page } from '@playwright/test'
 
-export async function expectCenterReceivesPointer(locator: Locator) {
+export async function tapUnobstructedCenter(page: Page, locator: Locator) {
   const diagnostic = await locator.evaluate((target) => {
     const targetRect = target.getBoundingClientRect()
     const x = targetRect.x + targetRect.width / 2
@@ -16,4 +16,8 @@ export async function expectCenterReceivesPointer(locator: Locator) {
   })
 
   expect(diagnostic.receivesPointer, `The action center is obstructed: ${JSON.stringify(diagnostic)}`).toBe(true)
+  await page.touchscreen.tap(
+    diagnostic.target.x + diagnostic.target.width / 2,
+    diagnostic.target.y + diagnostic.target.height / 2,
+  )
 }

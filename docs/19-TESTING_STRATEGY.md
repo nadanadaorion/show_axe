@@ -41,6 +41,12 @@ Finally, the offline queue scenario observes the already-mounted sidebar badge i
 unrelated offline document navigation to an unvisited lazy chunk, and verifies the flushed Show value
 directly in Supabase after reconnection.
 
+Run `29444552586` then passed 10/13 Playwright cases: all desktop, offline, Workspace, setup, public, and
+lock flows were green; only the three mobile cases remained. Their pre-click hit-test proved the action
+was unobstructed, while Playwright's locator auto-scroll moved the mobile layout immediately before its
+mouse-style click. Mobile submits now use a real `touchscreen.tap` at the verified unobstructed center;
+there is no forced click or DOM invocation, and obstruction still fails before the tap.
+
 Milestone 0 (test foundation) is implemented:
 
 - Vitest + jsdom run unit and component tests (`npm run test`).
