@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { expectCenterReceivesPointer } from './browserAssertions'
 
 test('a mobile modal keeps its action footer separate from its scrollable content', async ({ page }) => {
   // A syntactically valid but unreachable local runtime lets the local-first editor render
@@ -12,6 +13,15 @@ test('a mobile modal keeps its action footer separate from its scrollable conten
   })
 
   await page.goto('/')
+  // The real Supabase job reaches the mobile project after desktop scenarios have created Shows.
+  // Seed the same history locally so the "Comenzar desde" select contains realistic options.
+  for (let index = 0; index < 6; index += 1) {
+    await page.getByRole('button', { name: 'Nuevo show' }).click()
+    await page.getByPlaceholder('Ej. TABU — Foro Indie Rocks').fill(`E2E Modal Seed ${index}`)
+    await page.getByRole('button', { name: 'Crear y abrir' }).click()
+    await page.goto('/')
+  }
+
   await page.getByRole('button', { name: 'Nuevo show' }).click()
   const dialog = page.getByRole('dialog', { name: 'Nuevo show' })
   const form = dialog.locator('form')
@@ -25,11 +35,7 @@ test('a mobile modal keeps its action footer separate from its scrollable conten
   expect(submitBox).not.toBeNull()
   expect(formBox!.y + formBox!.height).toBeLessThanOrEqual(submitBox!.y)
 
-  const pointerTarget = await submit.evaluate((button) => {
-    const rect = button.getBoundingClientRect()
-    return document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)?.closest('button')?.textContent
-  })
-  expect(pointerTarget).toContain('Crear y abrir')
+  await expectCenterReceivesPointer(submit)
 
   await submit.click()
   await expect(dialog).toHaveCount(0)

@@ -13,7 +13,7 @@ tests configured for WebKit while CI installed only Chromium.
 The corrective pass changes mobile to an explicit Chromium 375×667/touch project, defers modal focus
 restoration until after portal teardown, keeps offline status authoritative while `navigator.onLine` is
 false, versions Service Worker caches, fixes polling/listener cleanup, and retains Playwright traces,
-screenshots, videos, reports, and test results on CI failure. Local verification currently passes 114/114
+screenshots, videos, reports, and test results on CI failure. Local verification currently passes 115/115
 unit/component tests, lint, test typecheck, and production build; final Milestone 3 acceptance remains
 pending a completely green GitHub Actions run with zero skips and no retry-dependent passes.
 The corrective Playwright configuration sets `retries: 0`, making that requirement explicit rather than
@@ -31,6 +31,15 @@ when all stateful E2E files run fully parallel against one shared Supabase Works
 the latter run also made the previously green singleton-Workspace scenario fail. Playwright therefore
 uses one worker whenever `SUPABASE_TEST_URL` is configured. Desktop and mobile remain distinct Chromium
 projects, retries remain zero, and the backend-backed cases no longer mutate shared state concurrently.
+
+The browser follow-up also found two test-design/product details hidden behind the original failures.
+Touch Chromium may activate a modal trigger without focusing it, so `Modal` remembers the last pointer
+control while closed and restores that exact control after teardown; the component suite includes this
+case. Equipment's `size="icon"` utility was overriding the intended 44×44 mobile classes, so the two
+reorder controls now use explicit important size overrides (44×44 mobile, 32×32 from `sm` upward).
+Finally, the offline queue scenario observes the already-mounted sidebar badge instead of performing an
+unrelated offline document navigation to an unvisited lazy chunk, and verifies the flushed Show value
+directly in Supabase after reconnection.
 
 Milestone 0 (test foundation) is implemented:
 
@@ -273,7 +282,8 @@ Milestone 3 authorization ("no golden snapshots this milestone").
 
 CI retains trace, screenshot, and video for every failed Playwright test and uploads
 `playwright-report/` plus `test-results/` as the `playwright-failure-artifacts` artifact when the E2E step
-fails. Generated artifacts remain gitignored.
+fails. The Supabase job runs the complete collected Playwright suite (including the always-on mobile
+modal regression), not a title-filtered subset. Generated artifacts remain gitignored.
 
 ## Fixtures
 

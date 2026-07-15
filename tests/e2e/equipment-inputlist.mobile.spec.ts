@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { configureSupabaseRuntime, getE2ESupabaseConfig } from './supabaseTestConfig'
+import { expectCenterReceivesPointer } from './browserAssertions'
 
 const config = getE2ESupabaseConfig()
 
@@ -12,7 +13,9 @@ test.describe('Equipment and Input List are usable on a mobile viewport (real Su
     await page.getByRole('button', { name: 'Nuevo show' }).click()
     const name = `E2E Mobile Equipment ${Date.now()}`
     await page.getByPlaceholder('Ej. TABU — Foro Indie Rocks').fill(name)
-    await page.getByRole('button', { name: 'Crear y abrir' }).click()
+    const createButton = page.getByRole('button', { name: 'Crear y abrir' })
+    await expectCenterReceivesPointer(createButton)
+    await createButton.click()
     await expect(page.getByLabel('Nombre del show')).toHaveValue(name)
 
     await page.getByRole('button', { name: 'Agregar equipo' }).click()
@@ -45,7 +48,9 @@ test.describe('Equipment and Input List are usable on a mobile viewport (real Su
     await page.getByRole('button', { name: 'Nuevo show' }).click()
     const name = `E2E Mobile InputList ${Date.now()}`
     await page.getByPlaceholder('Ej. TABU — Foro Indie Rocks').fill(name)
-    await page.getByRole('button', { name: 'Crear y abrir' }).click()
+    const createButton = page.getByRole('button', { name: 'Crear y abrir' })
+    await expectCenterReceivesPointer(createButton)
+    await createButton.click()
     await expect(page.getByLabel('Nombre del show')).toHaveValue(name)
 
     await page.getByRole('button', { name: 'Agregar equipo' }).click()

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -97,6 +97,20 @@ describe('Modal accessibility', () => {
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(document.getElementById('root')).not.toHaveAttribute('inert')
+    await waitFor(() => expect(trigger).toHaveFocus())
+  })
+
+  it('restores the pointer trigger when touch activation did not focus it before opening', async () => {
+    function Wrapper() {
+      const [open, setOpen] = useState(false)
+      return <><button onClick={() => setOpen(true)}>Disparador táctil</button><Modal open={open} title="Touch" onClose={() => setOpen(false)}>contenido</Modal></>
+    }
+    render(<Wrapper />, { container: document.getElementById('root')! })
+    const trigger = screen.getByRole('button', { name: 'Disparador táctil' })
+    fireEvent.pointerDown(trigger)
+    fireEvent.click(trigger)
+    expect(trigger).not.toHaveFocus()
+    fireEvent.keyDown(document, { key: 'Escape' })
     await waitFor(() => expect(trigger).toHaveFocus())
   })
 

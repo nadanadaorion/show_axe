@@ -93,7 +93,18 @@ let openModalCount = 0
 export function Modal({ open, title, onClose, children, footer, closeOnEscape = true }: { open: boolean; title: string; onClose: () => void; children: ReactNode; footer?: ReactNode; closeOnEscape?: boolean }) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const previouslyFocused = useRef<HTMLElement | null>(null)
+  const lastPointerTrigger = useRef<HTMLElement | null>(null)
   const titleId = useId()
+
+  useEffect(() => {
+    if (open) return
+    const rememberPointerTrigger = (event: PointerEvent) => {
+      if (!(event.target instanceof Element)) return
+      lastPointerTrigger.current = event.target.closest<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+    }
+    document.addEventListener('pointerdown', rememberPointerTrigger, true)
+    return () => document.removeEventListener('pointerdown', rememberPointerTrigger, true)
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -108,7 +119,12 @@ export function Modal({ open, title, onClose, children, footer, closeOnEscape = 
 
   useEffect(() => {
     if (!open) return
-    previouslyFocused.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const pointerTrigger = lastPointerTrigger.current
+    // Touch Chromium does not necessarily focus a tapped button. The captured pointer control is
+    // therefore the exact opener when it is still usable; keyboard activation falls back to the
+    // actual active element.
+    previouslyFocused.current = pointerTrigger && canRestoreFocus(pointerTrigger) ? pointerTrigger : activeElement
     const appRoot = document.getElementById('root')
     appRoot?.setAttribute('inert', '')
 

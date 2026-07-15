@@ -160,6 +160,14 @@ test stack intentionally has one Workspace row and one shared Realtime stream, c
 runs now use one worker. This is test isolation, not a retry or timeout workaround; desktop/mobile remain
 separate projects and `retries: 0` is unchanged.
 
+Further real-browser reproduction exposed two additional details. Mobile Chromium does not guarantee
+that tapping a button focuses it, so the modal now records the last pointer trigger while closed and uses
+it ahead of `activeElement` for exact restoration; keyboard opening still falls back to the focused
+control. Also, `Button size="icon"`'s 36×36 utilities won over the nominal `h-11 w-11` classes in generated
+CSS. Important size overrides now enforce 44×44 on mobile and 32×32 from `sm` upward. The offline E2E no
+longer turns its status assertion into an accidental lazy-chunk precache test: it reads the persistent
+sidebar badge and confirms the edited Show value in Supabase after reconnect.
+
 **A. Modal accessibility + form label association** — `src/components/ui.tsx`'s `Modal` was rewritten:
 `role="dialog"`, `aria-modal="true"`, `aria-labelledby` pointing at the title, a focus trap (`Tab`/`Shift+Tab`
 cycle within the dialog), initial focus moved into the dialog on open (respecting native `autoFocus`), focus
@@ -175,8 +183,9 @@ onto a single child) associates every genuinely 1:1 label/field pair across Setu
 for non-1:1 headings (radio groups, `MultiSelect`). Validation errors (e.g. Setup screen) use `role="alert"`.
 Focus restoration now removes `inert` first, waits until portal teardown on the next animation frame, and
 only focuses the exact saved trigger when it remains connected, focusable, and outside any inert tree.
-Tests cover Escape and action-button closure in jsdom; the desktop smoke covers Escape and header-button
-closure in real Chromium. Tests: `tests/component/Modal.test.tsx` (9 tests).
+Tests cover Escape, action-button closure, and pointer activation without focus in jsdom; the desktop
+smoke covers Escape and header-button closure in real Chromium. Tests: `tests/component/Modal.test.tsx`
+(10 tests).
 
 **B. Keyboard alternative to Equipment drag & drop** — Equipment is the only module in the codebase that
 used drag & drop (`grep -rl draggable src/` returns only `ShowPage.tsx`; People and Schedule rows already
@@ -186,7 +195,9 @@ boundaries) that call the existing `moveEquipment` store action using a fraction
 categoría" `Select` (shown when there is more than one category) for cross-category moves without a drag
 gesture. Drag & drop itself was not removed. Both paths show the same "Equipo movido" / `Movido a "X"` toast
 feedback. Tests: `tests/component/EquipmentReorder.test.tsx` (3 tests, real Zustand store, no mocking of
-`moveEquipment`) plus keyboard-navigation assertions in the new E2E smoke specs.
+`moveEquipment`) plus keyboard-navigation assertions in the new E2E smoke specs. The 44×44 mobile
+utilities use important overrides because the base icon button's 36×36 rule otherwise wins in Tailwind's
+generated CSS order.
 
 **C. Mobile-responsive Equipment/Input List** — Equipment was already a responsive card list (Tailwind
 `sm:`/`lg:` breakpoints collapse expanded-row fields to one column below `sm`), not a rigid table; verified
@@ -258,8 +269,8 @@ Vite.
 
 ## Milestone 3 verification
 
-Re-run from a clean dependency state (`npm ci`) in this environment: `npm run lint`, `npm run test` (114
-unit/component tests: 9 in `tests/component/Modal.test.tsx`, 3 in
+Re-run from a clean dependency state (`npm ci`) in this environment: `npm run lint`, `npm run test` (115
+unit/component tests: 10 in `tests/component/Modal.test.tsx`, 3 in
 `tests/component/EquipmentReorder.test.tsx`, 12 in `tests/component/ErrorBoundary.test.tsx`, 7 in
 `tests/unit/useServiceWorkerUpdate.test.ts`, 3 in `tests/unit/serviceWorker.test.ts`, 3 in
 `tests/component/UpdateNotice.test.tsx`, and 3 in `tests/component/InputListPdf.test.tsx`), `npm run

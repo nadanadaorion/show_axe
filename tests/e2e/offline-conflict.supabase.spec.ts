@@ -17,21 +17,26 @@ test.describe('Offline queue, reconnect, and conflict resolution (real Supabase)
     await page.getByPlaceholder('Ej. TABU — Foro Indie Rocks').fill(name)
     await page.getByRole('button', { name: 'Crear y abrir' }).click()
     await expect(page.getByLabel('Nombre del show')).toHaveValue(name)
+    const showId = new URL(page.url()).hash.split('/').pop()!
     await page.waitForTimeout(1_500) // let the creation flush before going offline
 
     await context.setOffline(true)
     await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(false)
     const edited = `${name} (offline edit)`
     await page.getByLabel('Nombre del show').fill(edited)
-    await page.goto('/#/settings')
-    // SyncStatusBadge renders both in the persistent sidebar (complementary landmark) and inline
-    // on the Settings page itself (main landmark) — a deliberate, screen-reader-distinguishable
-    // duplication, not a bug. Scope to the page content so this doesn't hit a strict-mode
-    // violation against the sidebar's copy of the same status text.
-    await expect(page.getByRole('main').getByText(/sin conexión/i)).toBeVisible({ timeout: 10_000 })
+    // Observe the already-mounted sidebar badge. A full document navigation to an unvisited lazy
+    // route while offline would instead test whether that route chunk was previously cached.
+    const sidebar = page.getByRole('complementary')
+    await expect(sidebar.getByText(/sin conexión/i)).toBeVisible({ timeout: 10_000 })
 
     await context.setOffline(false)
-    await expect(page.getByRole('main').getByText('Guardado en línea')).toBeVisible({ timeout: 20_000 })
+    await expect(sidebar.getByText('Guardado en línea')).toBeVisible({ timeout: 20_000 })
+
+    const admin = createClient(config!.url, config!.anonKey)
+    await expect.poll(async () => {
+      const { data } = await admin.from('orion_shows').select('data').eq('id', showId).maybeSingle()
+      return (data?.data as { name?: string } | undefined)?.name
+    }, { timeout: 20_000 }).toBe(edited)
 
     await context.close()
   })
