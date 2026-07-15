@@ -65,6 +65,12 @@ the preceding save. The mobile flows now wait for the user-visible `Sincronizand
 cycle after Show creation and each Equipment addition. This sequences the scenario through the same UI
 contract a user sees and leaves Show conflict and sync implementation untouched.
 
+Run `29446126816` showed that observing only after the action can miss a very fast `Sincronizando…`
+transition. The helper now starts observing before it performs the mutation, then waits for the saved
+state. The same artifacts exposed weak setup in the offline-conflict tests: fixed sleeps did not prove a
+local edit was queued or that the independent remote RPC applied. Those cases now require the visible
+`1 pendiente` state and assert the RPC result before reconnecting.
+
 Milestone 0 (test foundation) is implemented:
 
 - Vitest + jsdom run unit and component tests (`npm run test`).

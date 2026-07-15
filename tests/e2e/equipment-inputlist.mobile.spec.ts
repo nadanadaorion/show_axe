@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { expect, test } from '@playwright/test'
-import { configureSupabaseRuntime, getE2ESupabaseConfig, waitForOnlineSave } from './supabaseTestConfig'
+import { configureSupabaseRuntime, getE2ESupabaseConfig, performAndWaitForOnlineSave } from './supabaseTestConfig'
 import { tapUnobstructedCenter } from './browserAssertions'
 
 const config = getE2ESupabaseConfig()
@@ -15,9 +15,8 @@ test.describe('Equipment and Input List are usable on a mobile viewport (real Su
     const name = `E2E Mobile Equipment ${Date.now()}`
     await page.getByPlaceholder('Ej. TABU — Foro Indie Rocks').fill(name)
     const createButton = page.getByRole('button', { name: 'Crear y abrir' })
-    await tapUnobstructedCenter(page, createButton)
+    await performAndWaitForOnlineSave(page, () => tapUnobstructedCenter(page, createButton))
     await expect(page.getByLabel('Nombre del show')).toHaveValue(name)
-    await waitForOnlineSave(page)
     const showId = new URL(page.url()).hash.split('/').pop()!
     const admin = createClient(config!.url, config!.anonKey)
 
@@ -29,17 +28,15 @@ test.describe('Equipment and Input List are usable on a mobile viewport (real Su
     await page.getByRole('button', { name: 'Agregar equipo' }).click()
     await page.getByRole('button', { name: 'Creación libre' }).click()
     await page.getByLabel('Nombre', { exact: true }).fill('Consola digital')
-    await page.getByRole('button', { name: 'Agregar', exact: true }).click()
+    await performAndWaitForOnlineSave(page, () => page.getByRole('button', { name: 'Agregar', exact: true }).click())
     await expect(page.getByText(/Consola digital$/)).toBeVisible()
-    await waitForOnlineSave(page)
     await expect.poll(remoteEquipmentNames, { timeout: 20_000 }).toContain('Consola digital')
 
     await page.getByRole('button', { name: 'Agregar equipo' }).click()
     await page.getByRole('button', { name: 'Creación libre' }).click()
     await page.getByLabel('Nombre', { exact: true }).fill('Multicable')
-    await page.getByRole('button', { name: 'Agregar', exact: true }).click()
+    await performAndWaitForOnlineSave(page, () => page.getByRole('button', { name: 'Agregar', exact: true }).click())
     await expect(page.getByText(/Multicable$/)).toBeVisible()
-    await waitForOnlineSave(page)
     await expect.poll(remoteEquipmentNames, { timeout: 20_000 }).toEqual(expect.arrayContaining(['Consola digital', 'Multicable']))
 
     // The whole document must not need horizontal scrolling to use the Equipment tab.
@@ -61,16 +58,14 @@ test.describe('Equipment and Input List are usable on a mobile viewport (real Su
     const name = `E2E Mobile InputList ${Date.now()}`
     await page.getByPlaceholder('Ej. TABU — Foro Indie Rocks').fill(name)
     const createButton = page.getByRole('button', { name: 'Crear y abrir' })
-    await tapUnobstructedCenter(page, createButton)
+    await performAndWaitForOnlineSave(page, () => tapUnobstructedCenter(page, createButton))
     await expect(page.getByLabel('Nombre del show')).toHaveValue(name)
-    await waitForOnlineSave(page)
 
     await page.getByRole('button', { name: 'Agregar equipo' }).click()
     await page.getByRole('button', { name: 'Creación libre' }).click()
     await page.getByLabel('Nombre', { exact: true }).fill('SM58')
-    await page.getByRole('button', { name: 'Agregar', exact: true }).click()
+    await performAndWaitForOnlineSave(page, () => page.getByRole('button', { name: 'Agregar', exact: true }).click())
     await expect(page.getByText(/SM58$/)).toBeVisible()
-    await waitForOnlineSave(page)
 
     await page.getByRole('button', { name: 'Input list', exact: true }).click()
     const continueButton = page.getByRole('button', { name: 'Continuar' })

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { configureSupabaseRuntime, getE2ESupabaseConfig, waitForOnlineSave } from './supabaseTestConfig'
+import { configureSupabaseRuntime, getE2ESupabaseConfig, performAndWaitForOnlineSave } from './supabaseTestConfig'
 import { tapUnobstructedCenter } from './browserAssertions'
 
 const config = getE2ESupabaseConfig()
@@ -22,22 +22,19 @@ test.describe('Mobile smoke test: Shows listing, opening a Show, a modal, keyboa
     const name = `E2E Mobile Smoke ${Date.now()}`
     await page.getByPlaceholder('Ej. TABU — Foro Indie Rocks').fill(name)
     const createButton = page.getByRole('button', { name: 'Crear y abrir' })
-    await tapUnobstructedCenter(page, createButton)
+    await performAndWaitForOnlineSave(page, () => tapUnobstructedCenter(page, createButton))
     await expect(page.getByLabel('Nombre del show')).toHaveValue(name)
-    await waitForOnlineSave(page)
 
     await page.getByRole('button', { name: 'Agregar equipo' }).click()
     await page.getByRole('button', { name: 'Creación libre' }).click()
     await page.getByLabel('Nombre', { exact: true }).fill('Torre de bajos')
-    await page.getByRole('button', { name: 'Agregar', exact: true }).click()
+    await performAndWaitForOnlineSave(page, () => page.getByRole('button', { name: 'Agregar', exact: true }).click())
     await expect(page.getByText(/Torre de bajos$/)).toBeVisible()
-    await waitForOnlineSave(page)
     await page.getByRole('button', { name: 'Agregar equipo' }).click()
     await page.getByRole('button', { name: 'Creación libre' }).click()
     await page.getByLabel('Nombre', { exact: true }).fill('Subwoofer')
-    await page.getByRole('button', { name: 'Agregar', exact: true }).click()
+    await performAndWaitForOnlineSave(page, () => page.getByRole('button', { name: 'Agregar', exact: true }).click())
     await expect(page.getByText(/Subwoofer$/)).toBeVisible()
-    await waitForOnlineSave(page)
 
     const touchTarget = await page.getByRole('button', { name: 'Bajar Torre de bajos' }).boundingBox()
     expect(touchTarget?.width).toBeGreaterThanOrEqual(44)

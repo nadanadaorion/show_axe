@@ -35,9 +35,11 @@ export async function configureSupabaseRuntime(page: Page, config: { url: string
   )
 }
 
-/** Waits for one queued local mutation to enter and then leave the observable sync cycle. */
-export async function waitForOnlineSave(page: Page) {
+/** Starts observing before an action, then waits for its complete visible online-save cycle. */
+export async function performAndWaitForOnlineSave(page: Page, action: () => Promise<unknown>) {
   const sidebar = page.getByRole('complementary')
-  await expect(sidebar.getByText(/Sincronizando/)).toBeVisible({ timeout: 5_000 })
+  const started = expect(sidebar.getByText(/Sincronizando/)).toBeVisible({ timeout: 5_000 })
+  await action()
+  await started
   await expect(sidebar.getByText('Guardado en línea')).toBeVisible({ timeout: 20_000 })
 }

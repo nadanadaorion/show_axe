@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { expect, test } from '@playwright/test'
-import { configureSupabaseRuntime, getE2ESupabaseConfig } from './supabaseTestConfig'
+import { configureSupabaseRuntime, getE2ESupabaseConfig, performAndWaitForOnlineSave } from './supabaseTestConfig'
 
 const config = getE2ESupabaseConfig()
 
@@ -15,10 +15,9 @@ test.describe('Offline queue, reconnect, and conflict resolution (real Supabase)
     await page.getByRole('button', { name: 'Nuevo show' }).click()
     const name = `E2E Offline ${Date.now()}`
     await page.getByPlaceholder('Ej. TABU — Foro Indie Rocks').fill(name)
-    await page.getByRole('button', { name: 'Crear y abrir' }).click()
+    await performAndWaitForOnlineSave(page, () => page.getByRole('button', { name: 'Crear y abrir' }).click())
     await expect(page.getByLabel('Nombre del show')).toHaveValue(name)
     const showId = new URL(page.url()).hash.split('/').pop()!
-    await page.waitForTimeout(1_500) // let the creation flush before going offline
 
     await context.setOffline(true)
     await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(false)
@@ -49,10 +48,9 @@ test.describe('Offline queue, reconnect, and conflict resolution (real Supabase)
     await page.getByRole('button', { name: 'Nuevo show' }).click()
     const name = `E2E Conflict ${Date.now()}`
     await page.getByPlaceholder('Ej. TABU — Foro Indie Rocks').fill(name)
-    await page.getByRole('button', { name: 'Crear y abrir' }).click()
+    await performAndWaitForOnlineSave(page, () => page.getByRole('button', { name: 'Crear y abrir' }).click())
     await expect(page.getByLabel('Nombre del show')).toHaveValue(name)
     const showId = new URL(page.url()).hash.split('/').pop()!
-    await page.waitForTimeout(1_500) // let the creation flush
 
     // Release device A's lock by leaving the Show before going offline, so the
     // "remote" writer below is not rejected as `locked` instead of `conflict`.
@@ -64,13 +62,13 @@ test.describe('Offline queue, reconnect, and conflict resolution (real Supabase)
     const localEdit = `${name} (kept local)`
     await expect(page.getByLabel('Nombre del show')).toHaveValue(name, { timeout: 10_000 })
     await page.getByLabel('Nombre del show').fill(localEdit)
-    await page.waitForTimeout(500) // let the local mutation queue
+    await expect(page.getByRole('complementary').getByText(/1 pendiente/)).toBeVisible({ timeout: 5_000 })
 
     // A second, unrelated writer advances the remote revision while A is offline
     // and holds no lock, producing a genuine revision conflict (not `locked`).
     const admin = createClient(config!.url, config!.anonKey)
     const { data: current } = await admin.from('orion_shows').select('data,revision').eq('id', showId).maybeSingle()
-    await admin.rpc('orion_save_show', {
+    const remoteWrite = await admin.rpc('orion_save_show', {
       p_id: showId,
       p_public_slug: (current!.data as { publicSlug: string }).publicSlug,
       p_data: { ...(current!.data as object), name: 'Remote edit while A offline' },
@@ -78,6 +76,9 @@ test.describe('Offline queue, reconnect, and conflict resolution (real Supabase)
       p_expected_revision: current!.revision,
       p_client_id: 'client-conflict-writer',
     })
+    expect(remoteWrite.error).toBeNull()
+    expect(remoteWrite.data?.[0]?.applied).toBe(true)
+    expect((remoteWrite.data?.[0]?.data as { name?: string } | undefined)?.name).toBe('Remote edit while A offline')
 
     await context.setOffline(false)
     await expect(page.getByText('Conflicto de edición offline')).toBeVisible({ timeout: 20_000 })
@@ -101,10 +102,9 @@ test.describe('Offline queue, reconnect, and conflict resolution (real Supabase)
     await page.getByRole('button', { name: 'Nuevo show' }).click()
     const name = `E2E Conflict Online ${Date.now()}`
     await page.getByPlaceholder('Ej. TABU — Foro Indie Rocks').fill(name)
-    await page.getByRole('button', { name: 'Crear y abrir' }).click()
+    await performAndWaitForOnlineSave(page, () => page.getByRole('button', { name: 'Crear y abrir' }).click())
     await expect(page.getByLabel('Nombre del show')).toHaveValue(name)
     const showId = new URL(page.url()).hash.split('/').pop()!
-    await page.waitForTimeout(1_500)
 
     await page.goto('/#/shows')
     await page.waitForTimeout(500)
@@ -113,11 +113,11 @@ test.describe('Offline queue, reconnect, and conflict resolution (real Supabase)
     await page.goto(`/#/shows/${showId}`)
     await expect(page.getByLabel('Nombre del show')).toHaveValue(name, { timeout: 10_000 })
     await page.getByLabel('Nombre del show').fill(`${name} (discarded)`)
-    await page.waitForTimeout(500)
+    await expect(page.getByRole('complementary').getByText(/1 pendiente/)).toBeVisible({ timeout: 5_000 })
 
     const admin = createClient(config!.url, config!.anonKey)
     const { data: current } = await admin.from('orion_shows').select('data,revision').eq('id', showId).maybeSingle()
-    await admin.rpc('orion_save_show', {
+    const remoteWrite = await admin.rpc('orion_save_show', {
       p_id: showId,
       p_public_slug: (current!.data as { publicSlug: string }).publicSlug,
       p_data: { ...(current!.data as object), name: 'Remote wins' },
@@ -125,6 +125,9 @@ test.describe('Offline queue, reconnect, and conflict resolution (real Supabase)
       p_expected_revision: current!.revision,
       p_client_id: 'client-conflict-writer',
     })
+    expect(remoteWrite.error).toBeNull()
+    expect(remoteWrite.data?.[0]?.applied).toBe(true)
+    expect((remoteWrite.data?.[0]?.data as { name?: string } | undefined)?.name).toBe('Remote wins')
 
     await context.setOffline(false)
     await expect(page.getByText('Conflicto de edición offline')).toBeVisible({ timeout: 20_000 })

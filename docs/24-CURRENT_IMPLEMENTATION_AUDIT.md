@@ -189,6 +189,11 @@ row did not ensure the browser had applied the returned revision before the next
 now wait for the observable `Sincronizando…` then `Guardado en línea` cycle after creation and each add.
 No conflict policy, sync queue, Supabase code, retry count, or fixed delay was changed.
 
+Run `29446126816` demonstrated that a post-action observer can miss a fast sync transition, so the helper
+now begins observing before invoking the mutation. It also exposed fixed-delay assumptions in the
+offline-conflict setup. The tests now require the visible queued-mutation count and assert that the remote
+RPC applied before reconnect; Show-conflict semantics and implementation remain unchanged.
+
 **A. Modal accessibility + form label association** — `src/components/ui.tsx`'s `Modal` was rewritten:
 `role="dialog"`, `aria-modal="true"`, `aria-labelledby` pointing at the title, a focus trap (`Tab`/`Shift+Tab`
 cycle within the dialog), initial focus moved into the dialog on open (respecting native `autoFocus`), focus
