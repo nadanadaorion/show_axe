@@ -94,6 +94,27 @@ describe('previewInputListSync', () => {
     expect(retainedRow?.use).toBe('EDITED BY USER')
   })
 
+  it('never overwrites a custom CH on a retained row (D-114)', () => {
+    const show = buildShowWithMicrophones()
+    const [assignment] = show.equipment[0].assignments!
+    show.inputList = buildInputListStartingAt17()
+    show.inputList.rows = [
+      buildInputListRow({
+        channel: '250', // deliberately far from channelStart/sequential numbering
+        use: assignment.use,
+        equipment: 'SM58',
+        sourceEquipmentId: show.equipment[0].id,
+        sourceAssignmentId: assignment.id,
+        sourceEquipmentName: 'SM58',
+        sourceUse: assignment.use,
+      }),
+    ]
+
+    const preview = previewInputListSync(show)
+    const retainedRow = preview.next.rows.find((r) => r.sourceAssignmentId === assignment.id)
+    expect(retainedRow?.channel).toBe('250')
+  })
+
   it('preserves manual (non-generated) rows untouched', () => {
     const show = buildShowWithMicrophones()
     show.inputList = buildMixedInputList()

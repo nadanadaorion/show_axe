@@ -14,8 +14,33 @@ Milestone 0 (test foundation) is implemented:
 - CI (`.github/workflows/ci.yml`) runs `npm ci`, `npm run lint`, `npm run test`, and `npm run build` on
   every push and pull request.
 
-Milestone 1 (business-rule coverage) and Milestone 2 (live Supabase integration/E2E) are not yet
-implemented; see below for the disposable-project workflow they will use.
+Milestone 1 (business-rule coverage) is implemented:
+
+- `tests/unit/store.test.ts` exercises the Zustand store (`src/store.ts`) directly, with `src/lib/db.ts`
+  and `src/lib/syncQueue.ts` mocked via `vi.mock`. This isolates store business-rule logic (state
+  transitions) from Dexie/IndexedDB and the sync queue, per the "pure domain logic" unit-test layer below,
+  while still exercising the real reducer code the UI calls — not a reimplementation of it. Because
+  `queueShowUpsert`/`queueShowDelete`/`queueWorkspaceUpsert` are invoked synchronously inside the store's
+  `commit()` step, mocking them is enough to assert queuing behavior without waiting on any async I/O.
+- Covered: Library/Preset edits never mutate already-created Shows; equipment quantity changes keep
+  assignments consistent (earliest-preserved on shrink, blank-appended on grow) through the real
+  `updateEquipment` action; Show duplication remaps every internal id (categories, equipment, assignments,
+  people, schedule, Input List row/return ids) and remaps Input List provenance to the new equipment/
+  assignment ids while leaving manual rows untouched; archive preserves the public slug; delete removes the
+  Show locally and queues a `show-delete` mutation (not a fresh upsert); JSON import merge/replace
+  behavior, including deterministic collision handling (incoming wins on id collision in merge mode).
+- `tests/unit/inputList.test.ts` gained a regression test for D-114 ("reordering or synchronization must
+  not overwrite custom CH"): a retained row's manually set channel survives `previewInputListSync`.
+- Not covered by Milestone 1 (deliberately, since it would require adding unimplemented product behavior
+  rather than testing existing behavior): monitor-return output collision validation. This remains an open
+  decision in `docs/25-DECISION_LOG.md` and a documented risk in
+  `docs/24-CURRENT_IMPLEMENTATION_AUDIT.md`.
+- "Delete removes the public record" is verified only at the local-queue boundary (the Show disappears
+  locally and a `show-delete` mutation is queued). Confirming the remote Supabase row is actually deleted
+  requires a live/local Supabase instance and belongs to Milestone 2 below.
+
+Milestone 2 (live Supabase integration/E2E) is not yet implemented; see below for the disposable-project
+workflow it will use.
 
 ## Test layers
 
