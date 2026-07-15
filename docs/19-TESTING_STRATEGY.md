@@ -26,6 +26,12 @@ sticky action footer overlaid the scrollable form and intercepted the `Crear y a
 now a bounded flex column with an independently scrollable body and non-overlapping header/footer. The
 always-on `modal-layout.mobile.spec.ts` reproduces the 375×667 click path without needing Supabase.
 
+Runs `29442680064` and `29443257734` confirmed that the same mobile specs pass locally but are disrupted
+when all stateful E2E files run fully parallel against one shared Supabase Workspace and Realtime stream;
+the latter run also made the previously green singleton-Workspace scenario fail. Playwright therefore
+uses one worker whenever `SUPABASE_TEST_URL` is configured. Desktop and mobile remain distinct Chromium
+projects, retries remain zero, and the backend-backed cases no longer mutate shared state concurrently.
+
 Milestone 0 (test foundation) is implemented:
 
 - Vitest + jsdom run unit and component tests (`npm run test`).

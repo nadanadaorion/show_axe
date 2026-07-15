@@ -153,6 +153,13 @@ scrollable body and intercepting pointer events at 375×667. The follow-up chang
 column with an independently scrolling body and fixed, non-overlapping header/footer, and adds an
 always-on real-browser regression in `tests/e2e/modal-layout.mobile.spec.ts`.
 
+Two subsequent runs showed that layout alone was not the remaining source of instability: the exact
+mobile specs passed locally, while CI's `fullyParallel` execution broadcast other tests' Show writes into
+the open modal and eventually also failed the otherwise-green singleton Workspace scenario. Because the
+test stack intentionally has one Workspace row and one shared Realtime stream, configured-Supabase E2E
+runs now use one worker. This is test isolation, not a retry or timeout workaround; desktop/mobile remain
+separate projects and `retries: 0` is unchanged.
+
 **A. Modal accessibility + form label association** — `src/components/ui.tsx`'s `Modal` was rewritten:
 `role="dialog"`, `aria-modal="true"`, `aria-labelledby` pointing at the title, a focus trap (`Tab`/`Shift+Tab`
 cycle within the dialog), initial focus moved into the dialog on open (respecting native `autoFocus`), focus
