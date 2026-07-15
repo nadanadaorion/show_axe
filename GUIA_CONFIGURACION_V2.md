@@ -1,90 +1,80 @@
-# Guía de configuración — Ori♡n Shows V2.0.0
+# Configurar y publicar Ori♡n Shows V2
 
-## 1. Crear la base compartida
+Esta guía está pensada para quien administrará la instalación. No necesitas programar, pero sí acceso al repositorio de GitHub y a un proyecto Supabase.
 
-1. Entra al Dashboard de Supabase y crea un proyecto.
-2. Espera a que termine la preparación de la base.
-3. Abre **SQL Editor** y crea una consulta nueva.
-4. Copia y ejecuta todo `supabase/SETUP.sql`.
-5. Confirma que aparezcan las tablas:
-   - `orion_workspace`
-   - `orion_shows`
-   - `orion_show_locks`
+## 1. Crear Supabase
 
-El archivo es idempotente: puede volver a ejecutarse para reparar funciones y políticas sin borrar los shows.
+1. Entra a [Supabase](https://supabase.com/dashboard) y crea un proyecto nuevo.
+2. Espera a que termine la preparación.
+3. Abre **SQL Editor**.
+4. Copia y ejecuta todo `supabase/SETUP.sql` para una instalación nueva.
+5. Copia y ejecuta `supabase/VERIFY.sql`. Todas las comprobaciones deben terminar correctamente.
+6. En **Connect** copia:
+   - Project URL, con forma `https://PROYECTO.supabase.co`;
+   - publishable key (`sb_publishable_...`) o la anon key heredada.
 
-## 2. Obtener la conexión
+Nunca copies una secret key ni una service-role key. La clave pública está diseñada para aparecer en el navegador; la protección depende de RLS.
 
-Desde **Connect** o **Project Settings → API Keys**, copia:
+## 2. Entender el acceso
 
-- Project URL.
-- Publishable key.
+V2 no tiene cuentas. Las políticas instaladas permiten a cualquier visitante con la URL principal leer, crear, editar y eliminar el espacio compartido. Los enlaces `/public/...` muestran una vista de solo lectura, pero los datos del proyecto no deben considerarse privados.
 
-No uses `sb_secret_...` ni service-role. Una clave secreta expuesta en GitHub comprometería el proyecto.
+## 3. Configurar GitHub
 
-## 3A. Versión portable
+En el repositorio abre **Settings → Secrets and variables → Actions → Variables** y crea:
 
-1. Ejecuta `CONFIGURAR_SUPABASE.bat`.
-2. Pega la Project URL.
-3. Pega la publishable key.
-4. Ejecuta `INICIAR_PORTABLE.bat`.
-5. Mantén abierta la consola mientras utilizas el servidor local.
+- `SUPABASE_URL`: Project URL.
+- `SUPABASE_PUBLISHABLE_KEY`: publishable/anon key pública.
 
-## 3B. GitHub Pages
+Son variables públicas, no Secrets, porque terminan en `config.js` descargado por el navegador. No crees una variable de service-role.
 
-1. Descomprime el paquete para GitHub Pages.
-2. Abre `config.js` con un editor de texto.
-3. Sustituye los dos valores vacíos.
-4. Sube `index.html`, `config.js`, `sw.js`, `assets/` y los demás archivos a la raíz del repositorio.
-5. En **Settings → Pages** selecciona:
-   - Source: Deploy from a branch.
-   - Branch: main.
-   - Folder: /(root).
-6. Espera el despliegue y abre la dirección publicada.
+Luego abre **Settings → Pages** y selecciona **GitHub Actions** como Source.
 
-## 4. Primer uso
+## 4. Publicar en GitHub Pages
 
-V2 utiliza una base local distinta de V1, por lo que comienza sin shows. La Biblioteca incluye únicamente categorías iniciales de apoyo.
+1. Asegúrate de que el PR de release esté aprobado, fusionado y que CI esté verde.
+2. Abre **Actions → Deploy GitHub Pages → Run workflow**.
+3. Selecciona `main` y confirma.
+4. Espera a que `build-and-deploy` termine en verde.
+5. Abre `https://<usuario>.github.io/show_axe/`.
 
-La importación de un respaldo anterior sigue disponible en **Preferencias → Importar JSON**, pero no se ejecuta automáticamente.
+El workflow compila para `/show_axe/`, genera `config.js` desde las variables públicas, escanea secretos y publica `dist/`. Un dominio personalizado es opcional; si se usa, vuelve a validar base, rutas y scope del Service Worker.
 
-## 5. Cómo funciona el bloqueo
+## 5. Comprobar la publicación
 
-- Al abrir un show con conexión, el dispositivo obtiene un bloqueo.
-- Otro dispositivo verá que el show está en edición y no podrá forzar el acceso.
-- El bloqueo se renueva mientras existe actividad.
-- Se libera al regresar a la lista de shows.
-- Si la pestaña desaparece sin liberar correctamente, expira a los 10 minutos de la última actividad.
-- Sin conexión se permite editar. Al reconectar pueden aparecer conflictos.
+En una ventana privada:
 
-## 6. Conflictos offline
+1. Abre la URL principal y confirma que no aparece Setup.
+2. Crea un Show de prueba y espera **Guardado en línea**.
+3. Ábrelo en otro navegador y confirma la sincronización.
+4. Prueba su enlace público.
+5. Exporta PDF vertical y horizontal.
+6. Recarga una vez online; después activa modo sin conexión y recarga de nuevo.
+7. Vuelve online y confirma que la cola se vacía.
 
-Cuando el mismo show cambió localmente y en Supabase, la aplicación muestra:
+La primera visita sin conexión no funciona. El offline posterior depende de que el navegador haya cargado y cacheado los chunks necesarios.
 
-- **Conservar versión en línea:** descarta el cambio local.
-- **Conservar versión local:** reemplaza la versión en línea cuando el show quede disponible.
+## 6. Actualizar una instalación
 
-No se genera una tercera copia.
+1. Exporta JSON desde **Preferencias → Exportar JSON**.
+2. Conserva un backup de Supabase si el plan lo permite.
+3. Aplica primero las migraciones nuevas, en orden, y ejecuta `VERIFY.sql`.
+4. Despliega el frontend con el workflow.
+5. Las pestañas abiertas mostrarán **Nueva versión disponible**; usa **Actualizar ahora** cuando no haya edición crítica en curso.
+6. Repite la comprobación de la sección anterior.
 
-## 7. Enlaces públicos
+La versión sale de `package.json`; el build y el cache del Service Worker la reciben automáticamente.
 
-Dentro de un show, pulsa **Compartir**. El enlace:
+## 7. Backups e importación
 
-- Es permanente mientras exista el show.
-- Refleja la versión actualizada.
-- Sigue funcionando al archivar.
-- Deja de funcionar al eliminar.
-- Muestra Equipo, Personas, Horarios e Input List en modo de consulta.
+- **Exportar JSON** descarga Shows, Biblioteca, Presets y Preferencias; no contiene claves, locks ni cola de sync.
+- **Importar JSON → Fusionar** conserva IDs no coincidentes y deja ganar al respaldo en IDs coincidentes.
+- **Reemplazar todo** sustituye el contenido local por el respaldo.
+- Antes de cualquier importación la app crea una copia local de emergencia.
+- Los backups automáticos del navegador se limitan a los 10 más recientes.
 
-## 8. Trabajo offline
+Si Supabase está caído, no borres los datos del sitio. Trabaja solo si entiendes el riesgo, exporta JSON cuando sea posible y espera la reconexión. Consulta [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
-La primera visita debe realizarse con conexión para que el Service Worker guarde la aplicación. Después:
+## 8. Rollback
 
-- La interfaz puede abrirse sin internet.
-- Los datos se guardan en IndexedDB.
-- El indicador lateral muestra cambios pendientes.
-- Al volver internet, la cola se procesa automáticamente.
-
-## 9. Reiniciar datos
-
-`supabase/RESET_DATA.sql` elimina los datos en línea y conserva la estructura. Úsalo únicamente cuando quieras comenzar de cero. Los navegadores con cambios offline pendientes podrían volver a subir información al reconectar; limpia también los datos del sitio o abre una instalación nueva.
+No limpies IndexedDB ni caches como primer paso. Sigue [docs/ROLLBACK_2.0.0.md](docs/ROLLBACK_2.0.0.md): conserva datos, restaura schema si corresponde, redespliega un SHA conocido y valida antes de reabrir edición.

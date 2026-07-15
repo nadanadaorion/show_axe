@@ -20,7 +20,6 @@ Items here are not approved scope unless moved into the decision log.
 - Add schema validation with a runtime validator.
 - Add typed Supabase-generated database definitions.
 - Add structured logging behind development flag.
-- Cap and manage automatic backup retention.
 - Keep monitoring bundle-size budget as the app grows (Milestone 3 split routes + `@supabase/supabase-js`/
   `dexie` into separate chunks and cleared the 500 kB warning; re-evaluate if any chunk crosses it again).
 - Test `pagehide` lock release across browsers.

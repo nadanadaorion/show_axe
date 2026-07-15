@@ -1,5 +1,7 @@
 # Roadmap
 
+Status (2026-07-15): Milestones 0–3 are merged and accepted. Milestone 4 is implemented on the release-candidate branch but remains pending final CI, review, merge, deployment and explicit tag approval.
+
 ## Baseline already present
 
 - Core V1 modules.
@@ -51,7 +53,7 @@ Exit: usable on desktop and mobile with resilient failure states.
 
 ## Milestone 4 — release candidate
 
-- acceptance checklist complete;
+- acceptance checklist audited with accepted items evidenced and open product decisions left visible;
 - security warning visible in docs/setup;
 - migration scripts verified;
 - GitHub Pages deployment tested;

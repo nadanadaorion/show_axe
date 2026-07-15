@@ -87,7 +87,7 @@ Examples:
 - Mono at output 3 → `AUX 3`.
 - Stereo at output 5 → `AUX 5–6`.
 
-The UI must detect or clearly display overlapping output allocation.
+V2.0 displays each mono/stereo allocation but does not detect overlaps. Collision handling remains an explicit open decision; operators must review outputs manually.
 
 ## Persistence
 

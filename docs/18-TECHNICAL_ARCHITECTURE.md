@@ -133,11 +133,11 @@ The baseline caches:
 
 Navigation and config use network-first with cache fallback; static assets use cache-first.
 
-The shell cache name is explicitly release-versioned in `public/sw.js` (currently
-`orion-shows-v2.0.0-m3.1`). Every deployment that changes the shell or Service Worker behavior must bump
-that suffix. The installing worker fills its new cache without modifying the cache used by the active
-worker; activation deletes only older `orion-shows-*` caches and preserves both the current cache and
-unrelated application caches.
+The client registers `sw.js?v=<package.json version>` and the worker derives the shell cache name from
+that query plus the normalized scope (currently `orion-shows-show_axe-v2.0.0`). A release version change therefore updates the worker URL and
+cache without a second manual version edit. The installing worker fills its new cache without modifying the cache used by the active
+worker; activation deletes only older caches sharing that exact installation-scope prefix and preserves
+the current cache, sibling Ori♡n installations, and unrelated application caches.
 
 ### Update flow (Milestone 3)
 

@@ -1,57 +1,51 @@
 # Ori♡n Shows
 
-Ori♡n Shows is a web application for preparing live shows quickly, simply, and reliably. The Show is the primary entity and contains Equipment, People, Information, Schedule, Input List, and monitor returns. Reusable data lives in the Library and Presets, while each Show remains an independent snapshot.
+Ori♡n Shows V2 es una aplicación local-first para preparar shows en vivo. Guarda una copia en el navegador, sincroniza un espacio compartido abierto en Supabase y publica vistas de solo lectura por enlace. No usa cuentas: quien tenga la URL principal puede leer, editar y eliminar datos.
 
-This repository is both:
+La versión candidata es **2.0.0**. No es una release publicada hasta que el PR de Milestone 4 sea aprobado, fusionado y etiquetado de forma explícita.
 
-1. a real React/TypeScript application baseline; and
-2. the source-of-truth documentation package for continued implementation with Codex or a human developer.
+## Inicio rápido de desarrollo
 
-## Current version
-
-Baseline: **V2.0.0 implementation candidate**.
-
-The source currently compiles and passes lint. It still requires automated tests and an end-to-end validation against a real Supabase project before it should be treated as a production release.
-
-## Start development
-
-Requirements: Node.js 20+.
+Requisitos: Node.js 22 y npm.
 
 ```bash
 npm ci
 npm run dev
 ```
 
-Validation:
+Sin configuración aparece la pantalla para conectar Supabase. Para pruebas locales completas, usa el stack local descrito en [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Verificación
 
 ```bash
 npm run lint
+npm run test
+npm run typecheck:tests
 npm run build
+npm run check:secrets
 ```
 
-## Configure Supabase
+El gate completo también incluye Supabase desde una base vacía, integración real, Playwright desktop/mobile y el build de GitHub Pages. La ruta exacta está en [BUILD_VERIFICATION.md](BUILD_VERIFICATION.md).
 
-1. Create a Supabase project.
-2. Run `supabase/SETUP.sql` in **SQL Editor**.
-3. Copy `public/config.js` and set the Project URL and publishable key.
-4. Never place a secret/service-role key in this repository.
+## Documentación por audiencia
 
-```js
-window.__ORION_CONFIG__ = {
-  supabaseUrl: 'https://YOUR-PROJECT.supabase.co',
-  supabasePublishableKey: 'sb_publishable_...',
-}
-```
+- Uso cotidiano, backups y offline: [GUIA_USO.md](GUIA_USO.md)
+- Configuración y despliegue para una persona no técnica: [GUIA_CONFIGURACION_V2.md](GUIA_CONFIGURACION_V2.md)
+- Desarrollo y pruebas: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Operación, actualización y rollback: [docs/20-DEPLOYMENT_AND_OPERATIONS.md](docs/20-DEPLOYMENT_AND_OPERATIONS.md)
+- Crear Supabase desde cero: [docs/15-SUPABASE_AND_DATABASE.md](docs/15-SUPABASE_AND_DATABASE.md)
+- Problemas comunes: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
+- Notas de la candidata: [docs/RELEASE_NOTES_2.0.0.md](docs/RELEASE_NOTES_2.0.0.md)
 
-## Documentation
+## Seguridad y límites importantes
 
-Begin with:
+- Solo se usa la Project URL y una publishable/anon key. Nunca coloques una `service-role` o secret key en la app, GitHub o `config.js`.
+- Las políticas RLS son públicas deliberadamente para el editor. La publishable key no convierte los datos en privados.
+- La primera visita requiere conexión. El uso offline funciona después de una carga online controlada por el Service Worker.
+- Los cambios offline se conservan en IndexedDB y se encolan; borrar datos del sitio puede destruir cambios aún no sincronizados.
+- Las colisiones de outputs de retornos no se validan en V2.0.
+- La semántica de Undo cuando una eliminación ya alcanzó Supabase sigue abierta; no se cambió en Milestone 4.
 
-- [`CODEX_START_HERE.md`](CODEX_START_HERE.md)
-- [`AGENTS.md`](AGENTS.md)
-- [`docs/README.md`](docs/README.md)
-- [`docs/24-CURRENT_IMPLEMENTATION_AUDIT.md`](docs/24-CURRENT_IMPLEMENTATION_AUDIT.md)
+## Despliegue
 
-## Deliberate access model
-
-V2 has no accounts. Anyone who can open the editor URL can modify shared data. The public Show route is read-only in the interface, but it is not an authorization boundary because the editor URL remains publicly reachable. This is a documented product decision, not a secure multi-tenant design.
+El workflow manual `Deploy GitHub Pages` compila con base `/show_axe/`, genera `dist/config.js` desde variables públicas de GitHub y despliega el artefacto. Consulta la guía antes de ejecutarlo. El despliegue, tag y GitHub Release requieren aprobación explícita.
