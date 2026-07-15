@@ -15,7 +15,7 @@ restoration until after portal teardown, keeps offline status authoritative whil
 false, versions Service Worker caches, fixes polling/listener cleanup, and retains Playwright traces,
 screenshots, videos, reports, and test results on CI failure. Local verification passes 115/115
 unit/component tests, lint, test typecheck, production build, and the available desktop/mobile Chromium
-smoke coverage. Final GitHub Actions run `29447186230` is completely green: 22/22 integration tests and
+smoke coverage. Corrective GitHub Actions run `29447186230` was completely green: 22/22 integration tests and
 all 13 Playwright cases (9 desktop, 4 mobile) passed with zero test skips and `retries: 0`.
 The corrective Playwright configuration sets `retries: 0`, making that requirement explicit rather than
 inferring it from a retried result.
@@ -77,7 +77,11 @@ enough: its polling missed the short-lived `Sincronizando…` state in all four 
 flows, even though the final snapshots already showed `Guardado en línea`. The harness now installs a DOM
 `MutationObserver` synchronously before each action and requires that it observe the complete visible
 sync cycle. Final run `29447186230` passed both jobs: build gates, 22/22 real-Supabase integration tests,
-and 13/13 Playwright tests (9 desktop, 4 mobile), with 0 failed, 0 skipped, and no retries.
+and 13/13 Playwright tests (9 desktop, 4 mobile), with 0 failed, 0 skipped, and no retries. A later
+documentation-only run (`29451976179`) exposed one remaining Equipment test-order race: after a save, an
+older Realtime revision could temporarily remove the new local item before the assertion. The scenario
+now confirms the persisted equipment in Supabase and reloads that revision before its next edit; it does
+not alter product sync/conflict behavior, add retries, or use a fixed delay.
 
 Milestone 0 (test foundation) is implemented:
 

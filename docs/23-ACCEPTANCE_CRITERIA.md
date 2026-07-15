@@ -127,5 +127,6 @@ For Milestone 3 acceptance specifically, desktop and mobile must both execute in
 Supabase stack with zero skips; focus restoration must pass after Escape and button closure, the mobile
 Equipment reorder target must measure at least approximately 44×44 CSS px, and no passing test may depend
 on retry. A failed run does not satisfy these boxes even when its build and integration jobs pass.
-Run `29447186230` satisfies these Milestone 3 quality boxes: 22/22 integration and 13/13 Playwright
-(9 desktop, 4 mobile), zero failed/skipped tests, and `retries: 0`. PR #4 is still unmerged.
+Run `29447186230` satisfied these Milestone 3 quality boxes at that SHA: 22/22 integration and 13/13
+Playwright (9 desktop, 4 mobile), zero failed/skipped tests, and `retries: 0`. PR #4 is still unmerged;
+the later Equipment harness correction must retain the same result before merge approval.

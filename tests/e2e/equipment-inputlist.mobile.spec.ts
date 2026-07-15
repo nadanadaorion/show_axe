@@ -29,15 +29,20 @@ test.describe('Equipment and Input List are usable on a mobile viewport (real Su
     await page.getByRole('button', { name: 'Creación libre' }).click()
     await page.getByLabel('Nombre', { exact: true }).fill('Consola digital')
     await performAndWaitForOnlineSave(page, () => page.getByRole('button', { name: 'Agregar', exact: true }).click())
-    await expect(page.getByText(/Consola digital$/)).toBeVisible()
     await expect.poll(remoteEquipmentNames, { timeout: 20_000 }).toContain('Consola digital')
+    await page.reload()
+    await expect(page.getByLabel('Nombre del show')).toHaveValue(name)
+    await expect(page.getByText(/Consola digital$/)).toBeVisible()
 
     await page.getByRole('button', { name: 'Agregar equipo' }).click()
     await page.getByRole('button', { name: 'Creación libre' }).click()
     await page.getByLabel('Nombre', { exact: true }).fill('Multicable')
     await performAndWaitForOnlineSave(page, () => page.getByRole('button', { name: 'Agregar', exact: true }).click())
-    await expect(page.getByText(/Multicable$/)).toBeVisible()
     await expect.poll(remoteEquipmentNames, { timeout: 20_000 }).toEqual(expect.arrayContaining(['Consola digital', 'Multicable']))
+    await page.reload()
+    await expect(page.getByLabel('Nombre del show')).toHaveValue(name)
+    await expect(page.getByText(/Consola digital$/)).toBeVisible()
+    await expect(page.getByText(/Multicable$/)).toBeVisible()
 
     // The whole document must not need horizontal scrolling to use the Equipment tab.
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)

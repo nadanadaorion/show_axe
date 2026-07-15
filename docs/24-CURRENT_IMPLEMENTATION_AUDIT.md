@@ -144,10 +144,12 @@ changes in this branch address the real-Chromium focus failure, the Chromium/Web
 mismatch, and the offline-status race, plus the cache-version and polling-cleanup risks found during
 handoff. Local gates pass, but this status must not be changed to complete until a later CI run is wholly
 green without retry-dependent passes.
-The corrective run uses `retries: 0` so first-attempt stability is enforced by configuration. Final run
+The corrective run uses `retries: 0` so first-attempt stability is enforced by configuration. Run
 `29447186230` is wholly green: both jobs succeeded, integration passed 22/22, and Playwright passed 13/13
 (9 desktop, 4 mobile) with zero failed, zero skipped, and no retries. Milestone 3 therefore meets its
-corrective acceptance gate, but PR #4 remains intentionally unmerged.
+corrective acceptance gate at that SHA, but PR #4 remains intentionally unmerged. Later run `29451976179`
+kept `build` green but exposed a remaining Equipment E2E ordering race; the scenario now confirms the
+persisted remote equipment and reloads that revision between edits without changing product sync.
 
 Corrective run `29441798211` subsequently passed the build job and all 22 integration tests, but E2E was
 still 7 passed / 5 failed with zero retries. Crucially, mobile Chromium did launch and the failure
@@ -198,7 +200,9 @@ offline-conflict setup. The tests now require the visible queued-mutation count 
 RPC applied before reconnect; Show-conflict semantics and implementation remain unchanged. Run
 `29446629109` then proved Playwright polling could still miss the short transition even when the save
 completed. The final helper installs a DOM `MutationObserver` before the action and requires the complete
-visible sync cycle. Run `29447186230` passed all 13 E2E cases without retries.
+visible sync cycle. Run `29447186230` passed all 13 E2E cases without retries. Run `29451976179` later
+showed that the Equipment scenario also needed to load the confirmed remote revision before its next
+edit; the test now uses a backend assertion plus page reload as that deterministic barrier.
 
 **A. Modal accessibility + form label association** — `src/components/ui.tsx`'s `Modal` was rewritten:
 `role="dialog"`, `aria-modal="true"`, `aria-labelledby` pointing at the title, a focus trap (`Tab`/`Shift+Tab`
@@ -312,7 +316,7 @@ warning in the eagerly-loaded path — see "Bundle size" below), `npm run test:s
 native Postgres, all 8 assertions pass — confirms no SQL regression, though Milestone 3 did not touch
 `supabase/`), and `npm run check:secrets` (real — no secrets found in repo or `dist/`).
 
-`npx playwright test --list` shows 13 E2E tests across 9 files. Final GitHub Actions run `29447186230`
+`npx playwright test --list` shows 13 E2E tests across 9 files. GitHub Actions run `29447186230`
 executed the complete suite against a real local Supabase stack: 13 passed (9 desktop Chromium, 4 mobile
 Chromium), 0 failed, 0 skipped, and `retries: 0`. The same run passed all 22 integration tests. Both CI jobs
 completed successfully.
