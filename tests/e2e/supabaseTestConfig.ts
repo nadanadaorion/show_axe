@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
 
 /**
  * Shared gate for the Supabase-backed E2E specs (tests/e2e/*.supabase.spec.ts).
@@ -33,4 +33,11 @@ export async function configureSupabaseRuntime(page: Page, config: { url: string
     },
     { url: config.url, anonKey: config.anonKey },
   )
+}
+
+/** Waits for one queued local mutation to enter and then leave the observable sync cycle. */
+export async function waitForOnlineSave(page: Page) {
+  const sidebar = page.getByRole('complementary')
+  await expect(sidebar.getByText(/Sincronizando/)).toBeVisible({ timeout: 5_000 })
+  await expect(sidebar.getByText('Guardado en línea')).toBeVisible({ timeout: 20_000 })
 }

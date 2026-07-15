@@ -59,6 +59,12 @@ local-first UI, before the first mutation had settled remotely. The reorder scen
 Supabase row after each addition (first one item, then both) before asserting reorder controls; it adds no
 sleep, retry, product mutation, or timeout inflation.
 
+Run `29445750738` exposed why a backend poll alone was insufficient: both retained contexts showed the
+Show-conflict UI because the next edit began before the browser had received and stored the revision from
+the preceding save. The mobile flows now wait for the user-visible `Sincronizando…` → `Guardado en línea`
+cycle after Show creation and each Equipment addition. This sequences the scenario through the same UI
+contract a user sees and leaves Show conflict and sync implementation untouched.
+
 Milestone 0 (test foundation) is implemented:
 
 - Vitest + jsdom run unit and component tests (`npm run test`).

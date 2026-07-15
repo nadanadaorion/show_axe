@@ -184,6 +184,11 @@ only `Multicable`: the test had issued its second local-first edit before `Conso
 backend. The scenario now polls the actual Supabase Show after each addition and starts reorder only once
 both names are remote; no production sync logic or protected Supabase behavior was changed.
 
+Run `29445750738` retained two contexts showing the non-cancelable Show-conflict modal: polling the remote
+row did not ensure the browser had applied the returned revision before the next edit. Mobile scenarios
+now wait for the observable `Sincronizando…` then `Guardado en línea` cycle after creation and each add.
+No conflict policy, sync queue, Supabase code, retry count, or fixed delay was changed.
+
 **A. Modal accessibility + form label association** — `src/components/ui.tsx`'s `Modal` was rewritten:
 `role="dialog"`, `aria-modal="true"`, `aria-labelledby` pointing at the title, a focus trap (`Tab`/`Shift+Tab`
 cycle within the dialog), initial focus moved into the dialog on open (respecting native `autoFocus`), focus
