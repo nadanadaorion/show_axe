@@ -115,10 +115,18 @@ A production V2 release is accepted only when all critical items pass.
 
 ## Quality
 
-- [ ] ESLint passes.
-- [ ] TypeScript production build passes.
-- [ ] Unit/component tests pass.
-- [ ] Critical Playwright tests pass.
-- [ ] Supabase verification passes.
-- [ ] No secret keys are committed.
-- [ ] Desktop and mobile smoke tests pass.
+- [x] ESLint passes.
+- [x] TypeScript production build passes.
+- [x] Unit/component tests pass.
+- [x] Critical Playwright tests pass.
+- [x] Supabase verification passes.
+- [x] No secret keys are committed.
+- [x] Desktop and mobile smoke tests pass.
+
+For Milestone 3 acceptance specifically, desktop and mobile must both execute in Chromium against the CI
+Supabase stack with zero skips; focus restoration must pass after Escape and button closure, the mobile
+Equipment reorder target must measure at least approximately 44×44 CSS px, and no passing test may depend
+on retry. A failed run does not satisfy these boxes even when its build and integration jobs pass.
+Run `29447186230` satisfied these Milestone 3 quality boxes at that SHA: 22/22 integration and 13/13
+Playwright (9 desktop, 4 mobile), zero failed/skipped tests, and `retries: 0`. PR #4 is still unmerged;
+final corrective run `29452356582` retained the same result after the Equipment harness correction.

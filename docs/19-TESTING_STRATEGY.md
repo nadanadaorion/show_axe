@@ -2,6 +2,88 @@
 
 ## Current state
 
+### Milestone 3 corrective pass (PR #4)
+
+The first real GitHub Actions run for Milestone 3 (`29426947786`) was not green: the build job passed,
+the real Supabase integration suite passed 22/22 with zero skips, and Playwright finished 7 passed / 5
+failed / 0 skipped. All five failures exhausted two configured retries. The failures were: offline status
+being overwritten by a Realtime channel error, real-Chromium modal focus restoration, and three mobile
+tests configured for WebKit while CI installed only Chromium.
+
+The corrective pass changes mobile to an explicit Chromium 375×667/touch project, defers modal focus
+restoration until after portal teardown, keeps offline status authoritative while `navigator.onLine` is
+false, versions Service Worker caches, fixes polling/listener cleanup, and retains Playwright traces,
+screenshots, videos, reports, and test results on CI failure. Local verification passes 115/115
+unit/component tests, lint, test typecheck, production build, and the available desktop/mobile Chromium
+smoke coverage. Corrective GitHub Actions run `29447186230` was completely green: 22/22 integration tests and
+all 13 Playwright cases (9 desktop, 4 mobile) passed with zero test skips and `retries: 0`.
+The corrective Playwright configuration sets `retries: 0`, making that requirement explicit rather than
+inferring it from a retried result.
+
+Corrective run `29441798211` proved the build and all 22 integration tests green, and uploaded the
+configured Playwright failure artifact, but E2E remained at 7 passed / 5 failed with zero retries. The
+mobile browser now starts correctly. Two annotated failures exposed a real modal-layout regression: the
+sticky action footer overlaid the scrollable form and intercepted the `Crear y abrir` click. The dialog is
+now a bounded flex column with an independently scrollable body and non-overlapping header/footer. The
+always-on `modal-layout.mobile.spec.ts` reproduces the 375×667 click path without needing Supabase.
+
+Runs `29442680064` and `29443257734` confirmed that the same mobile specs pass locally but are disrupted
+when all stateful E2E files run fully parallel against one shared Supabase Workspace and Realtime stream;
+the latter run also made the previously green singleton-Workspace scenario fail. Playwright therefore
+uses one worker whenever `SUPABASE_TEST_URL` is configured. Desktop and mobile remain distinct Chromium
+projects, retries remain zero, and the backend-backed cases no longer mutate shared state concurrently.
+
+The browser follow-up also found two test-design/product details hidden behind the original failures.
+Touch Chromium may activate a modal trigger without focusing it, so `Modal` remembers the last pointer
+control while closed and restores that exact control after teardown; the component suite includes this
+case. Equipment's `size="icon"` utility was overriding the intended 44×44 mobile classes, so the two
+reorder controls now use explicit important size overrides (44×44 mobile, 32×32 from `sm` upward).
+Finally, the offline queue scenario observes the already-mounted sidebar badge instead of performing an
+unrelated offline document navigation to an unvisited lazy chunk, and verifies the flushed Show value
+directly in Supabase after reconnection.
+
+Run `29444552586` then passed 10/13 Playwright cases: all desktop, offline, Workspace, setup, public, and
+lock flows were green; only the three mobile cases remained. Their pre-click hit-test proved the action
+was unobstructed, while Playwright's locator auto-scroll moved the mobile layout immediately before its
+mouse-style click. Mobile submits now use a real `touchscreen.tap` at the verified unobstructed center;
+there is no forced click or DOM invocation, and obstruction still fails before the tap.
+
+Run `29444981721` reached 12/13. The retained screenshot and error context showed the final failure at the
+initial Shows-list overflow assertion: long names from earlier serial cases forced CSS-grid cards 108 px
+beyond the 375 px viewport. Show cards now opt into shrinking with `min-w-0 w-full`, allowing the existing
+heading truncation to work. The always-on mobile regression seeds six long names and asserts zero page
+overflow before opening its modal.
+
+Run `29445373190` again reached 12/13 and proved the list-overflow fix. Its remaining Equipment artifact
+showed only the second item locally: the test started a second edit as soon as the first appeared in the
+local-first UI, before the first mutation had settled remotely. The reorder scenario now polls the real
+Supabase row after each addition (first one item, then both) before asserting reorder controls; it adds no
+sleep, retry, product mutation, or timeout inflation.
+
+Run `29445750738` exposed why a backend poll alone was insufficient: both retained contexts showed the
+Show-conflict UI because the next edit began before the browser had received and stored the revision from
+the preceding save. The mobile flows now wait for the user-visible `Sincronizando…` → `Guardado en línea`
+cycle after Show creation and each Equipment addition. This sequences the scenario through the same UI
+contract a user sees and leaves Show conflict and sync implementation untouched.
+
+Run `29446126816` showed that observing only after the action can miss a very fast `Sincronizando…`
+transition. The helper now starts observing before it performs the mutation, then waits for the saved
+state. The same artifacts exposed weak setup in the offline-conflict tests: fixed sleeps did not prove a
+local edit was queued or that the independent remote RPC applied. Those cases now require the visible
+`1 pendiente` state and assert the RPC result before reconnecting.
+
+Run `29446629109` showed that starting a Playwright locator assertion before the action was still not
+enough: its polling missed the short-lived `Sincronizando…` state in all four affected mobile/offline
+flows, even though the final snapshots already showed `Guardado en línea`. The harness now installs a DOM
+`MutationObserver` synchronously before each action and requires that it observe the complete visible
+sync cycle. Final run `29447186230` passed both jobs: build gates, 22/22 real-Supabase integration tests,
+and 13/13 Playwright tests (9 desktop, 4 mobile), with 0 failed, 0 skipped, and no retries. A later
+documentation-only run (`29451976179`) exposed one remaining Equipment test-order race: after a save, an
+older Realtime revision could temporarily remove the new local item before the assertion. The scenario
+now confirms the persisted equipment in Supabase and reloads that revision before its next edit; it does
+not alter product sync/conflict behavior, add retries, or use a fixed delay. Final corrective run
+`29452356582` passed both jobs, 22/22 integration, and 13/13 Playwright with zero skips and no retries.
+
 Milestone 0 (test foundation) is implemented:
 
 - Vitest + jsdom run unit and component tests (`npm run test`).
@@ -98,8 +180,8 @@ project was available either. As a direct consequence, `tests/integration/`, `te
 and the `supabase-integration` CI job were written and verified for syntax/types
 (`npm run typecheck:tests`, `npx playwright test --list`) and confirmed to skip cleanly (exit 0) rather than
 hang or fake-pass, but their actual assertions have **not** been executed against a real backend by this
-change. They will run for real the first time this branch's CI executes (GitHub-hosted runners are not
-subject to this sandbox's Docker restriction) or when a developer runs them locally with Docker available.
+change. They later ran for real in GitHub Actions; see "Milestone 3 corrective pass" above for the first
+run's exact results and the remaining green-run gate.
 The SQL-level checks (native-Postgres fallback) **were** executed for real, repeatedly, in this environment.
 
 #### Native-Postgres fallback (used in this environment)
@@ -111,16 +193,18 @@ platform. It proves the migrations and RPC/RLS logic are correct; it does **not*
 shapes or real Realtime delivery — that requires `supabase start` or a real project, which is exactly what
 the gated integration/E2E suites above are for.
 
-#### Workspace conflict policy: decided, implementation pending
+#### Workspace conflict policy: decided and implemented (Milestone 2.1)
 
-At the time this Milestone 2 suite was written, `docs/25-DECISION_LOG.md` listed the Workspace
+At the time the Milestone 2 suite above was written, `docs/25-DECISION_LOG.md` listed the Workspace
 concurrent-edit policy as an open decision, so `tests/integration/workspace.test.ts` tested and documented
-the *existing* local-last retry behavior (`src/components/SyncController.tsx`) exactly as implemented,
-without adding a new field-level merge UI. The decision is now closed: D-214 approves a **remote-wins**
-policy (see `docs/14-SYNC_OFFLINE_AND_LOCKS.md` "Workspace conflicts"). Updating
-`tests/integration/workspace.test.ts` to prove remote-wins, and the corresponding code change in
-`src/components/SyncController.tsx`, is scoped to a future milestone — this test file still exercises the
-old local-last behavior until then.
+the *existing* local-last retry behavior as it stood then. D-214 has since closed the decision as
+**remote-wins** (see `docs/14-SYNC_OFFLINE_AND_LOCKS.md` "Workspace conflicts") and Milestone 2.1
+implemented it in `src/lib/workspaceSync.ts` (`processWorkspaceMutation`), merged to `main` before
+Milestone 3 started. The real two-client proof is `tests/e2e/workspace-conflict.supabase.spec.ts`
+(discards the local edit, applies the latest remote Workspace, shows the "Se conservaron los cambios en
+línea…" notice, no picker). Milestone 3 did not modify this policy or its tests, beyond updating that
+spec's Settings-page selectors from CSS `:has()` fallbacks to `getByLabel` now that Milestone 3 gave those
+fields proper label association (see "Milestone 3" below).
 
 ## Test layers
 
@@ -149,7 +233,23 @@ Use React Testing Library for:
 - conflict modal choices;
 - blocked lock state;
 - public route read-only controls;
-- Error Boundary recovery.
+- Error Boundary recovery, including `RouteErrorBoundary`/`GlobalErrorBoundary` navigation and the backup
+  export failure path (`tests/component/ErrorBoundary.test.tsx`, Milestone 3);
+- `Modal` accessibility — dialog role/name, focus trap, focus restoration, conditional `Escape`, background
+  `inert` — and `Field` label association, including next-frame restoration to the exact trigger after
+  Escape and action-button closure (`tests/component/Modal.test.tsx`, Milestone 3);
+- Equipment keyboard reordering and move-to-category, against the real store
+  (`tests/component/EquipmentReorder.test.tsx`, Milestone 3);
+- the Service Worker update hook's state machine — first-install vs. genuine update, apply/reload,
+  stuck-update retry, one polling interval per mount, and full cleanup/remount — with a hand-built fake
+  `navigator.serviceWorker` (no real browser SW timing)
+  (`tests/unit/useServiceWorkerUpdate.test.ts`, Milestone 3), and the notice UI it drives
+  (`tests/component/UpdateNotice.test.tsx`, Milestone 3);
+- the Service Worker script's versioned-cache isolation, cleanup of only older Ori♡n caches, preservation
+  of current/unrelated caches, explicit `SKIP_WAITING`, and absence of auto-activation
+  (`tests/unit/serviceWorker.test.ts`, Milestone 3 correction);
+- Input List PDF export's on-demand loading state and generation-error handling, with
+  `src/lib/inputListPdf.ts` mocked (`tests/component/InputListPdf.test.tsx`, Milestone 3).
 
 ### Integration tests
 
@@ -197,10 +297,36 @@ Implemented in `tests/e2e/`. `setup.spec.ts` needs no Supabase config (tests the
    conflict both ways — `offline-conflict.supabase.spec.ts`;
 5. create public link and verify read-only route; 6. archive and verify public link remains; 7. delete and
    verify public route becomes not found — all three in `public-route.supabase.spec.ts`;
-8. generate Input List and PDF action — not yet covered by E2E (existing local-only feature, unaffected by
-   Milestone 2; a good Milestone 3 candidate alongside the other UX items already scoped there);
+8. generate an Input List and open PDF export — covered by `smoke-desktop.supabase.spec.ts` (the loading
+   state and error-handling around it are covered separately at the component level, see above);
 9. reload offline after first successful visit — covered already by the existing Service Worker baseline;
-   not re-verified by this change (see `docs/24-CURRENT_IMPLEMENTATION_AUDIT.md` Service Worker risk note).
+   the update-available flow added in Milestone 3 was additionally verified once with a real
+   build/serve/version-bump browser round-trip (not part of the committed automated suite — see
+   `docs/24-CURRENT_IMPLEMENTATION_AUDIT.md` "Service Worker update lifecycle").
+
+**Milestone 3** added two more real-Supabase E2E files plus a second Playwright project for a mobile
+viewport:
+
+- `smoke-desktop.supabase.spec.ts` (`chromium` project): Shows listing, opening a Show, adding Equipment,
+  the Input List, a modal (dialog role/name, `Escape`-close, focus return to the trigger), and keyboard-only
+  Equipment reordering, in one flow.
+- `equipment-inputlist.mobile.spec.ts` and `smoke-mobile.mobile.spec.ts` (`mobile` project,
+  explicit Chromium at 375×667 with touch/mobile emulation, matched via `playwright.config.ts`'s
+  `testMatch: '**/*.mobile.spec.ts'`): the same
+  breadth on a 375×667 viewport, plus explicit page-level horizontal-overflow assertions
+  (`document.documentElement.scrollWidth - clientWidth === 0`) and a custom-channel-number edit.
+
+- `modal-layout.mobile.spec.ts` (`mobile` project, always on): proves that the create-Show form does not
+  overlap the action footer and that the real pointer click closes the modal, using an unreachable local
+  runtime so the local-first UI can be exercised without a Supabase dependency.
+
+No visual/snapshot tests were added — every assertion is role/name/focus/state/navigation-based, per the
+Milestone 3 authorization ("no golden snapshots this milestone").
+
+CI retains trace, screenshot, and video for every failed Playwright test and uploads
+`playwright-report/` plus `test-results/` as the `playwright-failure-artifacts` artifact when the E2E step
+fails. The Supabase job runs the complete collected Playwright suite (including the always-on mobile
+modal regression), not a title-filtered subset. Generated artifacts remain gitignored.
 
 ## Fixtures
 
@@ -225,12 +351,14 @@ Minimum release gates:
 - TypeScript build passes (`npm run build`), and test files typecheck too (`npm run typecheck:tests`);
 - unit/component tests pass (`npm run test`);
 - critical E2E suite passes (`npm run test:e2e`, both the always-on and, when Supabase is configured, the
-  `.supabase.spec.ts` files);
+  `.supabase.spec.ts` files) across both explicit Chromium Playwright projects: desktop and mobile
+  (375×667, touch/mobile emulation);
 - SQL verification passes (`npm run test:supabase:sql`, and/or `supabase/VERIFY.sql` against a real
   instance);
 - Supabase integration suite passes when a backend is configured (`npm run test:integration`);
 - no secrets detected (`npm run check:secrets`);
-- manual mobile smoke test completed.
+- production bundle has no chunk over Vite's 500 kB warning threshold in the eagerly-loaded path (the
+  on-demand PDF chunk is exempt — see `docs/24-CURRENT_IMPLEMENTATION_AUDIT.md` "Bundle size").
 
 ## Regression rules
 

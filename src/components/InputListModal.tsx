@@ -15,7 +15,7 @@ import type { InputListConfig, InputListRow, MonitorReturn, Show } from '../type
 import { createInputList, nextInputChannel, nextReturnOutput, outputLabel, previewInputListSync, renumberInputRows } from '../lib/inputList'
 import type { PdfOrientation } from '../lib/inputListPdf'
 import { now, uid } from '../lib/utils'
-import { Badge, Button, Input, Label, Modal, Select, Textarea } from './ui'
+import { Badge, Button, Field, Input, Label, Modal, Select, Textarea } from './ui'
 import { useToast } from './Toast'
 
 export function InputListModal({ open, show, onClose }: { open: boolean; show: Show; onClose: () => void }) {
@@ -23,6 +23,7 @@ export function InputListModal({ open, show, onClose }: { open: boolean; show: S
   const { showToast } = useToast()
   const [syncOpen, setSyncOpen] = useState(false)
   const [pdfOrientation, setPdfOrientation] = useState<PdfOrientation>('landscape')
+  const [pdfExporting, setPdfExporting] = useState(false)
   const config = show.inputList || createInputList(show)
   const rows = useMemo(() => [...config.rows].sort((a, b) => a.order - b.order), [config.rows])
   const returns = useMemo(() => [...config.returns].sort((a, b) => a.order - b.order), [config.returns])
@@ -82,8 +83,16 @@ export function InputListModal({ open, show, onClose }: { open: boolean; show: S
     })
 
   const exportPdf = async () => {
-    const { exportInputListPdf } = await import('../lib/inputListPdf')
-    exportInputListPdf(show, pdfOrientation)
+    setPdfExporting(true)
+    try {
+      const { exportInputListPdf } = await import('../lib/inputListPdf')
+      await exportInputListPdf(show, pdfOrientation)
+    } catch (error) {
+      console.error('No fue posible generar el PDF del input list', error)
+      showToast('No se pudo generar el PDF. Intenta de nuevo.')
+    } finally {
+      setPdfExporting(false)
+    }
   }
 
   const applySync = () => {
@@ -118,8 +127,9 @@ export function InputListModal({ open, show, onClose }: { open: boolean; show: S
               <option value="landscape">PDF horizontal</option>
               <option value="portrait">PDF vertical</option>
             </Select>
-            <Button size="sm" onClick={() => void exportPdf()}>
-              <Download size={14} />Exportar PDF
+            <Button size="sm" onClick={() => void exportPdf()} disabled={pdfExporting}>
+              {pdfExporting ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
+              {pdfExporting ? 'Generando…' : 'Exportar PDF'}
             </Button>
             <Button variant="ghost" size="icon" onClick={onClose} aria-label="Cerrar input list"><X size={18} /></Button>
           </div>
@@ -134,8 +144,7 @@ export function InputListModal({ open, show, onClose }: { open: boolean; show: S
                   <p className="text-xs muted">El número de canal es editable y se conserva aunque cambies el orden.</p>
                 </div>
                 <div className="flex flex-wrap items-end gap-2">
-                  <div>
-                    <Label>Canal inicial</Label>
+                  <Field label="Canal inicial">
                     <Input
                       type="number"
                       min="1"
@@ -143,7 +152,7 @@ export function InputListModal({ open, show, onClose }: { open: boolean; show: S
                       onChange={(event) => save({ ...config, channelStart: Math.max(1, Number(event.target.value) || 1) })}
                       className="h-8 w-24 py-1 text-sm"
                     />
-                  </div>
+                  </Field>
                   <Button
                     variant="secondary"
                     size="sm"
@@ -224,8 +233,9 @@ export function InputListModal({ open, show, onClose }: { open: boolean; show: S
             </section>
 
             <section className="panel p-5">
-              <Label>Notas generales del input list</Label>
-              <Textarea value={config.generalNotes || ''} onChange={(event) => save({ ...config, generalNotes: event.target.value || undefined })} placeholder="Indicaciones generales de patch, consola, stagebox o monitoreo…" />
+              <Field label="Notas generales del input list">
+                <Textarea value={config.generalNotes || ''} onChange={(event) => save({ ...config, generalNotes: event.target.value || undefined })} placeholder="Indicaciones generales de patch, consola, stagebox o monitoreo…" />
+              </Field>
             </section>
           </div>
         </div>

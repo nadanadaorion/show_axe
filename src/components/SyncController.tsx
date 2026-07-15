@@ -216,6 +216,13 @@ export function SyncController({ children }: { children: ReactNode }) {
         },
         onWorkspace: (row) => void handleRemoteWorkspace(row),
         onStatus: (status, error) => {
+          // Chromium can emit the offline event before Supabase reports CHANNEL_ERROR. Offline is
+          // the more useful observable state and must not be overwritten by that expected channel
+          // shutdown while the browser has no network.
+          if (!navigator.onLine) {
+            useSyncStore.getState().setStatus('offline')
+            return
+          }
           if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && error) {
             useSyncStore.getState().setStatus('error', 'La conexión en tiempo real se interrumpió. La sincronización periódica sigue activa.')
           }
@@ -291,7 +298,7 @@ export function SyncController({ children }: { children: ReactNode }) {
 
   return <>
     {children}
-    <Modal open={Boolean(conflict)} title="Conflicto de edición offline" onClose={() => undefined} footer={<><Button variant="secondary" disabled={resolving} onClick={chooseOnline}><Cloud size={16} />Conservar versión en línea</Button><Button disabled={resolving} onClick={chooseLocal}>{resolving ? <LoaderCircle className="animate-spin" size={16} /> : <CloudOff size={16} />}Conservar versión local</Button></>}>
+    <Modal open={Boolean(conflict)} title="Conflicto de edición offline" onClose={() => undefined} closeOnEscape={false} footer={<><Button variant="secondary" disabled={resolving} onClick={chooseOnline}><Cloud size={16} />Conservar versión en línea</Button><Button disabled={resolving} onClick={chooseLocal}>{resolving ? <LoaderCircle className="animate-spin" size={16} /> : <CloudOff size={16} />}Conservar versión local</Button></>}>
       {conflict && <div className="space-y-4">
         <div className="flex gap-3 rounded-xl border border-amber-300/60 bg-amber-50 p-4 text-amber-950 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100"><AlertTriangle className="mt-0.5 flex-none" size={20} /><div><p className="text-sm font-medium">Este show cambió localmente y también en línea.</p><p className="mt-1 text-xs opacity-80">Selecciona cuál versión debe conservarse. La otra será reemplazada y no se creará una copia adicional.</p></div></div>
         <div className="grid gap-3 sm:grid-cols-2">
