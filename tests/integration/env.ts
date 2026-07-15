@@ -4,6 +4,13 @@
  * when it resolves to `undefined` — never a mock standing in for a real
  * response. See .env.example and docs/19-TESTING_STRATEGY.md for how to
  * point this at a local `supabase start` stack or a disposable test project.
+ *
+ * When SUPABASE_INTEGRATION_REQUIRED is set (the supabase-integration CI job
+ * sets it, after `supabase start`), a missing/unreachable config throws
+ * instead of silently skipping — a CI misconfiguration must fail loudly, not
+ * report a hollow "success" with every test skipped. This is exactly the
+ * regression guard for the bug where the CI step exported an empty
+ * SUPABASE_TEST_ANON_KEY and the job still went green.
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
@@ -35,20 +42,27 @@ async function isReachable(config: TestSupabaseConfig): Promise<boolean> {
 
 let cached: Promise<TestSupabaseConfig | undefined> | undefined
 
+function required(): boolean {
+  return Boolean(process.env.SUPABASE_INTEGRATION_REQUIRED)
+}
+
 /** Resolves to the test config only if it is both set and actually reachable right now. */
 export function getSupabaseTestConfig(): Promise<TestSupabaseConfig | undefined> {
   if (!cached) {
     cached = (async () => {
       const config = readConfig()
       if (!config) {
-        console.warn(
-          '[integration] SKIP: SUPABASE_TEST_URL/SUPABASE_TEST_ANON_KEY are not set. See .env.example. ' +
-            'Run `supabase start` and export the printed values, or point at a disposable test project.',
-        )
+        const message =
+          '[integration] SUPABASE_TEST_URL/SUPABASE_TEST_ANON_KEY are not set. See .env.example. ' +
+          "Run `supabase start` and export the printed values, or point at a disposable test project."
+        if (required()) throw new Error(message)
+        console.warn(`[integration] SKIP: ${message}`)
         return undefined
       }
       if (!(await isReachable(config))) {
-        console.warn(`[integration] SKIP: ${config.url} is not reachable. Is 'supabase start' running?`)
+        const message = `${config.url} is not reachable. Is 'supabase start' running?`
+        if (required()) throw new Error(`[integration] ${message}`)
+        console.warn(`[integration] SKIP: ${message}`)
         return undefined
       }
       return config

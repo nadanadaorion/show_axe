@@ -29,6 +29,10 @@ jobs:
   # Docker-free fallback that checks the migrations/RPCs directly.
   supabase-integration:
     runs-on: ubuntu-latest
+    env:
+      # After `supabase start`, a missing/unreachable config must fail the
+      # suites loudly instead of skipping — see tests/integration/env.ts.
+      SUPABASE_INTEGRATION_REQUIRED: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -42,8 +46,36 @@ jobs:
       - run: supabase start
       - name: Export local Supabase connection details
         run: |
-          echo "SUPABASE_TEST_URL=$(supabase status -o env | grep '^API_URL=' | cut -d= -f2- | tr -d '"')" >> "$GITHUB_ENV"
-          echo "SUPABASE_TEST_ANON_KEY=$(supabase status -o env | grep '^ANON_KEY=' | cut -d= -f2- | tr -d '"')" >> "$GITHUB_ENV"
+          # `supabase status -o env` output is well-known, non-secret local dev
+          # defaults (the CLI's own banner: "API keys and JWT secrets are shared
+          # defaults. Do not use in production"), so printing it is safe and is
+          # exactly what makes a future field-name change fail loudly instead of
+          # silently exporting an empty value.
+          STATUS_ENV="$(supabase status -o env)"
+          echo "$STATUS_ENV"
+
+          extract() {
+            # Tries each candidate field name in order, prints the first non-empty match.
+            for name in "$@"; do
+              value="$(echo "$STATUS_ENV" | grep -m1 "^${name}=" | cut -d= -f2- | tr -d '"')"
+              if [ -n "$value" ]; then
+                echo "$value"
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          URL="$(extract API_URL SUPABASE_API_URL SUPABASE_URL)"
+          KEY="$(extract ANON_KEY PUBLISHABLE_KEY SUPABASE_ANON_KEY SUPABASE_PUBLISHABLE_KEY)"
+
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then
+            echo "::error::Could not extract API URL/anon-or-publishable key from 'supabase status -o env' (dumped above). The CLI's field names likely changed — update the candidate list in this step."
+            exit 1
+          fi
+
+          echo "SUPABASE_TEST_URL=$URL" >> "$GITHUB_ENV"
+          echo "SUPABASE_TEST_ANON_KEY=$KEY" >> "$GITHUB_ENV"
       - run: npm run test:integration
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e -- --grep supabase
