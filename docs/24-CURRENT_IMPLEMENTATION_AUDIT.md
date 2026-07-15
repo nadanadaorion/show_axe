@@ -114,11 +114,110 @@ product features.
 - The Workspace conflict policy — at the time this Milestone 2 PR was written, this was an open decision
   (`docs/25-DECISION_LOG.md`), so `tests/integration/workspace.test.ts` tested and documented the *existing*
   local-last retry behavior exactly as implemented; no new field-level merge UI was built.
-  **Since resolved**: D-214 (`docs/25-DECISION_LOG.md`) approves a remote-wins policy, replacing local-last
-  retry — see `docs/14-SYNC_OFFLINE_AND_LOCKS.md` "Workspace conflicts". The decision is now closed, but
-  `src/components/SyncController.tsx` and `tests/integration/workspace.test.ts` still implement/test the old
-  local-last behavior; implementing D-214 in code and tests is pending, targeted for the next milestone.
+  **Since resolved and implemented**: D-214 (`docs/25-DECISION_LOG.md`) approved a remote-wins policy,
+  replacing local-last retry — see `docs/14-SYNC_OFFLINE_AND_LOCKS.md` "Workspace conflicts". Milestone 2.1
+  implemented this in code (`src/lib/workspaceSync.ts`'s `processWorkspaceMutation`) and tests
+  (`tests/e2e/workspace-conflict.supabase.spec.ts`, real two-client Supabase scenario), merged to `main`
+  before Milestone 3 began. Milestone 3 did not touch this policy.
 - No accounts/auth/invitations were added (none existed; not requested).
+
+## Milestone 2.1 — Workspace remote-wins (retroactive note)
+
+Between Milestone 2 and Milestone 3, a separate PR implemented D-214 (Workspace remote-wins conflict
+resolution) in code, merged to `main` before Milestone 3 started. This audit file was not updated at the
+time; the stale "pending" language above and in "Workspace conflict policy" below has been corrected as
+part of this Milestone 3 update. No Milestone 2.1 code was touched in Milestone 3.
+
+## Milestone 3 — UX and resilience (this update)
+
+Scope: `docs/21-ROADMAP.md` / `CODEX_START_HERE.md` Milestone 3 — modal accessibility, keyboard ordering
+alternatives, mobile technical-table behavior, Service Worker update flow, structured error recovery, and
+PDF bundle performance/code-splitting. Supabase sync, the Workspace remote-wins policy, Show conflicts,
+locks, accounts/auth, Input List business rules, and PDF functional content were explicitly out of scope
+and were not modified.
+
+**A. Modal accessibility + form label association** — `src/components/ui.tsx`'s `Modal` was rewritten:
+`role="dialog"`, `aria-modal="true"`, `aria-labelledby` pointing at the title, a focus trap (`Tab`/`Shift+Tab`
+cycle within the dialog), initial focus moved into the dialog on open (respecting native `autoFocus`), focus
+restored to the triggering element on close, `Escape` closes only when a new `closeOnEscape` prop (default
+`true`) allows it — the Show-conflict modal in `SyncController.tsx` sets `closeOnEscape={false}` since it is
+non-cancelable by design. The app root (`#root`) gets the `inert` attribute while a modal is open, blocking
+keyboard/pointer access to the background; the modal itself renders via `createPortal` into a new
+`#modal-root` element (added to `index.html`) specifically so it is not `inert`-ed by its own mechanism. A
+dev-only `console.warn` fires if more than one modal is open at once (no auto-close — the codebase does not
+have a single `activeModal` state to safely close from). A new `Field` component (`useId()` + `cloneElement`
+onto a single child) associates every genuinely 1:1 label/field pair across Setup, Shows, Show
+(Equipment/People/Info/Schedule), Library, Presets, Settings, and the Input List modal; `Label` remains only
+for non-1:1 headings (radio groups, `MultiSelect`). Validation errors (e.g. Setup screen) use `role="alert"`.
+Tests: `tests/component/Modal.test.tsx` (8 tests).
+
+**B. Keyboard alternative to Equipment drag & drop** — Equipment is the only module in the codebase that
+used drag & drop (`grep -rl draggable src/` returns only `ShowPage.tsx`; People and Schedule rows already
+had non-drag reorder controls). `EquipmentRow` gained "Subir"/"Bajar" icon buttons (disabled at list
+boundaries) that call the existing `moveEquipment` store action using a fractional-order trick
+(`neighbor.order ± 0.5`) so the same reindexing logic used by drag & drop runs unchanged, plus a "Mover a
+categoría" `Select` (shown when there is more than one category) for cross-category moves without a drag
+gesture. Drag & drop itself was not removed. Both paths show the same "Equipo movido" / `Movido a "X"` toast
+feedback. Tests: `tests/component/EquipmentReorder.test.tsx` (3 tests, real Zustand store, no mocking of
+`moveEquipment`) plus keyboard-navigation assertions in the new E2E smoke specs.
+
+**C. Mobile-responsive Equipment/Input List** — Equipment was already a responsive card list (Tailwind
+`sm:`/`lg:` breakpoints collapse expanded-row fields to one column below `sm`), not a rigid table; verified
+in a real mobile-viewport (375×667) browser session with no page-level horizontal overflow, collapsed and
+expanded. The Equipment reorder buttons were bumped from `h-5 w-6` to `h-6 w-7` for a slightly larger touch
+target (they were the smallest control in the row); they still fall short of `docs/06-UX_AND_INTERACTION.md`'s
+~44×44 CSS px guideline for primary mobile controls, consistent with the pre-existing checked-state toggle
+button in the same row (24×24) — a full 44px target for every dense-row control would need a row-layout
+redesign judged disproportionate for this milestone, so this is an accepted, documented gap rather than a
+silent one. The Input List's CH/Uso/Equipo/48V/Patch/Notas table
+already used the authorized "horizontal scroll" adaptive pattern (`overflow-x-auto` wrapper, `min-w-[1050px]`
+inner grid) rather than squeezing columns — confirmed for real: the wrapper (not the page) scrolls, every
+column including the rightmost "Notas" field remains reachable and editable after scrolling, and custom CH
+editing works. A `mobile` Playwright project (`devices['iPhone SE']`, `**/*.mobile.spec.ts`) was added
+alongside the existing desktop `chromium` project. Tests: `tests/e2e/equipment-inputlist.mobile.spec.ts`,
+`tests/e2e/smoke-mobile.mobile.spec.ts` (real Supabase, gated like the existing `.supabase.spec.ts` files).
+
+**D. Service Worker update flow** — see "Service Worker update lifecycle" above.
+
+**E. Structured error recovery** — `ErrorBoundary` stays a class component (`getDerivedStateFromError`/
+`componentDidCatch`) but is now driven by props (`onPrimaryAction`, `primaryActionLabel`, `title`,
+`description`, `showExportBackup`) instead of being hardcoded, so it never shows a raw error message or
+stack trace to the user (technical details go to `console.error`; a dev-only `<details>` disclosure is
+gated behind `import.meta.env.DEV`). Every instance offers "Reintentar" (resets local state, re-renders the
+same subtree — no reload) and "Recargar aplicación"; the "Volver a Shows" (or contextual equivalent) action
+and an optional "Exportar respaldo" (global boundary only) are supplied by the wrapper. Two functional
+wrappers supply navigation: `RouteErrorBoundary` uses `useNavigate()` (available since it always renders
+inside the Router) for the Shows/ShowPage/Library/Presets/Settings routes and the public Show route;
+`GlobalErrorBoundary` wraps the whole app in `App.tsx` *outside* the Router (it also wraps `SetupPage` and
+the conditional `<HashRouter>` itself), so it cannot call `useNavigate()` and instead sets `location.hash =
+'#/shows'` followed by a full reload — the documented last-resort fallback — and is the only boundary with
+`showExportBackup`. A dedicated boundary wraps the Input List module specifically (`ShowPage.tsx`), so an
+Input List failure closes only that modal and leaves the rest of the Show usable; PDF export handles its
+own errors locally via try/catch instead of a boundary (see "F" below). Backup export is wrapped in
+try/catch: on failure it shows an inline `role="alert"` message and keeps "Volver a Shows"/"Recargar
+aplicación" available, never deletes local data, and never retries automatically. Tests:
+`tests/component/ErrorBoundary.test.tsx` (11 tests covering the base component, `RouteErrorBoundary`, and
+`GlobalErrorBoundary`, including the backup-export failure path).
+
+**F. PDF performance/code-splitting** — see "Bundle size" above for the route/vendor splitting. The PDF
+export button in `InputListModal.tsx` now shows a loading state ("Generando…", disabled, spinning icon)
+while the dynamic `import()` and generation run, and a toast plus `console.error` instead of a silent
+failure if generation throws — the actual PDF content/layout logic in `src/lib/inputListPdf.ts` (portrait
+and landscape, custom Input List numbering) was not touched. Tests: `tests/component/InputListPdf.test.tsx`
+(3 tests: dynamic-import call with the selected orientation, loading state, error recovery).
+
+**G. Desktop + mobile smoke tests** — `tests/e2e/smoke-desktop.supabase.spec.ts` (desktop `chromium`
+project) and `tests/e2e/smoke-mobile.mobile.spec.ts` (`mobile` project) cover Shows listing, opening a Show,
+Equipment, Input List, a modal (accessible role/name, `Escape`-close, focus return), and keyboard-only
+reordering, against a real Supabase backend, gated the same way as the existing `.supabase.spec.ts` files
+(skip with a clear message locally when unconfigured; fail loud in CI via `SUPABASE_INTEGRATION_REQUIRED`).
+No visual/snapshot tests were added, per the Milestone 3 authorization — all assertions are role/name/
+focus/state-based. The error-recovery screen and the Service Worker update notice are covered by real DOM
+interaction at the component-test level (`ErrorBoundary.test.tsx`, `UpdateNotice.test.tsx`,
+`useServiceWorkerUpdate.test.ts`) rather than a from-scratch E2E crash trigger, since there is no existing,
+authorized way to deliberately force a production render crash from outside the app without adding
+test-only surface area to shipped code; the Service Worker update flow was additionally verified once with
+a real build/serve/version-bump browser round-trip (not part of the committed automated suite).
 
 ## Milestone 0/1/2 verification
 
@@ -130,6 +229,29 @@ and `npm run check:secrets` (real — no secrets found in repo or `dist/`). `npm
 reachable, which is the honest state of this environment; see "Milestone 2" above for why, and
 `docs/19-TESTING_STRATEGY.md` for how to run them for real. Production build completed successfully with
 Vite.
+
+## Milestone 3 verification
+
+Re-run from a clean dependency state (`npm ci`) in this environment: `npm run lint`, `npm run test` (108
+unit/component tests, up from 77 immediately before this milestone — 31 new: 8 in the new
+`tests/component/Modal.test.tsx`, 3 in the new `tests/component/EquipmentReorder.test.tsx`, 8 added to the
+pre-existing `tests/component/ErrorBoundary.test.tsx` (11 total now), 6 in the new
+`tests/unit/useServiceWorkerUpdate.test.ts`, 3 in the new `tests/component/UpdateNotice.test.tsx`, and 3 in
+the new `tests/component/InputListPdf.test.tsx`), `npm run typecheck:tests`, `npm run build` (production
+build succeeds; no chunk exceeds Vite's 500 kB
+warning in the eagerly-loaded path — see "Bundle size" below), `npm run test:supabase:sql` (real, against a
+native Postgres, all 8 assertions pass — confirms no SQL regression, though Milestone 3 did not touch
+`supabase/`), and `npm run check:secrets` (real — no secrets found in repo or `dist/`).
+
+`npx playwright test --list` shows 12 E2E tests across 8 files (2 new: `smoke-desktop.supabase.spec.ts` on
+the `chromium` project, `smoke-mobile.mobile.spec.ts` on the new `mobile` project) plus the pre-existing
+`equipment-inputlist.mobile.spec.ts` (also new this milestone) — all `.supabase.spec.ts`/`.mobile.spec.ts`
+files are gated the same way as the Milestone 2 ones and were **not** executed against a real backend in
+this environment for the same documented reason (this sandbox's proxy denies the Supabase CLI's Docker
+Hub/GitHub-release pulls with a `403`, confirmed by checking `$HTTPS_PROXY/__agentproxy/status`, not
+assumed) — verified only for TypeScript types and Playwright collection here. `tests/integration/` remains
+22 tests across 5 files, unchanged by this milestone. They will run for real, with zero skips, the first
+time this branch's CI executes (see `docs/19-TESTING_STRATEGY.md`).
 
 ## Implemented source areas
 
@@ -191,14 +313,15 @@ Supabase instance (locally with Docker, or in this branch's CI once pushed).
 
 ## Missing automated quality controls
 
-- Milestones 0, 1, and 2 (foundation; core business-rule coverage; shared-data hardening infrastructure)
-  are implemented. The Supabase-backed integration/E2E suites are written, typed, and confirmed to skip
-  cleanly, but have not actually been *run* against a real backend in this environment (see "Milestone 2"
-  above) — that execution is the main outstanding verification step, not missing code.
-- Playwright's Setup-screen smoke test and the three `.supabase.spec.ts` files exist (`npx playwright test
-  --list` shows 7 specs across 4 files); only the Setup-screen ones have actually executed successfully so
-  far. Item 8 from the Milestone 2 E2E list ("generate Input List and PDF") remains uncovered by E2E and is
-  a reasonable Milestone 3 candidate.
+- Milestones 0, 1, 2, 2.1, and 3 are implemented. The Supabase-backed integration/E2E suites are written,
+  typed, and confirmed to skip cleanly, but have not actually been *run* against a real backend in this
+  environment (see "Milestone 2" and "Milestone 3 verification" above) — that execution is the main
+  outstanding verification step, not missing code.
+- `npx playwright test --list` shows 12 tests across 8 files (6 `.supabase.spec.ts` files on the `chromium`
+  project, 2 `.mobile.spec.ts` files on the new `mobile` project, plus the always-on Setup-screen smoke
+  test); only the Setup-screen ones have actually executed successfully so far in this environment. Item 8
+  from the Milestone 2 E2E list ("generate Input List and PDF") is now covered by
+  `smoke-desktop.supabase.spec.ts`.
 - `supabase/VERIFY.sql` is now also wrapped in a self-checking, CI-runnable form
   (`supabase/scripts/assertions.sql` via `npm run test:supabase:sql`), executed for real in this
   environment. It is not yet wired into the default CI job (only the new `supabase-integration` job's
@@ -216,24 +339,39 @@ Anonymous policies intentionally allow all data mutations. Public read-only mode
 
 ### Workspace conflict policy
 
-Shows receive explicit conflict resolution. Workspace conflicts currently *still implement* local-last
-retry (`src/components/SyncController.tsx`, tested as-is in `tests/integration/workspace.test.ts`), which
-can overwrite remote changes without a user comparison — but this is no longer the approved policy. D-214
-(`docs/25-DECISION_LOG.md`) closes the decision as **remote-wins**: on a confirmed conflict, discard the
-conflicting local Workspace change, load the latest remote Workspace, and notify the user, with no
-comparison dialog. Implementing D-214 (code + tests) is pending, not yet done in this codebase.
+Resolved in Milestone 2.1. Shows keep explicit conflict resolution (local/online choice). Workspace
+(Library/Presets/Preferences) conflicts implement D-214 (`docs/25-DECISION_LOG.md`): on a confirmed
+conflict, discard the conflicting local Workspace mutation, apply the latest remote Workspace, and notify
+the user via toast — no comparison dialog, no duplicate copy. See `src/lib/workspaceSync.ts` and
+`docs/14-SYNC_OFFLINE_AND_LOCKS.md` "Workspace conflicts". Milestone 3 did not change this behavior.
 
 ### Delete Undo and remote identity
 
 The editor offers local Show Undo. Remote deletion and public slug restoration semantics need an E2E test to ensure Undo does not create a misleading or inconsistent public link state.
 
-### Service Worker update lifecycle
+### Service Worker update lifecycle — resolved in Milestone 3
 
-Caching exists, but there is no visible update-available flow. A stale tab may continue using an old asset set until reload.
+`public/sw.js` no longer calls `self.skipWaiting()` unconditionally on install; a new worker sits in
+`waiting` until the app explicitly tells it to take over. `src/lib/useServiceWorkerUpdate.ts` detects a
+genuine new version (a worker finishing install while a previous version already controls the page — not
+the very first install), and `src/components/UpdateNotice.tsx` shows a persistent, dismissal-free notice
+with an "Actualizar ahora" action. Applying it posts `SKIP_WAITING`, waits for `controllerchange`, and does
+a single controlled reload; a stuck update (no `controllerchange` within 8s) surfaces "Reintentar" instead
+of leaving the UI stuck. Verified with a real browser round-trip (build → serve → bump `sw.js` on disk →
+confirm notice appears → click update → confirm reload lands on the new version, notice clears) plus 9
+automated tests (`tests/unit/useServiceWorkerUpdate.test.ts`, `tests/component/UpdateNotice.test.tsx`).
 
-### Bundle size
+### Bundle size — improved in Milestone 3
 
-PDF dependencies and the main bundle are large. Dynamic imports should isolate PDF generation and possibly Supabase-heavy paths.
+`ShowPage`, `LibraryPage`, `PresetsPage`, `SettingsPage`, and `PublicShowPage` are now `React.lazy` routes
+(the Shows list stays eager since it's the common landing page), and `vite.config.ts` splits
+`@supabase/supabase-js` and `dexie` into their own vendor chunks. The main chunk dropped from ~646 kB to
+~247 kB (gzip ~184 kB → ~78 kB), clearing Vite's 500 kB warning entirely for the eagerly-loaded path. The
+PDF module (`src/lib/inputListPdf.ts`, `jspdf` + `jspdf-autotable`) was already behind a dynamic `import()`
+and remains a separate, on-demand-only chunk (~424 kB) — it is not part of the initial load. The Input List
+PDF export button now shows a loading state while the module loads and the document is generated, and shows
+a toast instead of failing silently if generation throws. See `docs/19-TESTING_STRATEGY.md` for the exact
+before/after numbers.
 
 ### Validation
 
@@ -247,27 +385,37 @@ Automatic backup creation exists, but retention/capping must be verified to avoi
 
 Stereo monitor output labels are calculated, but explicit collision validation should be added and tested.
 
-### Form label association
+### Form label association — resolved in Milestone 3
 
-`components/ui.tsx`'s `Label` renders a `<label>` with no `htmlFor`, and callers do not pass matching
-`id`s to `Input`/`Textarea`, so labels are not programmatically associated with their fields (confirmed via
-the Setup screen Playwright smoke test, which had to fall back to placeholder-based locators instead of
-`getByLabel`). This affects screen reader users and is in scope for the Milestone 3 accessibility audit.
+`components/ui.tsx` now exports a `Field` component (`useId()` + `cloneElement`, so `.map()`-rendered
+repeated rows never collide on a single hand-wired `id`) used across every genuinely 1:1 field/label pairing
+in the app. `Label` remains for the handful of legitimate non-1:1 headings (radio-group and `MultiSelect`
+group headings). `tests/e2e/setup.spec.ts` and `tests/e2e/workspace-conflict.supabase.spec.ts` no longer
+need placeholder/CSS-`:has()` fallback locators for this reason and now use `getByLabel`.
+
+### Modal accessibility, keyboard reorder, mobile tables, and error recovery — added in Milestone 3
+
+See the "Milestone 3" section below for the accessible `Modal` (dialog role, focus trap, focus
+restoration, `Escape`-to-close only when cancelable, background `inert`), the Equipment keyboard
+up/down/move-to-category controls (drag & drop kept, not removed), the mobile-viewport verification of
+Equipment and Input List, and the route/module-level Error Boundaries.
 
 ## Recommended next action
 
-Milestones 0, 1, and 2 from `CODEX_START_HERE.md` are implemented; see the sections above for exact results
-and remaining risk. Before Milestone 3:
+Milestones 0, 1, 2, 2.1, and 3 from `CODEX_START_HERE.md` are implemented; see the sections above for exact
+results and remaining risk. Before Milestone 4 (release candidate):
 
 1. Run `npm run test:integration` and `npm run test:e2e` for real against a reachable Supabase instance
    (locally with Docker via `supabase start`, or by letting this branch's CI run) and fix anything they
-   reveal — they were verified for correctness by review and type-checking only, never executed here.
-2. Implement the approved remote-wins Workspace conflict policy (D-214; see "Workspace conflict policy"
-   above), replacing local-last retry in `src/components/SyncController.tsx`, and update
-   `tests/integration/workspace.test.ts` to prove the new behavior.
-3. Decide on the two open items already flagged: monitor-return output collision handling, and
-   permanent-delete-versus-Undo semantics after remote sync (`docs/25-DECISION_LOG.md`).
+   reveal — every Supabase-backed suite (including the two new Milestone 3 mobile/desktop smoke specs) was
+   verified for correctness by review and type-checking only, never executed against a real backend in this
+   environment.
+2. Decide on the two open items already flagged: monitor-return output collision handling, and
+   permanent-delete-versus-Undo semantics after remote sync (`docs/25-DECISION_LOG.md`). Neither is in scope
+   for Milestone 3 and neither was touched by it.
+3. Optionally close the two remaining, non-blocking gaps this milestone documented rather than fixed: the
+   Equipment reorder buttons' touch-target size (see "C. Mobile-responsive Equipment/Input List" above) and
+   the `docs/22-BACKLOG.md` technical-debt items.
 
-Only after that, proceed to Milestone 3 (UX/resilience: modal accessibility, keyboard alternatives, mobile
-technical-table behavior, Service Worker update flow, structured error recovery, PDF bundle
-code-splitting). Do not add new product features before the existing candidate is verified.
+Do not add new product features before Milestone 3's acceptance is confirmed against a real Supabase
+backend in CI.

@@ -3,7 +3,7 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store'
 import { formatDate, formatTime } from '../lib/utils'
-import { Badge, Button, EmptyState, Input, Label, Modal, PageHeader, ProgressBar, SearchInput, Select } from '../components/ui'
+import { Badge, Button, EmptyState, Field, Input, Modal, PageHeader, ProgressBar, SearchInput, Select } from '../components/ui'
 import { useToast } from '../components/Toast'
 
 export default function ShowsPage() {
@@ -110,10 +110,10 @@ function CreateShowModal({ open, onClose, shows, presets, onCreate }: { open: bo
   const submit = (event: FormEvent) => { event.preventDefault(); if (name.trim()) onCreate({ name: name.trim(), date, time, showType, source }) }
   return <Modal open={open} title="Nuevo show" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button type="submit" form="create-show" disabled={!name.trim()}>Crear y abrir</Button></>}>
     <form id="create-show" onSubmit={submit} className="space-y-4">
-      <div><Label>Nombre *</Label><Input autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder="Ej. TABU — Foro Indie Rocks" /></div>
-      <div className="grid gap-4 sm:grid-cols-2"><div><Label>Fecha</Label><Input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></div><div><Label>Hora</Label><Input type="time" value={time} onChange={(event) => setTime(event.target.value)} /></div></div>
-      <div><Label>Tipo de show</Label><Input value={showType} onChange={(event) => setShowType(event.target.value)} placeholder="Concierto, festival, showcase…" /></div>
-      <div><Label>Comenzar desde</Label><Select value={source} onChange={(event) => setSource(event.target.value)}><option value="blank">Show vacío</option>{presets.length > 0 && <optgroup label="Presets">{presets.map((item) => <option key={item.id} value={`preset:${item.id}`}>{item.name}</option>)}</optgroup>}{shows.length > 0 && <optgroup label="Shows anteriores">{shows.map((item) => <option key={item.id} value={`show:${item.id}`}>{item.name}</option>)}</optgroup>}</Select></div>
+      <Field label="Nombre *"><Input autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder="Ej. TABU — Foro Indie Rocks" /></Field>
+      <div className="grid gap-4 sm:grid-cols-2"><Field label="Fecha"><Input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></Field><Field label="Hora"><Input type="time" value={time} onChange={(event) => setTime(event.target.value)} /></Field></div>
+      <Field label="Tipo de show"><Input value={showType} onChange={(event) => setShowType(event.target.value)} placeholder="Concierto, festival, showcase…" /></Field>
+      <Field label="Comenzar desde"><Select value={source} onChange={(event) => setSource(event.target.value)}><option value="blank">Show vacío</option>{presets.length > 0 && <optgroup label="Presets">{presets.map((item) => <option key={item.id} value={`preset:${item.id}`}>{item.name}</option>)}</optgroup>}{shows.length > 0 && <optgroup label="Shows anteriores">{shows.map((item) => <option key={item.id} value={`show:${item.id}`}>{item.name}</option>)}</optgroup>}</Select></Field>
       <p className="text-xs muted">El show se crea inmediatamente. Después podrás editar Equipo, Personas e Información sin pasos intermedios.</p>
     </form>
   </Modal>

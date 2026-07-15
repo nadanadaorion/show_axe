@@ -58,7 +58,8 @@ For breaking changes, use expand-and-contract migrations so old and new frontend
 
 - Change cache version for releases that modify shell behavior.
 - Ensure old caches are removed during activate.
-- Provide a visible update/reload prompt if an old tab is controlling stale assets.
+- Provide a visible update/reload prompt if an old tab is controlling stale assets — implemented in
+  Milestone 3, see `docs/18-TECHNICAL_ARCHITECTURE.md` "Service Worker" → "Update flow".
 - Test hard refresh and ordinary refresh after deployment.
 
 ## Backup and recovery

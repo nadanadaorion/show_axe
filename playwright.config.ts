@@ -22,8 +22,17 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      testIgnore: '**/*.mobile.spec.ts',
       use: {
         ...devices['Desktop Chrome'],
+        ...(chromiumExecutablePath ? { launchOptions: { executablePath: chromiumExecutablePath } } : {}),
+      },
+    },
+    {
+      name: 'mobile',
+      testMatch: '**/*.mobile.spec.ts',
+      use: {
+        ...devices['iPhone SE'],
         ...(chromiumExecutablePath ? { launchOptions: { executablePath: chromiumExecutablePath } } : {}),
       },
     },

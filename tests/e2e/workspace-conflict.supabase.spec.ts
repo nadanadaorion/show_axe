@@ -17,12 +17,10 @@ test.describe('Workspace (Library/Presets/Preferences) conflicts are remote-wins
     await configureSupabaseRuntime(page, config!)
     await page.goto('/#/settings')
 
-    // First save establishes a clean baseline revision — no conflict yet. Selects here have no
-    // accessible-name association (docs/24-CURRENT_IMPLEMENTATION_AUDIT.md flags this as a known
-    // gap, in scope for the Milestone 3 accessibility audit, not this patch), so they are located
-    // by an option they alone contain rather than a label.
-    const appearanceSelect = page.locator('select:has(option[value="dark"])')
-    const languageSelect = page.locator('select:has(option[value="en"])')
+    // First save establishes a clean baseline revision — no conflict yet. Both selects are
+    // properly label-associated (see the Field component in Milestone 3's accessibility work).
+    const appearanceSelect = page.getByLabel('Apariencia')
+    const languageSelect = page.getByLabel('Idioma')
     await appearanceSelect.selectOption('dark')
     await expect(page.getByRole('main').getByText('Guardado en línea')).toBeVisible({ timeout: 20_000 })
 

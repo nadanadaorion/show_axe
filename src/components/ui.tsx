@@ -1,5 +1,7 @@
 import { Search, X } from 'lucide-react'
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react'
+import { cloneElement, isValidElement, useEffect, useId, useRef } from 'react'
+import { createPortal } from 'react-dom'
+import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactElement, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react'
 
 export function Button({ variant = 'primary', size = 'md', className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; size?: 'sm' | 'md' | 'icon' }) {
   const variants = {
@@ -28,6 +30,17 @@ export function Label({ children }: { children: ReactNode }) {
   return <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide muted">{children}</label>
 }
 
+/**
+ * Associates a label with its field via a generated id/htmlFor pair (`useId` keeps it unique even
+ * inside a .map() of repeated rows, avoiding hand-wired ids). Prefer this over the bare
+ * Label+Input/Select/Textarea pair used elsewhere in the app, which has no programmatic
+ * association (docs/24-CURRENT_IMPLEMENTATION_AUDIT.md "Form label association").
+ */
+export function Field({ label, children }: { label: string; children: ReactElement<{ id?: string }> }) {
+  const id = useId()
+  return <div><label htmlFor={id} className="mb-1.5 block text-xs font-semibold uppercase tracking-wide muted">{label}</label>{isValidElement(children) ? cloneElement(children, { id }) : children}</div>
+}
+
 export function SearchInput({ value, onChange, placeholder = 'Buscar…' }: { value: string; onChange: (value: string) => void; placeholder?: string }) {
   return (
     <div className="relative">
@@ -52,17 +65,95 @@ export function EmptyState({ title, description, action }: { title: string; desc
   return <div className="panel flex min-h-56 flex-col items-center justify-center p-8 text-center"><h3 className="font-semibold">{title}</h3><p className="mt-2 max-w-md text-sm muted">{description}</p>{action && <div className="mt-5">{action}</div>}</div>
 }
 
-export function Modal({ open, title, onClose, children, footer }: { open: boolean; title: string; onClose: () => void; children: ReactNode; footer?: ReactNode }) {
+function getFocusable(container: HTMLElement): HTMLElement[] {
+  return Array.from(container.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+    .filter((element) => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true')
+}
+
+// Tracks how many Modal instances are simultaneously open=true app-wide. Only one modal should
+// ever be interactable at once (docs/06-UX_AND_INTERACTION.md); this cannot safely auto-close a
+// sibling modal it doesn't own, but it surfaces the bug loudly in development instead of letting
+// two focus traps silently fight each other.
+let openModalCount = 0
+
+/**
+ * Accessible dialog: rendered in a portal outside #root (so `inert`-ing the app root while open
+ * cannot also disable the modal itself), labelled by its title, focus-trapped, focuses into
+ * itself on open and restores focus to the trigger on close. Pass `closeOnEscape={false}` for a
+ * non-cancelable modal (e.g. a conflict the user must resolve via its own actions) — Escape and
+ * backdrop clicks are only wired to `onClose` when the modal is actually cancelable.
+ */
+export function Modal({ open, title, onClose, children, footer, closeOnEscape = true }: { open: boolean; title: string; onClose: () => void; children: ReactNode; footer?: ReactNode; closeOnEscape?: boolean }) {
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const previouslyFocused = useRef<HTMLElement | null>(null)
+  const titleId = useId()
+
+  useEffect(() => {
+    if (!open) return
+    openModalCount += 1
+    if (openModalCount > 1 && import.meta.env.DEV) {
+      console.warn(`[Modal] ${openModalCount} modals are open simultaneously — only one should be interactable at a time.`)
+    }
+    return () => {
+      openModalCount -= 1
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    previouslyFocused.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const appRoot = document.getElementById('root')
+    appRoot?.setAttribute('inert', '')
+
+    const dialog = dialogRef.current
+    if (dialog && !dialog.contains(document.activeElement)) {
+      const [first] = getFocusable(dialog)
+      ;(first || dialog).focus()
+    }
+
+    return () => {
+      appRoot?.removeAttribute('inert')
+      previouslyFocused.current?.focus()
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (closeOnEscape) onClose()
+        return
+      }
+      if (event.key !== 'Tab') return
+      const dialog = dialogRef.current
+      const focusable = dialog ? getFocusable(dialog) : []
+      if (!focusable.length) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [open, closeOnEscape, onClose])
+
   if (!open) return null
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose() }}>
-      <div className="max-h-[92vh] w-full overflow-auto rounded-t-2xl border border-[var(--line)] bg-[var(--panel)] shadow-2xl sm:max-w-xl sm:rounded-2xl">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--line)] bg-[var(--panel)] px-5 py-4"><h2 className="font-semibold">{title}</h2><Button variant="ghost" size="icon" onClick={onClose} aria-label="Cerrar"><X size={18} /></Button></div>
+  const portalTarget = document.getElementById('modal-root')
+  const modal = (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4" onMouseDown={(event) => { if (event.currentTarget === event.target && closeOnEscape) onClose() }}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className="max-h-[92vh] w-full overflow-auto rounded-t-2xl border border-[var(--line)] bg-[var(--panel)] shadow-2xl sm:max-w-xl sm:rounded-2xl outline-none">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--line)] bg-[var(--panel)] px-5 py-4"><h2 id={titleId} className="font-semibold">{title}</h2><Button variant="ghost" size="icon" onClick={onClose} aria-label="Cerrar"><X size={18} /></Button></div>
         <div className="p-5">{children}</div>
         {footer && <div className="sticky bottom-0 flex justify-end gap-2 border-t border-[var(--line)] bg-[var(--panel)] px-5 py-4">{footer}</div>}
       </div>
     </div>
   )
+  return portalTarget ? createPortal(modal, portalTarget) : modal
 }
 
 export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: ReactNode }) {

@@ -111,16 +111,18 @@ platform. It proves the migrations and RPC/RLS logic are correct; it does **not*
 shapes or real Realtime delivery — that requires `supabase start` or a real project, which is exactly what
 the gated integration/E2E suites above are for.
 
-#### Workspace conflict policy: decided, implementation pending
+#### Workspace conflict policy: decided and implemented (Milestone 2.1)
 
-At the time this Milestone 2 suite was written, `docs/25-DECISION_LOG.md` listed the Workspace
+At the time the Milestone 2 suite above was written, `docs/25-DECISION_LOG.md` listed the Workspace
 concurrent-edit policy as an open decision, so `tests/integration/workspace.test.ts` tested and documented
-the *existing* local-last retry behavior (`src/components/SyncController.tsx`) exactly as implemented,
-without adding a new field-level merge UI. The decision is now closed: D-214 approves a **remote-wins**
-policy (see `docs/14-SYNC_OFFLINE_AND_LOCKS.md` "Workspace conflicts"). Updating
-`tests/integration/workspace.test.ts` to prove remote-wins, and the corresponding code change in
-`src/components/SyncController.tsx`, is scoped to a future milestone — this test file still exercises the
-old local-last behavior until then.
+the *existing* local-last retry behavior as it stood then. D-214 has since closed the decision as
+**remote-wins** (see `docs/14-SYNC_OFFLINE_AND_LOCKS.md` "Workspace conflicts") and Milestone 2.1
+implemented it in `src/lib/workspaceSync.ts` (`processWorkspaceMutation`), merged to `main` before
+Milestone 3 started. The real two-client proof is `tests/e2e/workspace-conflict.supabase.spec.ts`
+(discards the local edit, applies the latest remote Workspace, shows the "Se conservaron los cambios en
+línea…" notice, no picker). Milestone 3 did not modify this policy or its tests, beyond updating that
+spec's Settings-page selectors from CSS `:has()` fallbacks to `getByLabel` now that Milestone 3 gave those
+fields proper label association (see "Milestone 3" below).
 
 ## Test layers
 
@@ -149,7 +151,18 @@ Use React Testing Library for:
 - conflict modal choices;
 - blocked lock state;
 - public route read-only controls;
-- Error Boundary recovery.
+- Error Boundary recovery, including `RouteErrorBoundary`/`GlobalErrorBoundary` navigation and the backup
+  export failure path (`tests/component/ErrorBoundary.test.tsx`, Milestone 3);
+- `Modal` accessibility — dialog role/name, focus trap, focus restoration, conditional `Escape`, background
+  `inert` — and `Field` label association (`tests/component/Modal.test.tsx`, Milestone 3);
+- Equipment keyboard reordering and move-to-category, against the real store
+  (`tests/component/EquipmentReorder.test.tsx`, Milestone 3);
+- the Service Worker update hook's state machine — first-install vs. genuine update, apply/reload,
+  stuck-update retry — with a hand-built fake `navigator.serviceWorker` (no real browser SW timing)
+  (`tests/unit/useServiceWorkerUpdate.test.ts`, Milestone 3), and the notice UI it drives
+  (`tests/component/UpdateNotice.test.tsx`, Milestone 3);
+- Input List PDF export's on-demand loading state and generation-error handling, with
+  `src/lib/inputListPdf.ts` mocked (`tests/component/InputListPdf.test.tsx`, Milestone 3).
 
 ### Integration tests
 
@@ -197,10 +210,26 @@ Implemented in `tests/e2e/`. `setup.spec.ts` needs no Supabase config (tests the
    conflict both ways — `offline-conflict.supabase.spec.ts`;
 5. create public link and verify read-only route; 6. archive and verify public link remains; 7. delete and
    verify public route becomes not found — all three in `public-route.supabase.spec.ts`;
-8. generate Input List and PDF action — not yet covered by E2E (existing local-only feature, unaffected by
-   Milestone 2; a good Milestone 3 candidate alongside the other UX items already scoped there);
+8. generate an Input List and open PDF export — covered by `smoke-desktop.supabase.spec.ts` (the loading
+   state and error-handling around it are covered separately at the component level, see above);
 9. reload offline after first successful visit — covered already by the existing Service Worker baseline;
-   not re-verified by this change (see `docs/24-CURRENT_IMPLEMENTATION_AUDIT.md` Service Worker risk note).
+   the update-available flow added in Milestone 3 was additionally verified once with a real
+   build/serve/version-bump browser round-trip (not part of the committed automated suite — see
+   `docs/24-CURRENT_IMPLEMENTATION_AUDIT.md` "Service Worker update lifecycle").
+
+**Milestone 3** added two more real-Supabase E2E files plus a second Playwright project for a mobile
+viewport:
+
+- `smoke-desktop.supabase.spec.ts` (`chromium` project): Shows listing, opening a Show, adding Equipment,
+  the Input List, a modal (dialog role/name, `Escape`-close, focus return to the trigger), and keyboard-only
+  Equipment reordering, in one flow.
+- `equipment-inputlist.mobile.spec.ts` and `smoke-mobile.mobile.spec.ts` (`mobile` project,
+  `devices['iPhone SE']`, matched via `playwright.config.ts`'s `testMatch: '**/*.mobile.spec.ts'`): the same
+  breadth on a 375×667 viewport, plus explicit page-level horizontal-overflow assertions
+  (`document.documentElement.scrollWidth - clientWidth === 0`) and a custom-channel-number edit.
+
+No visual/snapshot tests were added — every assertion is role/name/focus/state/navigation-based, per the
+Milestone 3 authorization ("no golden snapshots this milestone").
 
 ## Fixtures
 
@@ -225,12 +254,14 @@ Minimum release gates:
 - TypeScript build passes (`npm run build`), and test files typecheck too (`npm run typecheck:tests`);
 - unit/component tests pass (`npm run test`);
 - critical E2E suite passes (`npm run test:e2e`, both the always-on and, when Supabase is configured, the
-  `.supabase.spec.ts` files);
+  `.supabase.spec.ts` files) across both the `chromium` (desktop) and `mobile` (`devices['iPhone SE']`)
+  Playwright projects;
 - SQL verification passes (`npm run test:supabase:sql`, and/or `supabase/VERIFY.sql` against a real
   instance);
 - Supabase integration suite passes when a backend is configured (`npm run test:integration`);
 - no secrets detected (`npm run check:secrets`);
-- manual mobile smoke test completed.
+- production bundle has no chunk over Vite's 500 kB warning threshold in the eagerly-loaded path (the
+  on-demand PDF chunk is exempt — see `docs/24-CURRENT_IMPLEMENTATION_AUDIT.md` "Bundle size").
 
 ## Regression rules
 

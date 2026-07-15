@@ -1,7 +1,7 @@
 import { Cloud, Database, ExternalLink, ShieldAlert } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { getRuntimeConfig, isSupportedSupabaseUrl, saveLocalRuntimeConfig } from '../lib/config'
-import { Button, Input, Label } from '../components/ui'
+import { Button, Field, Input } from '../components/ui'
 
 export default function SetupPage() {
   const current = getRuntimeConfig()
@@ -32,9 +32,9 @@ export default function SetupPage() {
           <h1 className="text-xl font-semibold">Conectar Supabase</h1>
           <p className="mt-2 text-sm muted">Esta versión no utiliza cuentas. Todas las personas que abran la URL principal compartirán y podrán editar los mismos datos.</p>
           <div className="mt-6 space-y-4">
-            <div><Label>Project URL</Label><Input value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://tu-proyecto.supabase.co" autoComplete="off" /></div>
-            <div><Label>Publishable key</Label><Input value={key} onChange={(event) => setKey(event.target.value)} placeholder="sb_publishable_…" autoComplete="off" /></div>
-            {error && <div className="rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">{error}</div>}
+            <Field label="Project URL"><Input value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://tu-proyecto.supabase.co" autoComplete="off" /></Field>
+            <Field label="Publishable key"><Input value={key} onChange={(event) => setKey(event.target.value)} placeholder="sb_publishable_…" autoComplete="off" /></Field>
+            {error && <div role="alert" className="rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">{error}</div>}
             <Button type="submit" className="w-full"><Database size={16} />Guardar y abrir</Button>
           </div>
           <p className="mt-4 text-xs muted">Para una publicación en GitHub Pages, coloca estos valores en <code>config.js</code>. Así ningún visitante tendrá que configurarlos manualmente.</p>
