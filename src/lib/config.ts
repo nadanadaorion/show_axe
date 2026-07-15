@@ -29,9 +29,19 @@ export function getRuntimeConfig(): OrionRuntimeConfig {
   }
 }
 
+const PRODUCTION_SUPABASE_URL_PATTERN = /^https:\/\/.+\.supabase\.co\/?$/i
+// The documented local dev/test workflow (docs/19-TESTING_STRATEGY.md) points this app at
+// `supabase start`'s own local stack (typically http://127.0.0.1:54321); without this, the
+// setup screen would never be satisfied by that documented, intended URL.
+const LOCAL_DEV_SUPABASE_URL_PATTERN = /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/?$/i
+
+export function isSupportedSupabaseUrl(url: string): boolean {
+  return PRODUCTION_SUPABASE_URL_PATTERN.test(url) || LOCAL_DEV_SUPABASE_URL_PATTERN.test(url)
+}
+
 export function isRuntimeConfigured() {
   const config = getRuntimeConfig()
-  return /^https:\/\/.+\.supabase\.co\/?$/i.test(config.supabaseUrl) && config.supabasePublishableKey.length > 20
+  return isSupportedSupabaseUrl(config.supabaseUrl) && config.supabasePublishableKey.length > 20
 }
 
 export function saveLocalRuntimeConfig(config: OrionRuntimeConfig) {
