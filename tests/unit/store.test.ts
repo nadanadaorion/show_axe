@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { AppSnapshot, InputListConfig, Show } from '../../src/types'
+import type { AppSnapshot, InputListConfig, Preset, Show } from '../../src/types'
 
 /**
  * The store persists to Dexie (debounced) and queues remote sync mutations
@@ -133,6 +133,220 @@ describe('Preset edits do not mutate Shows already created from that Preset', ()
 
     expect(getShow(derivedShowId).equipment.map((item) => item.name)).toEqual(derivedEquipmentBefore)
     expect(getShow(derivedShowId).equipment).toHaveLength(1)
+  })
+})
+
+describe('applyPreset onto an existing Show', () => {
+  function injectPreset(overrides: Partial<Preset> & { id: string }): Preset {
+    const preset: Preset = {
+      name: 'Fixture preset',
+      archived: false,
+      equipmentCategories: [],
+      equipment: [],
+      people: [],
+      schedule: [],
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      ...overrides,
+    }
+    useAppStore.setState((state) => ({ presets: [...state.presets, preset] }))
+    return preset
+  }
+
+  /** A Preset with one item in every collection, including a category name that only differs by case
+   *  from the target Show's own category, and a second category the Show does not have yet. */
+  function buildFullPreset(id: string): Preset {
+    return injectPreset({
+      id,
+      equipmentCategories: [
+        { id: `${id}-cat-audio`, name: 'audio', order: 0 },
+        { id: `${id}-cat-lighting`, name: 'Iluminación extra', order: 1 },
+      ],
+      equipment: [
+        {
+          id: `${id}-eq-1`,
+          categoryId: `${id}-cat-audio`,
+          name: 'SM58',
+          quantity: 2,
+          checked: true,
+          order: 0,
+          includeInInputList: true,
+          assignments: [
+            { id: `${id}-a1`, use: 'Vocal' },
+            { id: `${id}-a2`, use: 'Backup' },
+          ],
+        },
+      ],
+      people: [{ id: `${id}-person-1`, name: 'Alex Rivera', typeNames: [], roleNames: [], phones: [], emails: [], order: 0 }],
+      schedule: [{ id: `${id}-sched-1`, name: 'Soundcheck', startTime: '18:00', order: 0 }],
+      showType: 'Concierto',
+      note: 'Nota del preset',
+    })
+  }
+
+  /** Show with one pre-existing item in every collection, a category named "Audio" (to test the merge
+   *  branch's case-insensitive category matching), and its own showType/note/inputList. */
+  function buildTargetShow() {
+    const showId = useAppStore.getState().createShow({
+      name: 'Show destino',
+      date: '2026-03-01',
+      time: '20:00',
+      showType: 'Show type original',
+    })
+    const inputList: InputListConfig = {
+      rows: [{ id: 'existing-row', order: 0, channel: '1', use: 'Existing use', equipment: 'Existing Mic', phantom: false }],
+      channelStart: 1,
+      returns: [],
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }
+    useAppStore.getState().updateShow(showId, { note: 'Nota original show', inputList })
+    useAppStore.getState().addEquipment(showId, { name: 'Existing Mic', quantity: 1 })
+    useAppStore.getState().addPerson(showId, { name: 'Sam Existing' })
+    useAppStore.getState().addSchedule(showId, { name: 'Load in', startTime: '16:00' })
+    return showId
+  }
+
+  it('merge adds Preset content without removing existing Show content, reusing a matching category by name', () => {
+    const showId = buildTargetShow()
+    const preset = buildFullPreset('preset-merge')
+    const before = getShow(showId)
+    const audioCategoryId = before.equipmentCategories[0].id
+
+    useAppStore.getState().applyPreset(showId, preset.id, 'merge')
+    const after = getShow(showId)
+
+    // Data that must not change on merge.
+    expect(after.id).toBe(showId)
+    expect(after.publicSlug).toBe(before.publicSlug)
+    expect(after.name).toBe(before.name)
+    expect(after.date).toBe(before.date)
+    expect(after.time).toBe(before.time)
+    expect(after.archived).toBe(before.archived)
+    expect(after.createdAt).toBe(before.createdAt)
+    expect(after.showType).toBe('Show type original') // existing Show value wins on merge
+    expect(after.note).toBe('Nota original show') // existing Show value wins on merge
+    expect(after.inputList).toBe(before.inputList) // untouched — merge never auto-syncs the Input List
+
+    // Existing content is preserved, Preset content is appended.
+    expect(after.equipment.some((item) => item.name === 'Existing Mic')).toBe(true)
+    expect(after.people.some((p) => p.name === 'Sam Existing')).toBe(true)
+    expect(after.schedule.some((s) => s.name === 'Load in')).toBe(true)
+
+    const mergedEquipment = after.equipment.find((item) => item.name === 'SM58')!
+    expect(after.equipment).toHaveLength(2)
+    expect(mergedEquipment.checked).toBe(false) // Preset had checked:true; merge always resets it
+    expect(mergedEquipment.assignments!.map((a) => a.use)).toEqual(['Vocal', 'Backup'])
+
+    // Category with a matching name (case-insensitive) is reused, not duplicated; an unmatched one is created.
+    expect(after.equipmentCategories).toHaveLength(2)
+    expect(after.equipmentCategories.find((c) => c.id === audioCategoryId)).toBeDefined()
+    expect(mergedEquipment.categoryId).toBe(audioCategoryId)
+    expect(after.equipmentCategories.some((c) => c.name === 'Iluminación extra')).toBe(true)
+
+    expect(after.people).toHaveLength(2)
+    expect(after.people.find((p) => p.name === 'Alex Rivera')).toBeDefined()
+    expect(after.schedule).toHaveLength(2)
+    expect(after.schedule.map((s) => s.name)).toEqual(['Load in', 'Soundcheck']) // sorted by startTime
+
+    // No shared references with the Preset: everything on the Show is a distinct clone.
+    expect(mergedEquipment).not.toBe(preset.equipment[0])
+    expect(mergedEquipment.assignments).not.toBe(preset.equipment[0].assignments)
+    expect(after.people.find((p) => p.name === 'Alex Rivera')).not.toBe(preset.people[0])
+    expect(after.schedule.find((s) => s.name === 'Soundcheck')).not.toBe(preset.schedule[0])
+  })
+
+  it('merge does not duplicate a Preset person whose name already exists on the Show (case-insensitive)', () => {
+    const showId = buildTargetShow() // already has "Sam Existing"
+    const preset = injectPreset({
+      id: 'preset-dup-person',
+      people: [{ id: 'p-dup', name: 'sam existing', typeNames: [], roleNames: [], phones: [], emails: [], order: 0 }],
+    })
+
+    useAppStore.getState().applyPreset(showId, preset.id, 'merge')
+
+    expect(getShow(showId).people).toHaveLength(1)
+    expect(getShow(showId).people[0].name).toBe('Sam Existing')
+  })
+
+  it('replace overwrites Equipment/People/Schedule/Categories with remapped Preset content, preserving Show identity', () => {
+    const showId = buildTargetShow()
+    const preset = buildFullPreset('preset-replace')
+    const before = getShow(showId)
+
+    useAppStore.getState().applyPreset(showId, preset.id, 'replace')
+    const after = getShow(showId)
+
+    // Show identity and metadata untouched by the "explicitly included" fields.
+    expect(after.id).toBe(showId)
+    expect(after.publicSlug).toBe(before.publicSlug)
+    expect(after.name).toBe(before.name)
+    expect(after.date).toBe(before.date)
+    expect(after.time).toBe(before.time)
+    expect(after.archived).toBe(before.archived)
+    expect(after.createdAt).toBe(before.createdAt)
+    expect(after.inputList).toBe(before.inputList) // preserved, even though it is now out of sync
+
+    // showType/note: the Preset's own values win when it defines them.
+    expect(after.showType).toBe('Concierto')
+    expect(after.note).toBe('Nota del preset')
+
+    // Full replacement: previous Equipment/People/Schedule/Categories are gone.
+    expect(after.equipment).toHaveLength(1)
+    expect(after.equipment[0].name).toBe('SM58')
+    expect(after.equipment.some((item) => item.name === 'Existing Mic')).toBe(false)
+
+    expect(after.people).toHaveLength(1)
+    expect(after.people[0].name).toBe('Alex Rivera')
+    expect(after.people.some((p) => p.name === 'Sam Existing')).toBe(false)
+
+    expect(after.schedule).toHaveLength(1)
+    expect(after.schedule[0].name).toBe('Soundcheck')
+
+    expect(after.equipmentCategories).toHaveLength(2)
+    expect(after.equipmentCategories.map((c) => c.id)).not.toContain(before.equipmentCategories[0].id)
+
+    // No shared references with the Preset: remapPreset clones and remaps every id.
+    expect(after.equipment[0].id).not.toBe(preset.equipment[0].id)
+    expect(after.equipment[0]).not.toBe(preset.equipment[0])
+    expect(after.equipment[0].assignments).not.toBe(preset.equipment[0].assignments)
+    expect(after.people[0]).not.toBe(preset.people[0])
+    expect(after.schedule[0]).not.toBe(preset.schedule[0])
+  })
+
+  describe('with an empty Preset', () => {
+    it('merge leaves existing Show content unchanged', () => {
+      const showId = buildTargetShow()
+      const emptyPreset = injectPreset({ id: 'preset-empty-merge' })
+      const before = getShow(showId)
+
+      useAppStore.getState().applyPreset(showId, emptyPreset.id, 'merge')
+      const after = getShow(showId)
+
+      expect(after.equipmentCategories).toEqual(before.equipmentCategories)
+      expect(after.equipment).toEqual(before.equipment)
+      expect(after.people).toEqual(before.people)
+      expect(after.schedule).toEqual(before.schedule)
+      expect(after.showType).toBe(before.showType)
+      expect(after.note).toBe(before.note)
+      expect(after.inputList).toBe(before.inputList)
+    })
+
+    it('replace wipes Equipment/People/Schedule/Categories, keeping the Show\'s own showType/note', () => {
+      const showId = buildTargetShow()
+      const emptyPreset = injectPreset({ id: 'preset-empty-replace' })
+
+      useAppStore.getState().applyPreset(showId, emptyPreset.id, 'replace')
+      const after = getShow(showId)
+
+      expect(after.equipmentCategories).toEqual([])
+      expect(after.equipment).toEqual([])
+      expect(after.people).toEqual([])
+      expect(after.schedule).toEqual([])
+      // The empty Preset defines neither field, so the Show's own values are kept even on replace.
+      expect(after.showType).toBe('Show type original')
+      expect(after.note).toBe('Nota original show')
+    })
   })
 })
 

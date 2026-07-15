@@ -28,7 +28,13 @@ Milestone 1 (business-rule coverage) is implemented:
   people, schedule, Input List row/return ids) and remaps Input List provenance to the new equipment/
   assignment ids while leaving manual rows untouched; archive preserves the public slug; delete removes the
   Show locally and queues a `show-delete` mutation (not a fresh upsert); JSON import merge/replace
-  behavior, including deterministic collision handling (incoming wins on id collision in merge mode).
+  behavior, including deterministic collision handling (incoming wins on id collision in merge mode);
+  `applyPreset` onto an existing Show in both merge mode (adds without removing existing content, reuses a
+  category matched by case-insensitive name, resets `checked`, skips a duplicate person by name, leaves
+  showType/note/Input List untouched) and replace mode (fully overwrites Equipment/People/Schedule/
+  Categories while preserving Show identity and the existing Input List, lets the Preset's showType/note
+  win), verified to share no object references with the source Preset in either mode, and verified against
+  an empty Preset (merge is a no-op, replace wipes Equipment/People/Schedule/Categories).
 - `tests/unit/inputList.test.ts` gained a regression test for D-114 ("reordering or synchronization must
   not overwrite custom CH"): a retained row's manually set channel survives `previewInputListSync`.
 - Not covered by Milestone 1 (deliberately, since it would require adding unimplemented product behavior

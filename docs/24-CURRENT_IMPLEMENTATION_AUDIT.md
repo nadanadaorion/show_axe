@@ -27,7 +27,7 @@ Exact verification results for this change are recorded in the "Milestone 0 veri
 
 Tests only; no product code changed. Added:
 
-- `tests/unit/store.test.ts` (10 tests): exercises `src/store.ts` directly with `src/lib/db.ts` and
+- `tests/unit/store.test.ts` (15 tests): exercises `src/store.ts` directly with `src/lib/db.ts` and
   `src/lib/syncQueue.ts` mocked, covering — Library edits never mutate already-copied Show equipment/
   people, even after the Library source is renamed or deleted; Preset edits/deletion never mutate a Show
   already created from that Preset; equipment quantity changes keep assignments consistent through the
@@ -38,6 +38,17 @@ Tests only; no product code changed. Added:
   preserves the public slug across archive/restore; `deleteShow` removes the Show locally and queues a
   `show-delete` mutation (not a fresh upsert); `importSnapshot` merge preserves non-colliding local data and
   lets incoming data win on id collisions, replace discards local data absent from the import.
+- `applyPreset` onto an existing Show (5 tests, added in a follow-up coverage pass): merge mode adds Preset
+  content without removing existing Equipment/People/Schedule, reuses a category matched by
+  case-insensitive name instead of duplicating it, always resets `checked` to `false` on merged equipment,
+  keeps the Show's own `showType`/`note`/Input List untouched, and skips a Preset person whose name already
+  exists on the Show; replace mode fully overwrites Equipment/People/Schedule/Categories with remapped
+  Preset content while preserving Show identity (id, public slug, name, date, time, archived, createdAt)
+  and the existing (now out-of-sync but not deleted) Input List, and lets the Preset's own
+  `showType`/`note` win when defined; both modes were verified to never share object references with the
+  source Preset (mutating the resulting Show cannot affect the Preset); an empty Preset leaves the Show
+  unchanged on merge and wipes Equipment/People/Schedule/Categories (while keeping the Show's own
+  `showType`/`note`) on replace.
 - `tests/unit/inputList.test.ts`: one added regression test for decision D-114 ("reordering or
   synchronization must not overwrite custom CH") — a retained row's manually set channel survives
   `previewInputListSync` even when far outside the sequential numbering range.
@@ -114,10 +125,9 @@ These must be treated as unverified until integration/E2E tests pass.
 ## Missing automated quality controls
 
 - Milestone 0 (foundation) and Milestone 1 (core business-rule coverage: snapshot isolation, equipment
-  consistency, duplication id remapping, archive/delete, JSON import merge/replace) are implemented. Still
-  missing: sync/lock/conflict flows end-to-end, and Preset apply (merge/replace) behavior at the Show
-  level, which need either a live/local Supabase instance or further Milestone-1-style store tests if a
-  future milestone extends this scope.
+  consistency, duplication id remapping, archive/delete, JSON import merge/replace, and `applyPreset`
+  merge/replace onto an existing Show) are implemented. Still missing: sync/lock/conflict flows end-to-end,
+  which need a live/local Supabase instance (Milestone 2).
 - Playwright is configured, but only a Setup-screen smoke test exists; the full E2E suite in
   `docs/19-TESTING_STRATEGY.md` (two-device locks, conflicts, public routes, PDF export) is not yet
   implemented and requires a live or local Supabase instance (Milestone 2).
