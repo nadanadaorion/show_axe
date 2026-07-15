@@ -5,7 +5,13 @@
 # Ori♡n Shows V2 has no accounts, storage, or edge functions by design
 # (see docs/17-SECURITY_AND_PRIVACY.md and docs/25-DECISION_LOG.md), so
 # those subsystems are disabled here to keep local startup fast and to
-# avoid implying capabilities the product does not use.
+# avoid implying capabilities the product does not use — except [auth]:
+# this CLI version ties generation of the anon/publishable API key (which
+# PostgREST needs for RLS role resolution on every request, independent of
+# whether interactive user sign-up/login is used) to the auth service being
+# enabled, confirmed by CI: disabling it made `supabase status` stop
+# exposing any key at all. Ori♡n Shows never calls a GoTrue endpoint;
+# this only keeps one extra local container running.
 project_id = "orion-shows"
 
 [api]
@@ -41,7 +47,10 @@ api_url = "http://127.0.0.1"
 enabled = false
 
 [auth]
-enabled = false
+enabled = true
+site_url = "http://127.0.0.1:3000"
+enable_signup = false
+enable_anonymous_sign_ins = false
 
 [edge_runtime]
 enabled = false
