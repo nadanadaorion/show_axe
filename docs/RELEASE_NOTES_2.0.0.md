@@ -40,4 +40,4 @@ Follow `GUIA_CONFIGURACION_V2.md` and `docs/20-DEPLOYMENT_AND_OPERATIONS.md`. De
 
 Local candidate: lint/typecheck/build passed; 124/124 unit/component passed; Pages production E2E 1/1 passed with no retry; bundle and limitations recorded in `docs/24-CURRENT_IMPLEMENTATION_AUDIT.md`.
 
-The final branch CI run ID and exact Supabase/E2E counts must be inserted after it succeeds. Until then this remains a release candidate.
+Final functional-candidate CI run `29456162914` on `ecc14f5d61a84b0ce75add0969fa8c02968bb4c2` passed: 124/124 unit/component, 22/22 real Supabase integration, 1/1 Pages and 13/13 configured E2E, with zero failed tests, zero required skips and zero retries. The source and built-artifact secret scan also passed. This remains an unmerged, undeployed release candidate pending owner review and explicit approval.

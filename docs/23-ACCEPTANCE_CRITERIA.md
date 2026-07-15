@@ -65,8 +65,8 @@ Status for the `2.0.0` candidate. `[x]` requires automated or recorded manual ev
 
 - [x] Local lint, typecheck, unit/component build and Pages production test pass on the working candidate.
 - [x] Production build emits no sourcemaps and no chunk-size warning; bundle measurements are recorded.
-- [ ] Final candidate GitHub Actions run: all jobs success.
-- [ ] Final candidate counts: zero failed, zero required skips, zero retries for Supabase/desktop/mobile.
-- [ ] Final candidate secret scan: source and `dist/` clean.
+- [x] Final functional candidate GitHub Actions run `29456162914` on `ecc14f5d61a84b0ce75add0969fa8c02968bb4c2`: all jobs success.
+- [x] Final functional candidate counts: 124/124 unit/component, 22/22 real Supabase integration, 1/1 Pages and 13/13 configured E2E; zero failed, zero required skips and zero retries.
+- [x] Final functional candidate secret scan: source and `dist/` clean.
 
-The last three boxes must be updated only after the branch is pushed and its final CI run is inspected. The two open product-decision boxes do not authorize Milestone 4 to change their semantics; they are release risks for the owner to accept or resolve separately.
+The evidence above comes from the pushed functional candidate and its inspected CI run. The two open product-decision boxes do not authorize Milestone 4 to change their semantics; they are release risks for the owner to accept or resolve separately. Production deployment and the tag remain deliberately unaccepted until explicit approval.

@@ -15,7 +15,7 @@ Milestone 3 was merged to `main` as `139472eef1bd3af0e2906b67639fd0fc654323e4`, 
 - The SW registration adds `?v=2.0.0`; `sw.js` derives `orion-shows-show_axe-v2.0.0` from version plus scope.
 - Production build uses relative base by default and an explicit `/show_axe/` Pages build.
 - Sourcemaps are not emitted.
-- Local measured bundle: entry 250.85 kB / 78.95 kB gzip; PDF chunk 424.27 kB / 139.20 kB gzip; largest eager vendor 214.64 kB. No Vite 500 kB warning.
+- Local measured bundle: entry 250.85 kB / 78.94 kB gzip; PDF chunk 424.27 kB / 139.20 kB gzip; largest eager vendor 214.64 kB. No Vite 500 kB warning.
 
 ### GitHub Pages
 
@@ -72,7 +72,7 @@ Real export mapping tests cover portrait/landscape, custom CH, phantom, patch, n
 
 ## Verification status
 
-Local candidate evidence completed so far:
+Local candidate evidence:
 
 - lint: passed;
 - test typecheck: passed;
@@ -83,4 +83,6 @@ Local candidate evidence completed so far:
 - local Playwright without backend: 3 passed / 10 Supabase scenarios skipped / 0 failed / retries 0;
 - local integration without backend: 0 passed / 22 skipped / 0 failed.
 
-The local skips above are expected environment limitations and do not satisfy acceptance. The exact Bash secrets scan is not executable in this Windows environment without Bash/WSL. Real Supabase-from-empty, 22 integration tests and all 13 configured E2E tests must be re-run by final branch CI before release recommendation. Until that run succeeds, this document records a **candidate**, not a release approval.
+The local skips above are expected environment limitations and do not satisfy acceptance. The exact Bash secrets scan is not executable in this Windows environment without Bash/WSL.
+
+Final functional-candidate CI run `29456162914` on `ecc14f5d61a84b0ce75add0969fa8c02968bb4c2` completed successfully: 124/124 unit/component, 22/22 real Supabase integration, 1/1 Pages production and 13/13 configured E2E passed, with zero failed tests, zero required skips and zero retries. The source/`dist/` secret scan passed. This validates the technical candidate; it does not merge, deploy, tag or resolve the two open product decisions above.

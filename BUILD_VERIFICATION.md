@@ -43,4 +43,4 @@ La ejecución es válida solo con:
 
 ## Bundle esperado
 
-El build no genera sourcemaps. En la validación local de Milestone 4, el entry principal fue 250.85 kB (78.95 kB gzip) y el exportador PDF quedó lazy en 424.27 kB (139.20 kB gzip). Revisa cambios materiales en estos valores antes de release.
+El build no genera sourcemaps. En la validación local de Milestone 4, el entry principal fue 250.85 kB (78.94 kB gzip) y el exportador PDF quedó lazy en 424.27 kB (139.20 kB gzip). Revisa cambios materiales en estos valores antes de release.

@@ -1,6 +1,6 @@
 # Roadmap
 
-Status (2026-07-15): Milestones 0–3 are merged and accepted. Milestone 4 is implemented on the release-candidate branch but remains pending final CI, review, merge, deployment and explicit tag approval.
+Status (2026-07-15): Milestones 0–3 are merged and accepted. Milestone 4 is implemented and its functional candidate CI is green on the release-candidate branch; review, merge, deployment and explicit tag approval remain pending.
 
 ## Baseline already present
 
