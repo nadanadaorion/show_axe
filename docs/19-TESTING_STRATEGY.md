@@ -81,7 +81,8 @@ and 13/13 Playwright tests (9 desktop, 4 mobile), with 0 failed, 0 skipped, and 
 documentation-only run (`29451976179`) exposed one remaining Equipment test-order race: after a save, an
 older Realtime revision could temporarily remove the new local item before the assertion. The scenario
 now confirms the persisted equipment in Supabase and reloads that revision before its next edit; it does
-not alter product sync/conflict behavior, add retries, or use a fixed delay.
+not alter product sync/conflict behavior, add retries, or use a fixed delay. Final corrective run
+`29452356582` passed both jobs, 22/22 integration, and 13/13 Playwright with zero skips and no retries.
 
 Milestone 0 (test foundation) is implemented:
 
