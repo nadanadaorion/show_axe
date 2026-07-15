@@ -37,6 +37,10 @@ export async function configureSupabaseRuntime(page: Page, config: { url: string
 
 /** Starts observing before an action, then waits for its complete visible online-save cycle. */
 export async function performAndWaitForOnlineSave(page: Page, action: () => Promise<unknown>) {
+  // Establish a settled baseline so a still-finishing initial/previous cycle cannot be
+  // mistaken for the save triggered by this action.
+  await expect(page.getByRole('complementary').getByText('Guardado en línea')).toBeVisible({ timeout: 20_000 })
+
   await page.evaluate(() => {
     const sidebar = document.querySelector('aside')
     if (!sidebar) throw new Error('Sync sidebar was not found')
