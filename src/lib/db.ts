@@ -29,6 +29,7 @@ export interface PendingMutation {
   kind: PendingMutationKind
   entityId: string
   expectedRevision: number
+  generation?: number
   queuedAt: string
   show?: Show
   workspace?: WorkspaceData

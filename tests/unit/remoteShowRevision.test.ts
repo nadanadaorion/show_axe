@@ -3,6 +3,7 @@ import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../../src/lib/db'
 import { classifyRemoteShowRevision } from '../../src/lib/showRevision'
+import { acknowledgeShowMutation, queueShowUpsert } from '../../src/lib/syncQueue'
 import { useAppStore } from '../../src/store'
 import type { Show } from '../../src/types'
 import {
@@ -120,6 +121,31 @@ describe('monotonic remote Show revision application', () => {
 
     expect(useAppStore.getState().shows[0].equipment[0].name).toBe('Saved console')
     expect((await db.syncRecords.get(`show:${saved.id}`))?.revision).toBe(2)
+  })
+
+  it('preserves an edit coalesced while creation is in flight and rebases its next save', async () => {
+    const creating = buildEmptyShow({
+      id: 'show-in-flight',
+      publicSlug: 'show-in-flight-slug',
+      name: 'Creating',
+      updatedAt: timestamp,
+    })
+    await resetState(creating, 0)
+    await queueShowUpsert(creating)
+    const inFlight = await db.pendingMutations.get('show:show-in-flight')
+
+    const edited = showAtRevision('Edited while creating', 'Torre de bajos')
+    edited.id = creating.id
+    edited.publicSlug = creating.publicSlug
+    useAppStore.setState({ shows: [edited] })
+    await queueShowUpsert(edited)
+
+    await expect(acknowledgeShowMutation(inFlight!, 1)).resolves.toBe('rebased')
+    await expect(useAppStore.getState().applyRemoteShow(creating, 1)).resolves.toBe('pending')
+
+    expect(useAppStore.getState().shows[0].equipment[0].name).toBe('Torre de bajos')
+    expect((await db.pendingMutations.get('show:show-in-flight'))?.expectedRevision).toBe(1)
+    expect((await db.syncRecords.get('show:show-in-flight'))?.revision).toBe(1)
   })
 
   it('serializes out-of-order revision 3 then revision 2 and remains at revision 3', async () => {
