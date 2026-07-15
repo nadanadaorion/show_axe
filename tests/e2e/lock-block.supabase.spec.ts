@@ -35,7 +35,15 @@ test.describe('Show lock blocks a second device (real Supabase)', () => {
     await expect(pageB.getByText('No existe una opción de forzar desbloqueo.')).toBeVisible()
     await expect(pageB.getByRole('button', { name: /guardar preset|compartir/i })).toHaveCount(0)
 
-    // Closing device A's context unmounts the page, releasing the lock.
+    // Navigate device A away from the Show route rather than closing its whole browser context.
+    // useShowLock releases the lock two ways: a React effect-cleanup call to release() on
+    // unmount (reliable — runs on the still-alive page), and a pagehide + fetch(keepalive) best
+    // effort for an actual tab/window close. Since the app uses a HashRouter, this navigation is
+    // a client-side route change that unmounts useShowLock through the reliable path; closing the
+    // whole context instead depends on pagehide firing under Playwright's CDP-driven teardown,
+    // which is not guaranteed and left device B's retry racing a lock that was never released.
+    await pageA.goto('/#/shows')
+    await pageA.waitForTimeout(500)
     await contextA.close()
 
     await pageB.getByRole('button', { name: 'Comprobar nuevamente' }).click()
