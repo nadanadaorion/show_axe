@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDate, formatTime, isAppSnapshot, scheduleDuration } from '../../src/lib/utils'
+import { formatDate, formatTime, isAppSnapshot, scheduleDuration, validateAppSnapshot } from '../../src/lib/utils'
 import { buildLibrary, buildPreferences } from '../fixtures/builders'
 
 describe('scheduleDuration', () => {
@@ -76,6 +76,43 @@ describe('isAppSnapshot', () => {
   it('rejects an unsupported version', () => {
     const snapshot = { version: 99, shows: [], presets: [], library: {}, preferences: {} }
     expect(isAppSnapshot(snapshot)).toBe(false)
+    expect(validateAppSnapshot(snapshot)).toEqual({ valid: false, error: 'La versión del respaldo no es compatible con Ori♡n Shows V2.' })
+  })
+
+  it('rejects malformed nested Show data instead of allowing an import-time crash', () => {
+    const snapshot = {
+      version: 3,
+      exportedAt: '2026-01-01T00:00:00.000Z',
+      shows: [{ id: 'broken', name: 'Broken', archived: false, equipmentCategories: [], equipment: 'not-an-array', people: [], schedule: [] }],
+      presets: [],
+      library: buildLibrary(),
+      preferences: buildPreferences(),
+    }
+    expect(isAppSnapshot(snapshot)).toBe(false)
+  })
+
+  it('rejects an incomplete Library before mutating current data', () => {
+    const snapshot = { version: 3, exportedAt: '2026-01-01T00:00:00.000Z', shows: [], presets: [], library: { equipment: [] }, preferences: {} }
+    expect(validateAppSnapshot(snapshot)).toMatchObject({ valid: false, error: expect.stringContaining('Biblioteca') })
+  })
+
+  it('rejects malformed nested Library people and incompatible preferences', () => {
+    const base = {
+      version: 3,
+      exportedAt: '2026-01-01T00:00:00.000Z',
+      shows: [],
+      presets: [],
+      library: buildLibrary(),
+      preferences: buildPreferences(),
+    }
+    expect(validateAppSnapshot({
+      ...base,
+      library: { ...base.library, people: [{ id: 'person-1', name: 'Incomplete' }] },
+    })).toMatchObject({ valid: false, error: expect.stringContaining('Biblioteca') })
+    expect(validateAppSnapshot({
+      ...base,
+      preferences: { ...base.preferences, initialModule: 'inventory' },
+    })).toMatchObject({ valid: false, error: expect.stringContaining('Preferencias') })
   })
 
   it('rejects a payload missing required arrays', () => {

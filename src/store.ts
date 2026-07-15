@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { db, writeLocalSnapshot } from './lib/db'
+import { db, saveBackup, writeLocalSnapshot } from './lib/db'
 import { clone, createPublicSlug, now, uid } from './lib/utils'
 import { normalizeAssignments, normalizeEquipmentItem, normalizeInputList } from './lib/inputList'
 import { queueShowDelete, queueShowUpsert, queueWorkspaceUpsert } from './lib/syncQueue'
@@ -135,9 +135,7 @@ async function writeSnapshot(snapshot: AppSnapshot) {
 
   const lastBackup = Number(localStorage.getItem('orion-shows:last-auto-backup') || 0)
   if (Date.now() - lastBackup > 15 * 60 * 1000) {
-    await db.backups.put({ id: uid(), createdAt: now(), reason: 'Automático', snapshot })
-    const backups = await db.backups.orderBy('createdAt').reverse().toArray()
-    if (backups.length > 10) await db.backups.bulkDelete(backups.slice(10).map((item) => item.id))
+    await saveBackup({ id: uid(), createdAt: now(), reason: 'Automático', snapshot })
     localStorage.setItem('orion-shows:last-auto-backup', String(Date.now()))
   }
 }
@@ -716,7 +714,7 @@ export const useAppStore = create<StoreState>((set, get) => {
     },
 
     createBackup: async (reason) => {
-      await db.backups.put({ id: uid(), createdAt: now(), reason, snapshot: makeSnapshot(get()) })
+      await saveBackup({ id: uid(), createdAt: now(), reason, snapshot: makeSnapshot(get()) })
     },
 
     applyRemoteShow: async (incoming, revision) => {

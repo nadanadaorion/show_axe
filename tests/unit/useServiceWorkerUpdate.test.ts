@@ -58,6 +58,11 @@ describe('useServiceWorkerUpdate', () => {
     const { result, unmount } = renderHook(() => useServiceWorkerUpdate())
     await flush()
 
+    expect(container.register).toHaveBeenCalledWith(
+      expect.stringMatching(/\/sw\.js\?v=2\.0\.0$/),
+      { scope: '/' },
+    )
+
     const worker = new FakeServiceWorker()
     act(() => registration.triggerUpdateFound(worker))
     act(() => worker.setState('installed'))

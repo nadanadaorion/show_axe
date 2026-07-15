@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { serviceWorkerRegistrationOptions } from './version'
 
 export interface ServiceWorkerUpdateState {
   updateAvailable: boolean
@@ -42,8 +43,9 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
       workerCleanups.add(() => worker.removeEventListener('statechange', onStateChange))
     }
 
+    const { scriptURL, scope } = serviceWorkerRegistrationOptions()
     navigator.serviceWorker
-      .register('./sw.js')
+      .register(scriptURL, { scope })
       .then((nextRegistration) => {
         if (cancelled) return
         registration = nextRegistration

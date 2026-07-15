@@ -36,7 +36,7 @@ export function exportInputListPdf(show: Show, orientation: PdfOrientation) {
     startY: 27,
     margin: { left: margin, right: margin },
     head: [['CH', 'Uso', 'Equipo', '48V', 'Patch', 'Notas']],
-    body: show.inputList.rows
+    body: [...show.inputList.rows]
       .sort((a, b) => a.order - b.order)
       .map((row, index) => [
         row.channel || String(index + 1),
@@ -72,7 +72,7 @@ export function exportInputListPdf(show: Show, orientation: PdfOrientation) {
     startY: returnsStart + 3,
     margin: { left: margin, right: margin },
     head: [['Mix', 'Destino', 'Sistema', 'Salida', 'Notas']],
-    body: show.inputList.returns
+    body: [...show.inputList.returns]
       .sort((a, b) => a.order - b.order)
       .map((item, index) => [
         String(index + 1),

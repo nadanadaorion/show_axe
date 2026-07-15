@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { configureSupabaseRuntime, getE2ESupabaseConfig } from './supabaseTestConfig'
+import { expectNoCriticalAccessibilityViolations } from './accessibilityAssertions'
 
 const config = getE2ESupabaseConfig()
 
@@ -65,5 +66,7 @@ test.describe('Desktop smoke test: Shows, Equipment, Input List, a modal, keyboa
     await expect(downButton).toBeFocused()
     await page.keyboard.press('Enter')
     await expect(page.getByText('Equipo movido')).toBeVisible()
+
+    await expectNoCriticalAccessibilityViolations(page)
   })
 })

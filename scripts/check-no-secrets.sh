@@ -48,12 +48,17 @@ if [ -d dist ]; then
     echo "OK: no JWT-shaped literals in dist/."
   fi
 
-  echo "==> Confirming dist/config.js ships empty placeholders"
-  if grep -q "supabaseUrl: ''" dist/config.js && grep -q "supabasePublishableKey: ''" dist/config.js; then
-    echo "OK: dist/config.js ships empty placeholders, not real credentials."
+  if [ "${ALLOW_PUBLIC_RUNTIME_CONFIG:-false}" = "true" ]; then
+    echo "==> Public runtime-config mode: configured URL/publishable key are allowed after secret/JWT scans"
+    echo "OK: dist/config.js may contain public deploy values in this explicitly enabled mode."
   else
-    echo "FAIL: dist/config.js does not look like the expected empty placeholder template."
-    fail=1
+    echo "==> Confirming dist/config.js ships empty placeholders"
+    if grep -q "supabaseUrl: ''" dist/config.js && grep -q "supabasePublishableKey: ''" dist/config.js; then
+      echo "OK: dist/config.js ships empty placeholders, not real credentials."
+    else
+      echo "FAIL: dist/config.js does not look like the expected empty placeholder template."
+      fail=1
+    fi
   fi
 else
   echo "SKIP: dist/ not found. Run 'npm run build' first to check the production bundle too."

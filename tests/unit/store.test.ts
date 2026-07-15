@@ -33,6 +33,7 @@ vi.mock('../../src/lib/db', () => {
       },
       pendingMutations: { get: vi.fn().mockResolvedValue(undefined), put: vi.fn().mockResolvedValue(undefined) },
     },
+    saveBackup: vi.fn().mockResolvedValue(undefined),
     writeLocalSnapshot: vi.fn().mockResolvedValue(undefined),
   }
 })
@@ -45,6 +46,7 @@ vi.mock('../../src/lib/syncQueue', () => ({
 
 const { useAppStore } = await import('../../src/store')
 const { queueShowDelete, queueShowUpsert } = await import('../../src/lib/syncQueue')
+const { saveBackup } = await import('../../src/lib/db')
 
 const BASE_CATEGORY = { id: 'cat-main', name: 'Audio', order: 0, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' }
 const BASE_PREFERENCES = {
@@ -543,5 +545,21 @@ describe('JSON import: merge and replace behavior', () => {
     expect(state.shows).toHaveLength(1)
     expect(state.shows[0].id).toBe('replacement-show')
     expect(state.shows[0].name).toBe('Replacement')
+  })
+})
+
+describe('portable and local backup snapshots', () => {
+  it('creates a versioned local backup from the complete current snapshot', async () => {
+    const showId = useAppStore.getState().createShow({ name: 'Protected before import' })
+
+    await useAppStore.getState().createBackup('Antes de importar')
+
+    expect(saveBackup).toHaveBeenCalledWith(expect.objectContaining({
+      reason: 'Antes de importar',
+      snapshot: expect.objectContaining({
+        version: 3,
+        shows: [expect.objectContaining({ id: showId, name: 'Protected before import' })],
+      }),
+    }))
   })
 })

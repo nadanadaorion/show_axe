@@ -70,6 +70,19 @@ export class OrionShowsDatabase extends Dexie {
 
 export const db = new OrionShowsDatabase()
 
+export function excessBackupIds(records: BackupRecord[], limit = 10) {
+  return records.slice(limit).map((item) => item.id)
+}
+
+export async function saveBackup(record: BackupRecord, limit = 10) {
+  await db.transaction('rw', db.backups, async () => {
+    await db.backups.put(record)
+    const backups = await db.backups.orderBy('createdAt').reverse().toArray()
+    const excess = excessBackupIds(backups, limit)
+    if (excess.length) await db.backups.bulkDelete(excess)
+  })
+}
+
 export async function writeLocalSnapshot(snapshot: AppSnapshot) {
   await db.transaction(
     'rw',
