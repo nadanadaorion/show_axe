@@ -179,6 +179,11 @@ interaction: accumulated long Show names made grid items retain their intrinsic 
 108 px of horizontal overflow at 375 px. Show cards now set `min-w-0 w-full`; the always-on mobile test
 seeds six long names and verifies the list remains at zero page-level overflow.
 
+Run `29445373190` proved that overflow fix and remained at 12/13. The retained Equipment snapshot showed
+only `Multicable`: the test had issued its second local-first edit before `Consola digital` settled in the
+backend. The scenario now polls the actual Supabase Show after each addition and starts reorder only once
+both names are remote; no production sync logic or protected Supabase behavior was changed.
+
 **A. Modal accessibility + form label association** — `src/components/ui.tsx`'s `Modal` was rewritten:
 `role="dialog"`, `aria-modal="true"`, `aria-labelledby` pointing at the title, a focus trap (`Tab`/`Shift+Tab`
 cycle within the dialog), initial focus moved into the dialog on open (respecting native `autoFocus`), focus

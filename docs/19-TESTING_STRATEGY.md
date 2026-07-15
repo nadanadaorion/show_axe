@@ -53,6 +53,12 @@ beyond the 375 px viewport. Show cards now opt into shrinking with `min-w-0 w-fu
 heading truncation to work. The always-on mobile regression seeds six long names and asserts zero page
 overflow before opening its modal.
 
+Run `29445373190` again reached 12/13 and proved the list-overflow fix. Its remaining Equipment artifact
+showed only the second item locally: the test started a second edit as soon as the first appeared in the
+local-first UI, before the first mutation had settled remotely. The reorder scenario now polls the real
+Supabase row after each addition (first one item, then both) before asserting reorder controls; it adds no
+sleep, retry, product mutation, or timeout inflation.
+
 Milestone 0 (test foundation) is implemented:
 
 - Vitest + jsdom run unit and component tests (`npm run test`).

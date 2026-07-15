@@ -1,3 +1,4 @@
+import { createClient } from '@supabase/supabase-js'
 import { expect, test } from '@playwright/test'
 import { configureSupabaseRuntime, getE2ESupabaseConfig } from './supabaseTestConfig'
 import { tapUnobstructedCenter } from './browserAssertions'
@@ -16,18 +17,27 @@ test.describe('Equipment and Input List are usable on a mobile viewport (real Su
     const createButton = page.getByRole('button', { name: 'Crear y abrir' })
     await tapUnobstructedCenter(page, createButton)
     await expect(page.getByLabel('Nombre del show')).toHaveValue(name)
+    const showId = new URL(page.url()).hash.split('/').pop()!
+    const admin = createClient(config!.url, config!.anonKey)
+
+    const remoteEquipmentNames = async () => {
+      const { data } = await admin.from('orion_shows').select('data').eq('id', showId).maybeSingle()
+      return ((data?.data as { equipment?: Array<{ name: string }> } | undefined)?.equipment || []).map((item) => item.name)
+    }
 
     await page.getByRole('button', { name: 'Agregar equipo' }).click()
     await page.getByRole('button', { name: 'Creación libre' }).click()
     await page.getByLabel('Nombre', { exact: true }).fill('Consola digital')
     await page.getByRole('button', { name: 'Agregar', exact: true }).click()
     await expect(page.getByText(/Consola digital$/)).toBeVisible()
+    await expect.poll(remoteEquipmentNames, { timeout: 20_000 }).toContain('Consola digital')
 
     await page.getByRole('button', { name: 'Agregar equipo' }).click()
     await page.getByRole('button', { name: 'Creación libre' }).click()
     await page.getByLabel('Nombre', { exact: true }).fill('Multicable')
     await page.getByRole('button', { name: 'Agregar', exact: true }).click()
     await expect(page.getByText(/Multicable$/)).toBeVisible()
+    await expect.poll(remoteEquipmentNames, { timeout: 20_000 }).toEqual(expect.arrayContaining(['Consola digital', 'Multicable']))
 
     // The whole document must not need horizontal scrolling to use the Equipment tab.
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
