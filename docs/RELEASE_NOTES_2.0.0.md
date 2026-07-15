@@ -38,6 +38,6 @@ Follow `GUIA_CONFIGURACION_V2.md` and `docs/20-DEPLOYMENT_AND_OPERATIONS.md`. De
 
 ## Verification record
 
-Local candidate: lint/typecheck/build passed; 123/123 unit/component passed; Pages production E2E 1/1 passed with no retry; bundle and limitations recorded in `docs/24-CURRENT_IMPLEMENTATION_AUDIT.md`.
+Local candidate: lint/typecheck/build passed; 124/124 unit/component passed; Pages production E2E 1/1 passed with no retry; bundle and limitations recorded in `docs/24-CURRENT_IMPLEMENTATION_AUDIT.md`.
 
 The final branch CI run ID and exact Supabase/E2E counts must be inserted after it succeeds. Until then this remains a release candidate.

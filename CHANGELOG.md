@@ -20,6 +20,7 @@ All notable changes are documented here. Dates refer to candidate preparation un
 - Local backups are capped at the ten newest records.
 - PDF export sorts copies and no longer risks mutating Input List arrays.
 - Light-theme secondary text contrast increased to pass the automated AA threshold.
+- Editable Equipment category names now expose contextual accessible labels.
 
 ### Security
 

@@ -50,6 +50,7 @@ Real export mapping tests cover portrait/landscape, custom CH, phantom, patch, n
 
 - Added axe automation on critical configured desktop/mobile smoke paths and the unconfigured Pages Setup path.
 - A real light-theme contrast defect was found (`4.34:1`) and corrected by changing `--muted` from `#737373` to `#6b6b6b`.
+- First candidate CI run `29455695727` found unlabeled editable Equipment category names in both configured smoke flows; contextual `aria-label` values and a component regression assertion correct the issue.
 - Existing modal names/focus/Escape, form associations, keyboard ordering, mobile 44×44 targets and overflow tests remain intact.
 - This is not a complete manual WCAG audit; PDF accessibility, every theme/screen and assistive-technology combinations remain outside the automated claim.
 
@@ -75,7 +76,7 @@ Local candidate evidence completed so far:
 
 - lint: passed;
 - test typecheck: passed;
-- unit/component: 123/123 passed;
+- unit/component: 124/124 passed;
 - build: passed;
 - Pages production E2E: 1/1 passed, retries 0;
 - Pages axe scan: passed after the contrast correction;
