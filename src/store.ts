@@ -3,6 +3,7 @@ import { db, saveBackup, writeLocalSnapshot } from './lib/db'
 import { clone, createPublicSlug, now, uid } from './lib/utils'
 import { normalizeAssignments, normalizeEquipmentItem, normalizeInputList } from './lib/inputList'
 import { queueShowDelete, queueShowUpsert, queueWorkspaceUpsert } from './lib/syncQueue'
+import { classifyRemoteShowRevision, type RemoteShowApplyResult } from './lib/showRevision'
 import type {
   AppSnapshot,
   CatalogItem,
@@ -112,7 +113,7 @@ interface StoreState {
   snapshot: () => AppSnapshot
   importSnapshot: (snapshot: AppSnapshot, mode: ImportMode) => void
   createBackup: (reason: string) => Promise<void>
-  applyRemoteShow: (show: Show, revision: number) => Promise<void>
+  applyRemoteShow: (show: Show, revision: number) => Promise<RemoteShowApplyResult>
   removeRemoteShow: (showId: string) => Promise<void>
   applyRemoteWorkspace: (workspace: WorkspaceData, revision: number) => Promise<void>
 }
@@ -216,6 +217,13 @@ function workspaceFromState(state: Pick<StoreState, 'presets' | 'library' | 'pre
 }
 
 let suppressRemoteQueue = 0
+let remoteShowApplyChain: Promise<unknown> = Promise.resolve()
+
+function serializeRemoteShowApplication(work: () => Promise<RemoteShowApplyResult>) {
+  const next = remoteShowApplyChain.then(work, work)
+  remoteShowApplyChain = next.then(() => undefined, () => undefined)
+  return next
+}
 
 export const useAppStore = create<StoreState>((set, get) => {
   const commit = (updater: (state: StoreState) => Partial<StoreState>) => {
@@ -717,17 +725,27 @@ export const useAppStore = create<StoreState>((set, get) => {
       await saveBackup({ id: uid(), createdAt: now(), reason, snapshot: makeSnapshot(get()) })
     },
 
-    applyRemoteShow: async (incoming, revision) => {
+    applyRemoteShow: (incoming, revision) => serializeRemoteShowApplication(async () => {
+      const id = `show:${incoming.id}`
+      // Re-check inside the serialized critical section. A local edit can be queued after a
+      // Realtime callback's first pending check but before its row reaches the store.
+      if (await db.pendingMutations.get(id)) return 'pending'
+
+      const accepted = await db.syncRecords.get(id)
+      const decision = classifyRemoteShowRevision(accepted?.revision, revision)
+      if (decision !== 'newer') return decision
+
       const show = normalizeShow(incoming)
       suppressRemoteQueue += 1
       try {
         set((state) => ({ shows: [show, ...state.shows.filter((item) => item.id !== show.id)] }))
-        await db.syncRecords.put({ id: `show:${show.id}`, revision, syncedAt: now() })
+        await db.syncRecords.put({ id, revision, syncedAt: now() })
         await writeSnapshot(makeSnapshot(get()))
+        return 'applied'
       } finally {
         suppressRemoteQueue -= 1
       }
-    },
+    }),
 
     removeRemoteShow: async (showId) => {
       suppressRemoteQueue += 1
