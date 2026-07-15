@@ -160,8 +160,8 @@ export function Modal({ open, title, onClose, children, footer, closeOnEscape = 
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4" onMouseDown={(event) => { if (event.currentTarget === event.target && closeOnEscape) onClose() }}>
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-2xl border border-[var(--line)] bg-[var(--panel)] shadow-2xl outline-none sm:max-w-xl sm:rounded-2xl">
         <div className="flex flex-none items-center justify-between border-b border-[var(--line)] bg-[var(--panel)] px-5 py-4"><h2 id={titleId} className="font-semibold">{title}</h2><Button variant="ghost" size="icon" onClick={onClose} aria-label="Cerrar"><X size={18} /></Button></div>
-        <div className="min-h-0 overflow-y-auto p-5">{children}</div>
-        {footer && <div className="flex flex-none justify-end gap-2 border-t border-[var(--line)] bg-[var(--panel)] px-5 py-4">{footer}</div>}
+        <div className="min-h-0 flex-1 overflow-y-auto p-5">{children}</div>
+        {footer && <div className="relative z-10 flex flex-none justify-end gap-2 border-t border-[var(--line)] bg-[var(--panel)] px-5 py-4">{footer}</div>}
       </div>
     </div>
   )

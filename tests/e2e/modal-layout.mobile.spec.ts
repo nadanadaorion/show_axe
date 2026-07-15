@@ -25,6 +25,12 @@ test('a mobile modal keeps its action footer separate from its scrollable conten
   expect(submitBox).not.toBeNull()
   expect(formBox!.y + formBox!.height).toBeLessThanOrEqual(submitBox!.y)
 
+  const pointerTarget = await submit.evaluate((button) => {
+    const rect = button.getBoundingClientRect()
+    return document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)?.closest('button')?.textContent
+  })
+  expect(pointerTarget).toContain('Crear y abrir')
+
   await submit.click()
   await expect(dialog).toHaveCount(0)
 })
