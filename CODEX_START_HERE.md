@@ -57,15 +57,29 @@ Test and harden:
 - Realtime disconnect with periodic-sync fallback;
 - workspace concurrent edits.
 
-### Milestone 3 — release hardening
+### Milestone 3 — UX and resilience
 
-- Accessibility audit.
-- Mobile interaction audit.
-- Service Worker update/recovery behavior.
-- PDF snapshot tests or structured export tests.
-- GitHub Pages deployment verification.
-- Supabase SQL verification script.
-- Release checklist and version bump.
+`docs/21-ROADMAP.md` is authoritative for milestone scope; mirrored here so this file cannot drift
+out of sync with it again:
+
+- modal accessibility;
+- keyboard ordering alternatives;
+- mobile technical-table behavior;
+- clear Service Worker update flow;
+- structured error recovery;
+- performance/code splitting for PDF bundle.
+
+Exit: usable on desktop and mobile with resilient failure states.
+
+### Milestone 4 — release candidate
+
+- acceptance checklist complete;
+- security warning visible in docs/setup;
+- migration scripts verified;
+- GitHub Pages deployment tested;
+- release notes and rollback package.
+
+Exit: V2.0 production release.
 
 ## How to work
 
