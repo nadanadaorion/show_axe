@@ -23,10 +23,14 @@ test.describe('Offline queue, reconnect, and conflict resolution (real Supabase)
     const edited = `${name} (offline edit)`
     await page.getByLabel('Nombre del show').fill(edited)
     await page.goto('/#/settings')
-    await expect(page.getByText(/sin conexión/i)).toBeVisible({ timeout: 10_000 })
+    // SyncStatusBadge renders both in the persistent sidebar (complementary landmark) and inline
+    // on the Settings page itself (main landmark) — a deliberate, screen-reader-distinguishable
+    // duplication, not a bug. Scope to the page content so this doesn't hit a strict-mode
+    // violation against the sidebar's copy of the same status text.
+    await expect(page.getByRole('main').getByText(/sin conexión/i)).toBeVisible({ timeout: 10_000 })
 
     await context.setOffline(false)
-    await expect(page.getByText('Guardado en línea')).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByRole('main').getByText('Guardado en línea')).toBeVisible({ timeout: 20_000 })
 
     await context.close()
   })
