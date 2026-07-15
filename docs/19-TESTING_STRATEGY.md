@@ -13,9 +13,10 @@ tests configured for WebKit while CI installed only Chromium.
 The corrective pass changes mobile to an explicit Chromium 375×667/touch project, defers modal focus
 restoration until after portal teardown, keeps offline status authoritative while `navigator.onLine` is
 false, versions Service Worker caches, fixes polling/listener cleanup, and retains Playwright traces,
-screenshots, videos, reports, and test results on CI failure. Local verification currently passes 115/115
-unit/component tests, lint, test typecheck, and production build; final Milestone 3 acceptance remains
-pending a completely green GitHub Actions run with zero skips and no retry-dependent passes.
+screenshots, videos, reports, and test results on CI failure. Local verification passes 115/115
+unit/component tests, lint, test typecheck, production build, and the available desktop/mobile Chromium
+smoke coverage. Final GitHub Actions run `29447186230` is completely green: 22/22 integration tests and
+all 13 Playwright cases (9 desktop, 4 mobile) passed with zero test skips and `retries: 0`.
 The corrective Playwright configuration sets `retries: 0`, making that requirement explicit rather than
 inferring it from a retried result.
 
@@ -70,6 +71,13 @@ transition. The helper now starts observing before it performs the mutation, the
 state. The same artifacts exposed weak setup in the offline-conflict tests: fixed sleeps did not prove a
 local edit was queued or that the independent remote RPC applied. Those cases now require the visible
 `1 pendiente` state and assert the RPC result before reconnecting.
+
+Run `29446629109` showed that starting a Playwright locator assertion before the action was still not
+enough: its polling missed the short-lived `Sincronizando…` state in all four affected mobile/offline
+flows, even though the final snapshots already showed `Guardado en línea`. The harness now installs a DOM
+`MutationObserver` synchronously before each action and requires that it observe the complete visible
+sync cycle. Final run `29447186230` passed both jobs: build gates, 22/22 real-Supabase integration tests,
+and 13/13 Playwright tests (9 desktop, 4 mobile), with 0 failed, 0 skipped, and no retries.
 
 Milestone 0 (test foundation) is implemented:
 

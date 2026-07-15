@@ -144,7 +144,10 @@ changes in this branch address the real-Chromium focus failure, the Chromium/Web
 mismatch, and the offline-status race, plus the cache-version and polling-cleanup risks found during
 handoff. Local gates pass, but this status must not be changed to complete until a later CI run is wholly
 green without retry-dependent passes.
-The corrective run uses `retries: 0` so first-attempt stability is enforced by configuration.
+The corrective run uses `retries: 0` so first-attempt stability is enforced by configuration. Final run
+`29447186230` is wholly green: both jobs succeeded, integration passed 22/22, and Playwright passed 13/13
+(9 desktop, 4 mobile) with zero failed, zero skipped, and no retries. Milestone 3 therefore meets its
+corrective acceptance gate, but PR #4 remains intentionally unmerged.
 
 Corrective run `29441798211` subsequently passed the build job and all 22 integration tests, but E2E was
 still 7 passed / 5 failed with zero retries. Crucially, mobile Chromium did launch and the failure
@@ -192,7 +195,10 @@ No conflict policy, sync queue, Supabase code, retry count, or fixed delay was c
 Run `29446126816` demonstrated that a post-action observer can miss a fast sync transition, so the helper
 now begins observing before invoking the mutation. It also exposed fixed-delay assumptions in the
 offline-conflict setup. The tests now require the visible queued-mutation count and assert that the remote
-RPC applied before reconnect; Show-conflict semantics and implementation remain unchanged.
+RPC applied before reconnect; Show-conflict semantics and implementation remain unchanged. Run
+`29446629109` then proved Playwright polling could still miss the short transition even when the save
+completed. The final helper installs a DOM `MutationObserver` before the action and requires the complete
+visible sync cycle. Run `29447186230` passed all 13 E2E cases without retries.
 
 **A. Modal accessibility + form label association** — `src/components/ui.tsx`'s `Modal` was rewritten:
 `role="dialog"`, `aria-modal="true"`, `aria-labelledby` pointing at the title, a focus trap (`Tab`/`Shift+Tab`
@@ -306,11 +312,10 @@ warning in the eagerly-loaded path — see "Bundle size" below), `npm run test:s
 native Postgres, all 8 assertions pass — confirms no SQL regression, though Milestone 3 did not touch
 `supabase/`), and `npm run check:secrets` (real — no secrets found in repo or `dist/`).
 
-`npx playwright test --list` shows 13 E2E tests across 9 files. GitHub Actions run `29426947786` executed
-all 12 against a real local Supabase stack with zero skips: 7 passed and 5 failed. The 22 integration tests
-all passed. The corrective branch keeps desktop and mobile separate but makes both Chromium projects; a
-new always-on mobile-modal regression is the thirteenth collected test. A fully green run, rather than
-collection/typechecking alone, is required for acceptance.
+`npx playwright test --list` shows 13 E2E tests across 9 files. Final GitHub Actions run `29447186230`
+executed the complete suite against a real local Supabase stack: 13 passed (9 desktop Chromium, 4 mobile
+Chromium), 0 failed, 0 skipped, and `retries: 0`. The same run passed all 22 integration tests. Both CI jobs
+completed successfully.
 
 ## Implemented source areas
 
@@ -373,8 +378,8 @@ Supabase instance (locally with Docker, or in this branch's CI once pushed).
 
 ## Missing automated quality controls
 
-- Milestones 0, 1, 2, and 2.1 are implemented. Milestone 3 code is in corrective verification: its
-  Supabase-backed integration/E2E suites have run for real, but the first E2E run was not green.
+- Milestones 0, 1, 2, 2.1, and 3 are implemented. Milestone 3's corrective acceptance gate passed in run
+  `29447186230`; PR #4 remains open and unmerged pending review.
 - `npx playwright test --list` shows 13 tests across 9 files (including the always-on mobile-modal
   regression). All Supabase tests executed in CI run
   `29426947786`; the three mobile tests did not reach their assertions because the old project selected an
@@ -385,8 +390,8 @@ Supabase instance (locally with Docker, or in this branch's CI once pushed).
   `supabase start` bootstrap exercises the migrations for real; the native-Postgres script stays a local/CI
   fallback command, not a required gate, since it needs `psql` or a `DATABASE_URL`).
 - CI runs lint, unit/component tests, typecheck of tests, build, and a secret scan on every push/PR
-  (`build` job); the first real `supabase-integration` run passed 22/22 integration tests but failed E2E
-  with 7 passed / 5 failed / 0 skipped. A fully green corrective run remains the acceptance gate.
+  (`build` job). Final run `29447186230` passed that job plus 22/22 integration and 13/13 E2E tests in the
+  `supabase-integration` job, with zero test skips and no retries.
 
 ## Known design/implementation risks
 
@@ -463,15 +468,13 @@ Equipment and Input List, and the route/module-level Error Boundaries.
 
 ## Recommended next action
 
-Milestones 0, 1, 2, and 2.1 from `CODEX_START_HERE.md` are implemented. Milestone 3 is implemented but not
-accepted until its corrective CI run is wholly green. Before Milestone 4 (release candidate):
+Milestones 0, 1, 2, 2.1, and 3 from `CODEX_START_HERE.md` are implemented. Milestone 3's corrective CI is
+green, but PR #4 must remain unmerged until explicitly approved. Before Milestone 4 (release candidate):
 
-1. Obtain a corrective GitHub Actions run where integration and all desktop/mobile Playwright tests execute
-   against the local Supabase stack with zero failures, zero skips, and no retry-dependent passes.
+1. Review and explicitly approve PR #4; do not merge or begin Milestone 4 implicitly.
 2. Decide on the two open items already flagged: monitor-return output collision handling, and
    permanent-delete-versus-Undo semantics after remote sync (`docs/25-DECISION_LOG.md`). Neither is in scope
    for Milestone 3 and neither was touched by it.
 3. Keep the remaining non-blocking `docs/22-BACKLOG.md` technical-debt items outside this corrective scope.
 
-Do not add new product features before Milestone 3's acceptance is confirmed against a real Supabase
-backend in CI.
+Do not add new product features or begin Milestone 4 before PR #4 receives explicit approval.
