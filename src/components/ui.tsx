@@ -70,6 +70,13 @@ function getFocusable(container: HTMLElement): HTMLElement[] {
     .filter((element) => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true')
 }
 
+function canRestoreFocus(element: HTMLElement): boolean {
+  if (!element.isConnected || element.closest('[inert]')) return false
+  if (element.hidden || element.getAttribute('aria-hidden') === 'true') return false
+  if ('disabled' in element && Boolean((element as HTMLButtonElement).disabled)) return false
+  return element.tabIndex >= 0
+}
+
 // Tracks how many Modal instances are simultaneously open=true app-wide. Only one modal should
 // ever be interactable at once (docs/06-UX_AND_INTERACTION.md); this cannot safely auto-close a
 // sibling modal it doesn't own, but it surfaces the bug loudly in development instead of letting
@@ -113,7 +120,12 @@ export function Modal({ open, title, onClose, children, footer, closeOnEscape = 
 
     return () => {
       appRoot?.removeAttribute('inert')
-      previouslyFocused.current?.focus()
+      const target = previouslyFocused.current
+      // Passive-effect cleanup can run before React has removed the portal DOM in a real browser.
+      // Restore on the next frame, after the dialog is gone and the background is interactive.
+      window.requestAnimationFrame(() => {
+        if (target && canRestoreFocus(target)) target.focus()
+      })
     }
   }, [open])
 

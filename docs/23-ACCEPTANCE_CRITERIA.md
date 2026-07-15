@@ -122,3 +122,8 @@ A production V2 release is accepted only when all critical items pass.
 - [ ] Supabase verification passes.
 - [ ] No secret keys are committed.
 - [ ] Desktop and mobile smoke tests pass.
+
+For Milestone 3 acceptance specifically, desktop and mobile must both execute in Chromium against the CI
+Supabase stack with zero skips; focus restoration must pass after Escape and button closure, the mobile
+Equipment reorder target must measure at least approximately 44×44 CSS px, and no passing test may depend
+on retry. A failed run does not satisfy these boxes even when its build and integration jobs pass.

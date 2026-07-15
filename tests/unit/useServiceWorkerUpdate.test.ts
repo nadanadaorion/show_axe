@@ -152,4 +152,27 @@ describe('useServiceWorkerUpdate', () => {
     expect(registration.update).toHaveBeenCalled()
     unmount()
   })
+
+  it('keeps one polling interval per mount and clears it, listeners, and pending work on unmount/remount', async () => {
+    const { container, registration } = install()
+    container.controller = {}
+    const removeContainerListener = vi.spyOn(container, 'removeEventListener')
+    const removeRegistrationListener = vi.spyOn(registration, 'removeEventListener')
+
+    const first = renderHook(() => useServiceWorkerUpdate())
+    await flush()
+    await act(async () => { await vi.advanceTimersByTimeAsync(60 * 60 * 1000) })
+    expect(registration.update).toHaveBeenCalledTimes(1)
+    first.unmount()
+    await act(async () => { await vi.advanceTimersByTimeAsync(60 * 60 * 1000) })
+    expect(registration.update).toHaveBeenCalledTimes(1)
+    expect(removeContainerListener).toHaveBeenCalledWith('controllerchange', expect.any(Function))
+    expect(removeRegistrationListener).toHaveBeenCalledWith('updatefound', expect.any(Function))
+
+    const second = renderHook(() => useServiceWorkerUpdate())
+    await flush()
+    await act(async () => { await vi.advanceTimersByTimeAsync(60 * 60 * 1000) })
+    expect(registration.update).toHaveBeenCalledTimes(2)
+    second.unmount()
+  })
 })

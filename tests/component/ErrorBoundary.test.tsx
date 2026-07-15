@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { lazy, Suspense } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ErrorBoundary, GlobalErrorBoundary, RouteErrorBoundary } from '../../src/components/ErrorBoundary'
@@ -159,6 +160,23 @@ describe('RouteErrorBoundary', () => {
       </MemoryRouter>,
     )
     expect(screen.queryByRole('button', { name: /exportar respaldo/i })).not.toBeInTheDocument()
+  })
+
+  it('turns a rejected lazy-route import into route recovery instead of a black screen', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.stubEnv('DEV', false)
+    const BrokenLazyRoute = lazy(() => Promise.reject(new Error('chunk download failed')))
+    render(
+      <MemoryRouter initialEntries={['/library']}>
+        <Suspense fallback={<div role="status">Cargando ruta…</div>}>
+          <RouteErrorBoundary><BrokenLazyRoute /></RouteErrorBoundary>
+        </Suspense>
+      </MemoryRouter>,
+    )
+    expect(await screen.findByText('La pantalla no pudo cargarse')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
+    expect(screen.queryByText('chunk download failed')).not.toBeInTheDocument()
+    vi.unstubAllEnvs()
   })
 })
 

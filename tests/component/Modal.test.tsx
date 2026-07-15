@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -82,7 +82,22 @@ describe('Modal accessibility', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Cerrar acción' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(trigger).toHaveFocus()
+    await waitFor(() => expect(trigger).toHaveFocus())
+  })
+
+  it('restores the exact trigger after Escape, after the portal has unmounted and inert is removed', async () => {
+    const user = userEvent.setup()
+    function Wrapper() {
+      const [open, setOpen] = useState(false)
+      return <><button onClick={() => setOpen(true)}>Disparador exacto</button><button>Otro control</button><Modal open={open} title="Escape" onClose={() => setOpen(false)}>contenido</Modal></>
+    }
+    render(<Wrapper />, { container: document.getElementById('root')! })
+    const trigger = screen.getByRole('button', { name: 'Disparador exacto' })
+    await user.click(trigger)
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(document.getElementById('root')).not.toHaveAttribute('inert')
+    await waitFor(() => expect(trigger).toHaveFocus())
   })
 
   it('4. Escape closes a cancelable modal', async () => {

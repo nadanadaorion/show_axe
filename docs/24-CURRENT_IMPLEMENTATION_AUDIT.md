@@ -97,8 +97,7 @@ product features.
   Supabase instance is configured — never a mock standing in for a real response. **Not executed against a
   real backend in this environment** (none was reachable); verified only for correct skip behavior,
   TypeScript types (`npm run typecheck:tests`), and Playwright collection (`npx playwright test --list`).
-  They will run for real in the new `supabase-integration` CI job once this branch's CI executes, or
-  locally with Docker available.
+  They later ran for real in GitHub Actions; see "Corrective status after first real CI run" below.
 - `tests/unit/supabase.test.ts`, `tests/unit/syncQueue.test.ts` (real `fake-indexeddb`, not a mock of the
   queue's own logic), `tests/component/useShowLock.test.tsx` (lock hook state machine, `src/lib/supabase.ts`
   mocked) — all executed and passing now, no live backend needed.
@@ -136,6 +135,17 @@ PDF bundle performance/code-splitting. Supabase sync, the Workspace remote-wins 
 locks, accounts/auth, Input List business rules, and PDF functional content were explicitly out of scope
 and were not modified.
 
+### Corrective status after first real CI run
+
+GitHub Actions run `29426947786` executed the branch against a real local Supabase stack. The `build` job
+passed; integration passed 22/22 with zero skips; Playwright ended 7 passed / 5 failed / 0 skipped after
+all five failures exhausted two retries. Therefore Milestone 3 is **not yet accepted**. The corrective
+changes in this branch address the real-Chromium focus failure, the Chromium/WebKit mobile configuration
+mismatch, and the offline-status race, plus the cache-version and polling-cleanup risks found during
+handoff. Local gates pass, but this status must not be changed to complete until a later CI run is wholly
+green without retry-dependent passes.
+The corrective run uses `retries: 0` so first-attempt stability is enforced by configuration.
+
 **A. Modal accessibility + form label association** — `src/components/ui.tsx`'s `Modal` was rewritten:
 `role="dialog"`, `aria-modal="true"`, `aria-labelledby` pointing at the title, a focus trap (`Tab`/`Shift+Tab`
 cycle within the dialog), initial focus moved into the dialog on open (respecting native `autoFocus`), focus
@@ -149,7 +159,10 @@ have a single `activeModal` state to safely close from). A new `Field` component
 onto a single child) associates every genuinely 1:1 label/field pair across Setup, Shows, Show
 (Equipment/People/Info/Schedule), Library, Presets, Settings, and the Input List modal; `Label` remains only
 for non-1:1 headings (radio groups, `MultiSelect`). Validation errors (e.g. Setup screen) use `role="alert"`.
-Tests: `tests/component/Modal.test.tsx` (8 tests).
+Focus restoration now removes `inert` first, waits until portal teardown on the next animation frame, and
+only focuses the exact saved trigger when it remains connected, focusable, and outside any inert tree.
+Tests cover Escape and action-button closure in jsdom; the desktop smoke covers Escape and header-button
+closure in real Chromium. Tests: `tests/component/Modal.test.tsx` (9 tests).
 
 **B. Keyboard alternative to Equipment drag & drop** — Equipment is the only module in the codebase that
 used drag & drop (`grep -rl draggable src/` returns only `ShowPage.tsx`; People and Schedule rows already
@@ -164,16 +177,14 @@ feedback. Tests: `tests/component/EquipmentReorder.test.tsx` (3 tests, real Zust
 **C. Mobile-responsive Equipment/Input List** — Equipment was already a responsive card list (Tailwind
 `sm:`/`lg:` breakpoints collapse expanded-row fields to one column below `sm`), not a rigid table; verified
 in a real mobile-viewport (375×667) browser session with no page-level horizontal overflow, collapsed and
-expanded. The Equipment reorder buttons were bumped from `h-5 w-6` to `h-6 w-7` for a slightly larger touch
-target (they were the smallest control in the row); they still fall short of `docs/06-UX_AND_INTERACTION.md`'s
-~44×44 CSS px guideline for primary mobile controls, consistent with the pre-existing checked-state toggle
-button in the same row (24×24) — a full 44px target for every dense-row control would need a row-layout
-redesign judged disproportionate for this milestone, so this is an accepted, documented gap rather than a
-silent one. The Input List's CH/Uso/Equipo/48V/Patch/Notas table
+expanded. The Equipment reorder buttons now expose a 44×44 CSS px (`h-11 w-11`) mobile hit area while
+keeping a smaller 32×32 desktop layout and the same accessible names/icons; the mobile smoke measures this
+bounding box directly. The Input List's CH/Uso/Equipo/48V/Patch/Notas table
 already used the authorized "horizontal scroll" adaptive pattern (`overflow-x-auto` wrapper, `min-w-[1050px]`
 inner grid) rather than squeezing columns — confirmed for real: the wrapper (not the page) scrolls, every
 column including the rightmost "Notas" field remains reachable and editable after scrolling, and custom CH
-editing works. A `mobile` Playwright project (`devices['iPhone SE']`, `**/*.mobile.spec.ts`) was added
+editing works. A `mobile` Playwright project (explicit Chromium, 375×667, touch/mobile emulation,
+`**/*.mobile.spec.ts`) was added
 alongside the existing desktop `chromium` project. Tests: `tests/e2e/equipment-inputlist.mobile.spec.ts`,
 `tests/e2e/smoke-mobile.mobile.spec.ts` (real Supabase, gated like the existing `.supabase.spec.ts` files).
 
@@ -196,8 +207,9 @@ Input List failure closes only that modal and leaves the rest of the Show usable
 own errors locally via try/catch instead of a boundary (see "F" below). Backup export is wrapped in
 try/catch: on failure it shows an inline `role="alert"` message and keeps "Volver a Shows"/"Recargar
 aplicación" available, never deletes local data, and never retries automatically. Tests:
-`tests/component/ErrorBoundary.test.tsx` (11 tests covering the base component, `RouteErrorBoundary`, and
-`GlobalErrorBoundary`, including the backup-export failure path).
+`tests/component/ErrorBoundary.test.tsx` (12 tests covering the base component, `RouteErrorBoundary`, and
+`GlobalErrorBoundary`, including the backup-export failure path and a rejected lazy-route import reaching
+route recovery without any production crash route).
 
 **F. PDF performance/code-splitting** — see "Bundle size" above for the route/vendor splitting. The PDF
 export button in `InputListModal.tsx` now shows a loading state ("Generando…", disabled, spinning icon)
@@ -232,26 +244,21 @@ Vite.
 
 ## Milestone 3 verification
 
-Re-run from a clean dependency state (`npm ci`) in this environment: `npm run lint`, `npm run test` (108
-unit/component tests, up from 77 immediately before this milestone — 31 new: 8 in the new
-`tests/component/Modal.test.tsx`, 3 in the new `tests/component/EquipmentReorder.test.tsx`, 8 added to the
-pre-existing `tests/component/ErrorBoundary.test.tsx` (11 total now), 6 in the new
-`tests/unit/useServiceWorkerUpdate.test.ts`, 3 in the new `tests/component/UpdateNotice.test.tsx`, and 3 in
-the new `tests/component/InputListPdf.test.tsx`), `npm run typecheck:tests`, `npm run build` (production
+Re-run from a clean dependency state (`npm ci`) in this environment: `npm run lint`, `npm run test` (114
+unit/component tests: 9 in `tests/component/Modal.test.tsx`, 3 in
+`tests/component/EquipmentReorder.test.tsx`, 12 in `tests/component/ErrorBoundary.test.tsx`, 7 in
+`tests/unit/useServiceWorkerUpdate.test.ts`, 3 in `tests/unit/serviceWorker.test.ts`, 3 in
+`tests/component/UpdateNotice.test.tsx`, and 3 in `tests/component/InputListPdf.test.tsx`), `npm run
+typecheck:tests`, `npm run build` (production
 build succeeds; no chunk exceeds Vite's 500 kB
 warning in the eagerly-loaded path — see "Bundle size" below), `npm run test:supabase:sql` (real, against a
 native Postgres, all 8 assertions pass — confirms no SQL regression, though Milestone 3 did not touch
 `supabase/`), and `npm run check:secrets` (real — no secrets found in repo or `dist/`).
 
-`npx playwright test --list` shows 12 E2E tests across 8 files (2 new: `smoke-desktop.supabase.spec.ts` on
-the `chromium` project, `smoke-mobile.mobile.spec.ts` on the new `mobile` project) plus the pre-existing
-`equipment-inputlist.mobile.spec.ts` (also new this milestone) — all `.supabase.spec.ts`/`.mobile.spec.ts`
-files are gated the same way as the Milestone 2 ones and were **not** executed against a real backend in
-this environment for the same documented reason (this sandbox's proxy denies the Supabase CLI's Docker
-Hub/GitHub-release pulls with a `403`, confirmed by checking `$HTTPS_PROXY/__agentproxy/status`, not
-assumed) — verified only for TypeScript types and Playwright collection here. `tests/integration/` remains
-22 tests across 5 files, unchanged by this milestone. They will run for real, with zero skips, the first
-time this branch's CI executes (see `docs/19-TESTING_STRATEGY.md`).
+`npx playwright test --list` shows 12 E2E tests across 8 files. GitHub Actions run `29426947786` executed
+all 12 against a real local Supabase stack with zero skips: 7 passed and 5 failed. The 22 integration tests
+all passed. The corrective branch keeps desktop and mobile separate but makes both Chromium projects; a
+new fully green run, rather than collection/typechecking alone, is required for acceptance.
 
 ## Implemented source areas
 
@@ -282,7 +289,8 @@ time this branch's CI executes (see `docs/19-TESTING_STRATEGY.md`).
 The build reports:
 
 1. `config.js` is a non-module runtime script and therefore is not bundled. This is intentional but should be documented/tested.
-2. Main JavaScript and PDF-related chunks exceed Vite's default 500 kB warning threshold. Code splitting is recommended.
+2. No eagerly loaded chunk exceeds Vite's 500 kB warning threshold. The current main chunk is ~247.10 kB
+   (~77.84 kB gzip); the on-demand PDF chunk is ~424.26 kB (~139.19 kB gzip).
 
 ## Not verified against a live external service
 
@@ -313,23 +321,19 @@ Supabase instance (locally with Docker, or in this branch's CI once pushed).
 
 ## Missing automated quality controls
 
-- Milestones 0, 1, 2, 2.1, and 3 are implemented. The Supabase-backed integration/E2E suites are written,
-  typed, and confirmed to skip cleanly, but have not actually been *run* against a real backend in this
-  environment (see "Milestone 2" and "Milestone 3 verification" above) — that execution is the main
-  outstanding verification step, not missing code.
-- `npx playwright test --list` shows 12 tests across 8 files (6 `.supabase.spec.ts` files on the `chromium`
-  project, 2 `.mobile.spec.ts` files on the new `mobile` project, plus the always-on Setup-screen smoke
-  test); only the Setup-screen ones have actually executed successfully so far in this environment. Item 8
-  from the Milestone 2 E2E list ("generate Input List and PDF") is now covered by
-  `smoke-desktop.supabase.spec.ts`.
+- Milestones 0, 1, 2, and 2.1 are implemented. Milestone 3 code is in corrective verification: its
+  Supabase-backed integration/E2E suites have run for real, but the first E2E run was not green.
+- `npx playwright test --list` shows 12 tests across 8 files. All Supabase tests executed in CI run
+  `29426947786`; the three mobile tests did not reach their assertions because the old project selected an
+  uninstalled WebKit executable. The correction selects Chromium explicitly and awaits a green CI proof.
 - `supabase/VERIFY.sql` is now also wrapped in a self-checking, CI-runnable form
   (`supabase/scripts/assertions.sql` via `npm run test:supabase:sql`), executed for real in this
   environment. It is not yet wired into the default CI job (only the new `supabase-integration` job's
   `supabase start` bootstrap exercises the migrations for real; the native-Postgres script stays a local/CI
   fallback command, not a required gate, since it needs `psql` or a `DATABASE_URL`).
 - CI runs lint, unit/component tests, typecheck of tests, build, and a secret scan on every push/PR
-  (`build` job); a second `supabase-integration` job runs the real Supabase CLI stack and the gated
-  integration/E2E suites, but its actual pass/fail is unknown until this branch's CI executes.
+  (`build` job); the first real `supabase-integration` run passed 22/22 integration tests but failed E2E
+  with 7 passed / 5 failed / 0 skipped. A fully green corrective run remains the acceptance gate.
 
 ## Known design/implementation risks
 
@@ -357,9 +361,13 @@ genuine new version (a worker finishing install while a previous version already
 the very first install), and `src/components/UpdateNotice.tsx` shows a persistent, dismissal-free notice
 with an "Actualizar ahora" action. Applying it posts `SKIP_WAITING`, waits for `controllerchange`, and does
 a single controlled reload; a stuck update (no `controllerchange` within 8s) surfaces "Reintentar" instead
-of leaving the UI stuck. Verified with a real browser round-trip (build → serve → bump `sw.js` on disk →
-confirm notice appears → click update → confirm reload lands on the new version, notice clears) plus 9
-automated tests (`tests/unit/useServiceWorkerUpdate.test.ts`, `tests/component/UpdateNotice.test.tsx`).
+of leaving the UI stuck. The cache is explicitly versioned (`orion-shows-v2.0.0-m3.1`), so an installing
+worker never mutates the active worker's cache; activation removes only older `orion-shows-*` caches. The
+hourly polling interval and every listener are removed on unmount/remount. Verified with a real browser
+round-trip (build → serve → bump `sw.js` on disk → confirm notice appears → click update → confirm reload
+lands on the new version, notice clears) plus 13 automated tests across
+`tests/unit/useServiceWorkerUpdate.test.ts`, `tests/unit/serviceWorker.test.ts`, and
+`tests/component/UpdateNotice.test.tsx`.
 
 ### Bundle size — improved in Milestone 3
 
@@ -402,20 +410,15 @@ Equipment and Input List, and the route/module-level Error Boundaries.
 
 ## Recommended next action
 
-Milestones 0, 1, 2, 2.1, and 3 from `CODEX_START_HERE.md` are implemented; see the sections above for exact
-results and remaining risk. Before Milestone 4 (release candidate):
+Milestones 0, 1, 2, and 2.1 from `CODEX_START_HERE.md` are implemented. Milestone 3 is implemented but not
+accepted until its corrective CI run is wholly green. Before Milestone 4 (release candidate):
 
-1. Run `npm run test:integration` and `npm run test:e2e` for real against a reachable Supabase instance
-   (locally with Docker via `supabase start`, or by letting this branch's CI run) and fix anything they
-   reveal — every Supabase-backed suite (including the two new Milestone 3 mobile/desktop smoke specs) was
-   verified for correctness by review and type-checking only, never executed against a real backend in this
-   environment.
+1. Obtain a corrective GitHub Actions run where integration and all desktop/mobile Playwright tests execute
+   against the local Supabase stack with zero failures, zero skips, and no retry-dependent passes.
 2. Decide on the two open items already flagged: monitor-return output collision handling, and
    permanent-delete-versus-Undo semantics after remote sync (`docs/25-DECISION_LOG.md`). Neither is in scope
    for Milestone 3 and neither was touched by it.
-3. Optionally close the two remaining, non-blocking gaps this milestone documented rather than fixed: the
-   Equipment reorder buttons' touch-target size (see "C. Mobile-responsive Equipment/Input List" above) and
-   the `docs/22-BACKLOG.md` technical-debt items.
+3. Keep the remaining non-blocking `docs/22-BACKLOG.md` technical-debt items outside this corrective scope.
 
 Do not add new product features before Milestone 3's acceptance is confirmed against a real Supabase
 backend in CI.

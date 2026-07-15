@@ -34,6 +34,10 @@ test.describe('Mobile smoke test: Shows listing, opening a Show, a modal, keyboa
     await page.getByRole('button', { name: 'Agregar', exact: true }).click()
     await expect(page.getByText(/Subwoofer$/)).toBeVisible()
 
+    const touchTarget = await page.getByRole('button', { name: 'Bajar Torre de bajos' }).boundingBox()
+    expect(touchTarget?.width).toBeGreaterThanOrEqual(44)
+    expect(touchTarget?.height).toBeGreaterThanOrEqual(44)
+
     // A modal on mobile: accessible, and Escape closes a cancelable one.
     const trigger = page.getByRole('button', { name: 'Agregar equipo' })
     await trigger.click()
@@ -41,6 +45,7 @@ test.describe('Mobile smoke test: Shows listing, opening a Show, a modal, keyboa
     await expect(dialog).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(dialog).toHaveCount(0)
+    await expect(trigger).toBeFocused()
 
     // Keyboard-only reordering (no drag gesture) on a mobile viewport.
     const downButton = page.getByRole('button', { name: 'Bajar Torre de bajos' })

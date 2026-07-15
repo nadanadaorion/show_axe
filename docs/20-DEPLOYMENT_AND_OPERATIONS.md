@@ -56,11 +56,15 @@ For breaking changes, use expand-and-contract migrations so old and new frontend
 
 ## Service Worker updates
 
-- Change cache version for releases that modify shell behavior.
+- Change the explicit `CACHE_NAME` suffix in `public/sw.js` for every release that modifies shell or
+  Service Worker behavior (current Milestone 3 correction: `orion-shows-v2.0.0-m3.1`). Never reuse the
+  active worker's cache name for a new deployment.
 - Ensure old caches are removed during activate.
 - Provide a visible update/reload prompt if an old tab is controlling stale assets — implemented in
   Milestone 3, see `docs/18-TECHNICAL_ARCHITECTURE.md` "Service Worker" → "Update flow".
 - Test hard refresh and ordinary refresh after deployment.
+- Test install-while-an-old-tab-is-open, explicit activation, offline reopen, and cleanup that leaves
+  unrelated caches untouched.
 
 ## Backup and recovery
 

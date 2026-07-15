@@ -20,6 +20,7 @@ test.describe('Offline queue, reconnect, and conflict resolution (real Supabase)
     await page.waitForTimeout(1_500) // let the creation flush before going offline
 
     await context.setOffline(true)
+    await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(false)
     const edited = `${name} (offline edit)`
     await page.getByLabel('Nombre del show').fill(edited)
     await page.goto('/#/settings')

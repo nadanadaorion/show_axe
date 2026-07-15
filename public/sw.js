@@ -1,5 +1,7 @@
 /* Ori♡n Shows V2 offline shell */
-const CACHE_NAME = 'orion-shows-v2.0.0'
+// Increment this explicit build suffix for every deployed release that changes the offline shell.
+// A new worker must populate a separate cache while the previous worker still controls open tabs.
+const CACHE_NAME = 'orion-shows-v2.0.0-m3.1'
 const scopeUrl = new URL(self.registration.scope)
 const shellUrls = [scopeUrl.href, new URL('index.html', scopeUrl).href, new URL('config.js', scopeUrl).href]
 

@@ -25,21 +25,28 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return
     let cancelled = false
+    let interval: number | undefined
+    let registration: ServiceWorkerRegistration | undefined
+    let onUpdateFound: (() => void) | undefined
+    const workerCleanups = new Set<() => void>()
 
     const watchInstalling = (worker: ServiceWorker | null | undefined, hadController: boolean) => {
       if (!worker) return
-      worker.addEventListener('statechange', () => {
-        if (worker.state === 'installed' && hadController) {
+      const onStateChange = () => {
+        if (!cancelled && worker.state === 'installed' && hadController) {
           waitingWorkerRef.current = worker
           setUpdateAvailable(true)
         }
-      })
+      }
+      worker.addEventListener('statechange', onStateChange)
+      workerCleanups.add(() => worker.removeEventListener('statechange', onStateChange))
     }
 
     navigator.serviceWorker
       .register('./sw.js')
-      .then((registration) => {
+      .then((nextRegistration) => {
         if (cancelled) return
+        registration = nextRegistration
         registrationRef.current = registration
 
         if (registration.waiting && navigator.serviceWorker.controller) {
@@ -47,12 +54,12 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
           setUpdateAvailable(true)
         }
 
-        registration.addEventListener('updatefound', () => {
-          watchInstalling(registration.installing, Boolean(navigator.serviceWorker.controller))
-        })
+        onUpdateFound = () => {
+          watchInstalling(nextRegistration.installing, Boolean(navigator.serviceWorker.controller))
+        }
+        nextRegistration.addEventListener('updatefound', onUpdateFound)
 
-        const interval = window.setInterval(() => registration.update().catch(() => undefined), UPDATE_CHECK_INTERVAL_MS)
-        return () => window.clearInterval(interval)
+        interval = window.setInterval(() => registration?.update().catch(() => undefined), UPDATE_CHECK_INTERVAL_MS)
       })
       .catch(() => undefined)
 
@@ -66,8 +73,13 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
 
     return () => {
       cancelled = true
+      if (interval !== undefined) window.clearInterval(interval)
+      if (onUpdateFound) registration?.removeEventListener('updatefound', onUpdateFound)
+      workerCleanups.forEach((cleanup) => cleanup())
+      workerCleanups.clear()
       navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange)
       window.clearTimeout(timeoutRef.current)
+      applyingRef.current = false
     }
   }, [])
 

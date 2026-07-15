@@ -216,6 +216,13 @@ export function SyncController({ children }: { children: ReactNode }) {
         },
         onWorkspace: (row) => void handleRemoteWorkspace(row),
         onStatus: (status, error) => {
+          // Chromium can emit the offline event before Supabase reports CHANNEL_ERROR. Offline is
+          // the more useful observable state and must not be overwritten by that expected channel
+          // shutdown while the browser has no network.
+          if (!navigator.onLine) {
+            useSyncStore.getState().setStatus('offline')
+            return
+          }
           if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && error) {
             useSyncStore.getState().setStatus('error', 'La conexión en tiempo real se interrumpió. La sincronización periódica sigue activa.')
           }

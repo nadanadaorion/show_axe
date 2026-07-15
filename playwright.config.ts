@@ -13,11 +13,16 @@ export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
-  retries: process.env.CI ? 2 : 0,
-  reporter: process.env.CI ? 'github' : 'list',
+  // Milestone 3 acceptance requires every scenario to pass on its first attempt.
+  retries: 0,
+  reporter: process.env.CI
+    ? [['github'], ['html', { outputFolder: 'playwright-report', open: 'never' }]]
+    : 'list',
   use: {
     baseURL: `http://localhost:${PORT}`,
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
   },
   projects: [
     {
@@ -32,7 +37,11 @@ export default defineConfig({
       name: 'mobile',
       testMatch: '**/*.mobile.spec.ts',
       use: {
-        ...devices['iPhone SE'],
+        browserName: 'chromium',
+        viewport: { width: 375, height: 667 },
+        deviceScaleFactor: 2,
+        hasTouch: true,
+        isMobile: true,
         ...(chromiumExecutablePath ? { launchOptions: { executablePath: chromiumExecutablePath } } : {}),
       },
     },

@@ -188,8 +188,8 @@ function EquipmentRow({ item, show, categories, origins, canMoveUp, canMoveDown,
     <div className="flex items-center gap-2 px-3 py-3 sm:px-4">
       <GripVertical size={16} className="cursor-grab muted" aria-hidden="true" />
       <div className="flex flex-none flex-col">
-        <Button variant="ghost" size="icon" className="h-6 w-7" disabled={!canMoveUp} onClick={() => onMove(-1)} aria-label={`Subir ${item.name}`}><ChevronUp size={14} /></Button>
-        <Button variant="ghost" size="icon" className="h-6 w-7" disabled={!canMoveDown} onClick={() => onMove(1)} aria-label={`Bajar ${item.name}`}><ChevronDown size={14} /></Button>
+        <Button variant="ghost" size="icon" className="h-11 w-11 sm:h-8 sm:w-8" disabled={!canMoveUp} onClick={() => onMove(-1)} aria-label={`Subir ${item.name}`}><ChevronUp size={14} /></Button>
+        <Button variant="ghost" size="icon" className="h-11 w-11 sm:h-8 sm:w-8" disabled={!canMoveDown} onClick={() => onMove(1)} aria-label={`Bajar ${item.name}`}><ChevronDown size={14} /></Button>
       </div>
       <button onClick={() => onUpdate({ checked: !item.checked })} className={`flex h-6 w-6 flex-none items-center justify-center rounded-md border transition ${item.checked ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-text)]' : 'border-[var(--strong-line)]'}`} aria-label={item.checked ? 'Marcar pendiente' : 'Marcar listo'}>{item.checked && <Check size={15} />}</button>
       <button className="min-w-0 flex-1 text-left" onClick={() => setExpanded(!expanded)}>

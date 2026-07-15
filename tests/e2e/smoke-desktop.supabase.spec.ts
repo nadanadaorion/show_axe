@@ -51,6 +51,12 @@ test.describe('Desktop smoke test: Shows, Equipment, Input List, a modal, keyboa
     await expect(dialog).toHaveCount(0)
     await expect(trigger).toBeFocused()
 
+    // The header close button follows the same real-browser restoration path.
+    await trigger.click()
+    await page.getByRole('dialog', { name: 'Agregar equipo' }).getByRole('button', { name: 'Cerrar' }).click()
+    await expect(page.getByRole('dialog', { name: 'Agregar equipo' })).toHaveCount(0)
+    await expect(trigger).toBeFocused()
+
     // Keyboard navigation: move the newly added equipment item up/down without a drag gesture.
     const upButton = page.getByRole('button', { name: 'Subir Consola digital' })
     await expect(upButton).toBeDisabled()

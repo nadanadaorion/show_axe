@@ -24,9 +24,8 @@ Items here are not approved scope unless moved into the decision log.
 - Keep monitoring bundle-size budget as the app grows (Milestone 3 split routes + `@supabase/supabase-js`/
   `dexie` into separate chunks and cleared the 500 kB warning; re-evaluate if any chunk crosses it again).
 - Test `pagehide` lock release across browsers.
-- Bring the Equipment reorder buttons and other dense-row controls up to the ~44×44 CSS px touch-target
-  guideline without regressing row density (see `docs/24-CURRENT_IMPLEMENTATION_AUDIT.md` "C. Mobile-
-  responsive Equipment/Input List").
+- Bring the remaining dense-row controls up to the ~44×44 CSS px touch-target guideline without
+  regressing row density. Equipment Subir/Bajar was completed in the Milestone 3 correction.
 
 ## Explicitly not planned
 

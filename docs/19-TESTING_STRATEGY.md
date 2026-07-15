@@ -2,6 +2,23 @@
 
 ## Current state
 
+### Milestone 3 corrective pass (PR #4)
+
+The first real GitHub Actions run for Milestone 3 (`29426947786`) was not green: the build job passed,
+the real Supabase integration suite passed 22/22 with zero skips, and Playwright finished 7 passed / 5
+failed / 0 skipped. All five failures exhausted two configured retries. The failures were: offline status
+being overwritten by a Realtime channel error, real-Chromium modal focus restoration, and three mobile
+tests configured for WebKit while CI installed only Chromium.
+
+The corrective pass changes mobile to an explicit Chromium 375×667/touch project, defers modal focus
+restoration until after portal teardown, keeps offline status authoritative while `navigator.onLine` is
+false, versions Service Worker caches, fixes polling/listener cleanup, and retains Playwright traces,
+screenshots, videos, reports, and test results on CI failure. Local verification currently passes 114/114
+unit/component tests, lint, test typecheck, and production build; final Milestone 3 acceptance remains
+pending a completely green GitHub Actions run with zero skips and no retry-dependent passes.
+The corrective Playwright configuration sets `retries: 0`, making that requirement explicit rather than
+inferring it from a retried result.
+
 Milestone 0 (test foundation) is implemented:
 
 - Vitest + jsdom run unit and component tests (`npm run test`).
@@ -98,8 +115,8 @@ project was available either. As a direct consequence, `tests/integration/`, `te
 and the `supabase-integration` CI job were written and verified for syntax/types
 (`npm run typecheck:tests`, `npx playwright test --list`) and confirmed to skip cleanly (exit 0) rather than
 hang or fake-pass, but their actual assertions have **not** been executed against a real backend by this
-change. They will run for real the first time this branch's CI executes (GitHub-hosted runners are not
-subject to this sandbox's Docker restriction) or when a developer runs them locally with Docker available.
+change. They later ran for real in GitHub Actions; see "Milestone 3 corrective pass" above for the first
+run's exact results and the remaining green-run gate.
 The SQL-level checks (native-Postgres fallback) **were** executed for real, repeatedly, in this environment.
 
 #### Native-Postgres fallback (used in this environment)
@@ -154,13 +171,18 @@ Use React Testing Library for:
 - Error Boundary recovery, including `RouteErrorBoundary`/`GlobalErrorBoundary` navigation and the backup
   export failure path (`tests/component/ErrorBoundary.test.tsx`, Milestone 3);
 - `Modal` accessibility — dialog role/name, focus trap, focus restoration, conditional `Escape`, background
-  `inert` — and `Field` label association (`tests/component/Modal.test.tsx`, Milestone 3);
+  `inert` — and `Field` label association, including next-frame restoration to the exact trigger after
+  Escape and action-button closure (`tests/component/Modal.test.tsx`, Milestone 3);
 - Equipment keyboard reordering and move-to-category, against the real store
   (`tests/component/EquipmentReorder.test.tsx`, Milestone 3);
 - the Service Worker update hook's state machine — first-install vs. genuine update, apply/reload,
-  stuck-update retry — with a hand-built fake `navigator.serviceWorker` (no real browser SW timing)
+  stuck-update retry, one polling interval per mount, and full cleanup/remount — with a hand-built fake
+  `navigator.serviceWorker` (no real browser SW timing)
   (`tests/unit/useServiceWorkerUpdate.test.ts`, Milestone 3), and the notice UI it drives
   (`tests/component/UpdateNotice.test.tsx`, Milestone 3);
+- the Service Worker script's versioned-cache isolation, cleanup of only older Ori♡n caches, preservation
+  of current/unrelated caches, explicit `SKIP_WAITING`, and absence of auto-activation
+  (`tests/unit/serviceWorker.test.ts`, Milestone 3 correction);
 - Input List PDF export's on-demand loading state and generation-error handling, with
   `src/lib/inputListPdf.ts` mocked (`tests/component/InputListPdf.test.tsx`, Milestone 3).
 
@@ -224,12 +246,17 @@ viewport:
   the Input List, a modal (dialog role/name, `Escape`-close, focus return to the trigger), and keyboard-only
   Equipment reordering, in one flow.
 - `equipment-inputlist.mobile.spec.ts` and `smoke-mobile.mobile.spec.ts` (`mobile` project,
-  `devices['iPhone SE']`, matched via `playwright.config.ts`'s `testMatch: '**/*.mobile.spec.ts'`): the same
+  explicit Chromium at 375×667 with touch/mobile emulation, matched via `playwright.config.ts`'s
+  `testMatch: '**/*.mobile.spec.ts'`): the same
   breadth on a 375×667 viewport, plus explicit page-level horizontal-overflow assertions
   (`document.documentElement.scrollWidth - clientWidth === 0`) and a custom-channel-number edit.
 
 No visual/snapshot tests were added — every assertion is role/name/focus/state/navigation-based, per the
 Milestone 3 authorization ("no golden snapshots this milestone").
+
+CI retains trace, screenshot, and video for every failed Playwright test and uploads
+`playwright-report/` plus `test-results/` as the `playwright-failure-artifacts` artifact when the E2E step
+fails. Generated artifacts remain gitignored.
 
 ## Fixtures
 
@@ -254,8 +281,8 @@ Minimum release gates:
 - TypeScript build passes (`npm run build`), and test files typecheck too (`npm run typecheck:tests`);
 - unit/component tests pass (`npm run test`);
 - critical E2E suite passes (`npm run test:e2e`, both the always-on and, when Supabase is configured, the
-  `.supabase.spec.ts` files) across both the `chromium` (desktop) and `mobile` (`devices['iPhone SE']`)
-  Playwright projects;
+  `.supabase.spec.ts` files) across both explicit Chromium Playwright projects: desktop and mobile
+  (375×667, touch/mobile emulation);
 - SQL verification passes (`npm run test:supabase:sql`, and/or `supabase/VERIFY.sql` against a real
   instance);
 - Supabase integration suite passes when a backend is configured (`npm run test:integration`);
