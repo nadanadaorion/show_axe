@@ -2,6 +2,29 @@
 
 Audit date: 2026-07-15.
 
+## Milestone 0 — test foundation (this update)
+
+Added without changing product behavior:
+
+- Vitest (`vitest.config.ts`, jsdom environment) with React Testing Library, `@testing-library/jest-dom`,
+  and `@testing-library/user-event` for unit/component tests.
+- Playwright (`playwright.config.ts`) for end-to-end tests, currently limited to the deterministic Setup
+  screen smoke path since no live Supabase project is available in this environment.
+- Deterministic fixture builders (`tests/fixtures/builders.ts`) for Show, Equipment, Input List, Workspace,
+  Preset, and both conflict shapes.
+- Initial unit tests for `src/lib/inputList.ts` and `src/lib/utils.ts`, and a component test for
+  `src/components/ErrorBoundary.tsx`, to prove each test layer works end-to-end against real domain code.
+- `npm run test`, `npm run test:watch`, and `npm run test:e2e` scripts.
+- `.github/workflows/ci.yml` running `npm ci`, `npm run lint`, `npm run test`, and `npm run build` on every
+  push and pull request.
+- A documented disposable-Supabase workflow for future integration tests (`docs/19-TESTING_STRATEGY.md`).
+- A `.gitignore` (none existed previously), covering `node_modules/`, `dist/`, and test-tool output
+  directories so they are never accidentally committed.
+
+Exact verification results for this change are recorded in the "Milestone 0 verification" section below.
+Full business-rule coverage (Milestone 1) and live Supabase integration/E2E coverage (Milestone 2) are not
+yet implemented.
+
 ## Verified in this package
 
 The included repository was installed from a clean dependency state and the following commands passed:
@@ -59,11 +82,15 @@ These must be treated as unverified until integration/E2E tests pass.
 
 ## Missing automated quality controls
 
-- No unit tests.
-- No component tests.
-- No Playwright/E2E tests.
-- No SQL verification test.
-- CI has been added by this handoff package, but tests must still be implemented.
+- Unit/component test foundation exists (Milestone 0), but coverage of the business rules in
+  `docs/05-BUSINESS_RULES.md` (Milestone 1: duplication ID remapping, equipment assignment normalization
+  edge cases, sync/lock/conflict flows end-to-end, JSON import validation, etc.) is not yet implemented.
+- Playwright is configured, but only a Setup-screen smoke test exists; the full E2E suite in
+  `docs/19-TESTING_STRATEGY.md` (two-device locks, conflicts, public routes, PDF export) is not yet
+  implemented and requires a live or local Supabase instance (Milestone 2).
+- No SQL verification test run in CI (`supabase/VERIFY.sql` exists but is not wired into an automated job).
+- CI runs lint, unit/component tests, and build on every push/PR; it does not yet run Playwright or any
+  Supabase-backed integration job.
 
 ## Known design/implementation risks
 
@@ -99,6 +126,17 @@ Automatic backup creation exists, but retention/capping must be verified to avoi
 
 Stereo monitor output labels are calculated, but explicit collision validation should be added and tested.
 
+### Form label association
+
+`components/ui.tsx`'s `Label` renders a `<label>` with no `htmlFor`, and callers do not pass matching
+`id`s to `Input`/`Textarea`, so labels are not programmatically associated with their fields (confirmed via
+the Setup screen Playwright smoke test, which had to fall back to placeholder-based locators instead of
+`getByLabel`). This affects screen reader users and is in scope for the Milestone 3 accessibility audit.
+
 ## Recommended next action
 
-Implement Milestone 0 from `CODEX_START_HERE.md`: test foundation, fixtures, CI validation, and a documented disposable Supabase integration environment. Do not add new product features before the existing candidate is verified.
+Milestone 0 from `CODEX_START_HERE.md` (test foundation, fixtures, CI validation, and a documented
+disposable Supabase integration workflow) is implemented; see the section above for exact results and
+remaining risk. Proceed to Milestone 1: add tests for the business rules listed in
+`docs/05-BUSINESS_RULES.md` and `docs/23-ACCEPTANCE_CRITERIA.md`. Do not add new product features before
+the existing candidate is verified.

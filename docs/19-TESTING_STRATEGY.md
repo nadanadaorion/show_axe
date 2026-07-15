@@ -2,7 +2,20 @@
 
 ## Current state
 
-The included baseline has no automated test suite. Establishing tests is the first implementation milestone.
+Milestone 0 (test foundation) is implemented:
+
+- Vitest + jsdom run unit and component tests (`npm run test`).
+- React Testing Library and `@testing-library/user-event` are available for component tests.
+- Playwright is configured for end-to-end tests (`npm run test:e2e`), currently covering only the
+  deterministic Setup-screen smoke path (no Supabase project is configured in this environment).
+- Deterministic fixture builders live in `tests/fixtures/builders.ts` (Show, Equipment, Input List,
+  Workspace, Preset, and both conflict shapes), using a sequential id/timestamp generator instead of
+  `crypto.randomUUID()`/`Date.now()` so test output is reproducible.
+- CI (`.github/workflows/ci.yml`) runs `npm ci`, `npm run lint`, `npm run test`, and `npm run build` on
+  every push and pull request.
+
+Milestone 1 (business-rule coverage) and Milestone 2 (live Supabase integration/E2E) are not yet
+implemented; see below for the disposable-project workflow they will use.
 
 ## Test layers
 
@@ -44,6 +57,29 @@ Against a disposable Supabase project or local Supabase stack:
 - Realtime Show insert/update/delete;
 - anonymous RLS access exactly as documented.
 
+#### Disposable Supabase workflow
+
+This environment has no live Supabase project and cannot provision one. The documented workflow for
+Milestone 2 is:
+
+1. Run the Supabase CLI local stack (`supabase start`) against a throwaway Docker Postgres instance, or
+   create a short-lived free-tier Supabase project dedicated to CI/test runs — never point integration
+   tests at the production project.
+2. Apply `supabase/SETUP.sql` (or the migrations under `supabase/migrations/`) to that instance so schema,
+   RPCs, RLS policies, and the Realtime publication match `docs/15-SUPABASE_AND_DATABASE.md` exactly.
+3. Run `supabase/VERIFY.sql` against the instance to confirm tables, policies, RPC signatures, and the
+   Realtime publication exist before running tests.
+4. Point `public/config.js` (or the local runtime-config override) at the disposable project's URL and
+   publishable key for the duration of the run only.
+5. Run the integration/E2E suites described above, then discard the instance (`supabase stop` or delete
+   the throwaway project) so no test data persists between runs.
+6. In CI, this stage runs as a separate, optional job gated on secrets for a dedicated test project (or a
+   `supabase start` service container); it must never share credentials with the production deployment and
+   must not run on forks/untrusted pull requests.
+
+Until this job exists, integration/E2E behavior against Supabase remains manually verified only, as noted
+in `docs/24-CURRENT_IMPLEMENTATION_AUDIT.md`.
+
 ### End-to-end tests
 
 Use Playwright with two browser contexts to simulate devices:
@@ -60,16 +96,18 @@ Use Playwright with two browser contexts to simulate devices:
 
 ## Fixtures
 
-Provide builders for:
+`tests/fixtures/builders.ts` provides builders for:
 
-- empty Show;
-- Show with grouped microphones and assignments;
-- Input List with custom channels beginning at 17;
-- mixed manual/generated rows;
-- mono/stereo monitor returns;
-- remote revision conflict;
-- deleted-remote conflict;
-- Workspace with Library and Presets.
+- empty Show (`buildEmptyShow`);
+- Show with grouped microphones and assignments (`buildShowWithMicrophones`);
+- Input List with custom channels beginning at 17 (`buildInputListStartingAt17`);
+- mixed manual/generated rows (`buildMixedInputList`);
+- mono/stereo monitor returns (`buildMonitorReturn`);
+- remote revision conflict (`buildRevisionConflict`);
+- deleted-remote conflict (`buildDeletedRemoteConflict`);
+- Workspace with Library and Presets (`buildWorkspace`).
+
+Call `resetFixtureSequence()` in a `beforeEach` when a test depends on exact generated ids.
 
 ## Quality gates
 
