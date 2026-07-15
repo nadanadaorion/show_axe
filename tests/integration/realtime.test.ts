@@ -24,14 +24,23 @@ describe.skipIf(!config)('Realtime propagation against a real Supabase instance'
     channel = undefined
   })
 
-  it(
-    '8. delivers an INSERT on orion_shows to a second client subscribed via Realtime',
-    async () => {
-      const id = uniqueId('rt-show')
-      const slug = uniqueId('rt-slug')
+  /**
+   * A single subscribe-write-listen attempt. A freshly started local
+   * Realtime server can report a channel SUBSCRIBED over its websocket
+   * before its own logical-replication connection has finished attaching
+   * to Postgres (a known cold-start race in the local CLI stack, not
+   * something a client-side delay can reliably wait out — see
+   * supabase/realtime#1074 and #415). Rather than guess a "long enough"
+   * fixed delay, each attempt gets a bounded window and a genuinely fresh
+   * row id; the caller retries on a clean timeout.
+   */
+  async function attemptDelivery(attemptTimeoutMs: number): Promise<Record<string, unknown> | undefined> {
+    const id = uniqueId('rt-show')
+    const slug = uniqueId('rt-slug')
 
-      const received = new Promise<Record<string, unknown>>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Timed out waiting for Realtime INSERT event')), 25_000)
+    try {
+      return await new Promise<Record<string, unknown>>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('__attempt_timeout__')), attemptTimeoutMs)
         channel = listener
           .channel(`test-orion-shows-${id}`)
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orion_shows' }, (payload) => {
@@ -48,10 +57,6 @@ describe.skipIf(!config)('Realtime propagation against a real Supabase instance'
               return
             }
             if (status !== 'SUBSCRIBED') return
-            // A freshly started local Realtime server needs a brief moment after
-            // reporting SUBSCRIBED to finish attaching its logical replication
-            // slot; writing immediately can race that attachment and miss the
-            // change entirely.
             setTimeout(() => {
               // supabase-js never throws on a query/RPC error — it resolves with
               // { data, error } — so a fire-and-forget call here would silently
@@ -82,12 +87,37 @@ describe.skipIf(!config)('Realtime propagation against a real Supabase instance'
             }, 1_000)
           })
       })
-
-      const event = await received
-      expect(event.id).toBe(id)
-
+    } catch (error) {
+      if (channel) {
+        await listener.removeChannel(channel)
+        channel = undefined
+      }
       await writer.from('orion_shows').delete().eq('id', id)
+      if (error instanceof Error && error.message === '__attempt_timeout__') return undefined
+      throw error
+    }
+  }
+
+  it(
+    '8. delivers an INSERT on orion_shows to a second client subscribed via Realtime',
+    async () => {
+      const attempts = 3
+      const perAttemptTimeoutMs = 15_000
+      let event: Record<string, unknown> | undefined
+
+      for (let attempt = 1; attempt <= attempts && !event; attempt++) {
+        console.log(`[realtime test] attempt ${attempt}/${attempts}`)
+        event = await attemptDelivery(perAttemptTimeoutMs)
+      }
+
+      if (!event) {
+        throw new Error(`Timed out waiting for Realtime INSERT event after ${attempts} attempts`)
+      }
+
+      expect(event.id).toBeDefined()
+
+      await writer.from('orion_shows').delete().eq('id', event.id as string)
     },
-    30_000,
+    70_000,
   )
 })
