@@ -64,20 +64,71 @@ Deliberately not covered by Milestone 1:
   disappears from local state and a `show-delete` mutation is queued; confirming the Supabase row is
   actually deleted needs a live/local Supabase instance (Milestone 2).
 
-Full business-rule coverage of sync/lock/conflict flows and live Supabase integration/E2E coverage
-(Milestone 2) are not yet implemented.
+## Milestone 2 — shared-data hardening (this update)
 
-## Verified in this package
+Scope note: `src/lib/supabase.ts`, `src/lib/useShowLock.ts`, `src/components/SyncController.tsx`, and
+`src/pages/PublicShowPage.tsx` already implemented the full shared-sync/lock/conflict/public-link feature
+set in the baseline this repository started from — Milestone 2, per `CODEX_START_HERE.md` and
+`docs/21-ROADMAP.md`, is "verify shared synchronization" / "shared-data hardening," not build it from
+scratch. This update accordingly focuses on verification infrastructure and one real bug fix, not new
+product features.
 
-The included repository was installed from a clean dependency state and the following commands passed:
+**Product fix:**
 
-```bash
-npm install --no-audit --no-fund
-npm run lint
-npm run build
-```
+- `orion_shows` now uses `replica identity full`
+  (`supabase/migrations/202607150002_realtime_replica_identity.sql`, folded into `supabase/SETUP.sql`).
+  Found by code review: the public Show route's Realtime subscription filters `DELETE` events by
+  `public_slug` (not the primary key); without full replica identity, Postgres does not include
+  non-key old-row data in `DELETE` change events, so a visitor with a public Show page open would not
+  learn about a deletion live (a reload still correctly 404s, since the initial fetch is unaffected).
 
-Production build completed successfully with Vite.
+**Verification infrastructure added** (see `docs/19-TESTING_STRATEGY.md` "Milestone 2" for full detail):
+
+- `supabase/config.toml`, `.env.example` (documented `SUPABASE_TEST_URL`/`SUPABASE_TEST_ANON_KEY`, no real
+  credentials).
+- `supabase/scripts/verify-sql-native.sh` + `assertions.sql`: applies migrations to a throwaway database
+  twice from empty and self-checks 8 RPC/RLS behaviors. **Executed for real in this environment** (see
+  "Milestone 0/1/2 verification" below for the exact run) since this sandbox's Docker daemon cannot pull
+  images (confirmed `403`/policy denial pulling from Docker Hub), so `supabase start` could not run here.
+- `tests/integration/` (5 files, 19 tests) using real `@supabase/supabase-js` calls against the actual
+  RPC/table contract, and `tests/e2e/*.supabase.spec.ts` (3 files) for the browser-driven scenarios
+  (two-device lock blocking, public link lifecycle, offline queue + conflict resolution both ways). All
+  eight files self-skip cleanly (confirmed: exit 0, clear console message, zero hangs) when no reachable
+  Supabase instance is configured — never a mock standing in for a real response. **Not executed against a
+  real backend in this environment** (none was reachable); verified only for correct skip behavior,
+  TypeScript types (`npm run typecheck:tests`), and Playwright collection (`npx playwright test --list`).
+  They will run for real in the new `supabase-integration` CI job once this branch's CI executes, or
+  locally with Docker available.
+- `tests/unit/supabase.test.ts`, `tests/unit/syncQueue.test.ts` (real `fake-indexeddb`, not a mock of the
+  queue's own logic), `tests/component/useShowLock.test.tsx` (lock hook state machine, `src/lib/supabase.ts`
+  mocked) — all executed and passing now, no live backend needed.
+- `scripts/check-no-secrets.sh` (`npm run check:secrets`) — executed for real; found no service-role/secret
+  keys or JWT-shaped literals in the repo or a production `dist/` build (see "Milestone 0/1/2 verification").
+- CI gained a `supabase-integration` job (real `supabase start` on GitHub-hosted runners, which — unlike
+  this sandbox — can reach Docker Hub) plus `typecheck:tests` and `check:secrets` steps on the existing job.
+
+**Deliberately not done, per explicit instruction:**
+
+- Monitor-return output collision detection — still not implemented (see "Output collisions" below);
+  remains an open decision.
+- The Workspace conflict policy (`docs/25-DECISION_LOG.md`: "open decision requiring explicit approval") —
+  `tests/integration/workspace.test.ts` tests and documents the *existing* local-last retry behavior
+  exactly as implemented; no new field-level merge UI was built. `docs/21-ROADMAP.md`'s framing of this as
+  something Milestone 2 should "decide and implement" conflicts with the decision log's open status; per
+  `docs/00-SOURCE_OF_TRUTH.md`'s priority order the decision log wins. **This needs your explicit decision
+  before any implementation.**
+- No accounts/auth/invitations were added (none existed; not requested).
+
+## Milestone 0/1/2 verification
+
+The included repository was installed from a clean dependency state (`npm ci`) and the following commands
+passed: `npm run lint`, `npm run test` (68 unit/component tests), `npm run typecheck:tests`, `npm run
+build`, `npm run test:supabase:sql` (real, executed against a native Postgres — see "Milestone 2" above),
+and `npm run check:secrets` (real — no secrets found in repo or `dist/`). `npm run test:integration` and the
+`.supabase.spec.ts` E2E files correctly report 0 executed/skipped-with-reason when no Supabase instance is
+reachable, which is the honest state of this environment; see "Milestone 2" above for why, and
+`docs/19-TESTING_STRATEGY.md` for how to run them for real. Production build completed successfully with
+Vite.
 
 ## Implemented source areas
 
@@ -112,28 +163,49 @@ The build reports:
 
 ## Not verified against a live external service
 
-- Execution of `supabase/SETUP.sql` in a real Supabase project.
-- Anonymous RLS behavior in that project.
-- RPC signatures and return payloads under the current Supabase platform.
-- Realtime delivery.
-- Two-device locks.
-- Offline conflict resolution after an actual network transition.
-- Public route against live data.
+Executed and passing against a real (native, non-Supabase-CLI) Postgres in this environment — see
+"Milestone 0/1/2 verification" below:
 
-These must be treated as unverified until integration/E2E tests pass.
+- migrations apply cleanly and idempotently from empty;
+- RPC signatures, optimistic concurrency, lock acquire/block/heartbeat-renew/release/expiry, delete
+  (and its idempotency), open anon RLS, `public_slug` uniqueness, replica identity.
+
+Still not verified against the real Supabase platform (PostgREST, GoTrue absence, actual Realtime wire
+delivery, `supabase start`'s own bootstrap) or a live project, because none was reachable in this
+environment:
+
+- Execution of `supabase/SETUP.sql`/migrations via `supabase start` or in a real Supabase project.
+- Anonymous RLS behavior via the real PostgREST layer (only verified via direct SQL role-switching here).
+- RPC request/response shapes as actually returned by PostgREST (only verified via direct SQL calls here).
+- Actual Realtime delivery over the wire (channel/WebSocket behavior) — `tests/integration/realtime.test.ts`
+  exists and is correct by review, but unexecuted.
+- Two-device locks and the offline/conflict E2E flows through the real UI —
+  `tests/e2e/lock-block.supabase.spec.ts` and `tests/e2e/offline-conflict.supabase.spec.ts` exist and are
+  correct by review, but unexecuted.
+- Public route against live data end-to-end through the UI — `tests/e2e/public-route.supabase.spec.ts`
+  exists and is correct by review, but unexecuted.
+
+These must be treated as unverified until the integration/E2E suites actually run against a reachable
+Supabase instance (locally with Docker, or in this branch's CI once pushed).
 
 ## Missing automated quality controls
 
-- Milestone 0 (foundation) and Milestone 1 (core business-rule coverage: snapshot isolation, equipment
-  consistency, duplication id remapping, archive/delete, JSON import merge/replace, and `applyPreset`
-  merge/replace onto an existing Show) are implemented. Still missing: sync/lock/conflict flows end-to-end,
-  which need a live/local Supabase instance (Milestone 2).
-- Playwright is configured, but only a Setup-screen smoke test exists; the full E2E suite in
-  `docs/19-TESTING_STRATEGY.md` (two-device locks, conflicts, public routes, PDF export) is not yet
-  implemented and requires a live or local Supabase instance (Milestone 2).
-- No SQL verification test run in CI (`supabase/VERIFY.sql` exists but is not wired into an automated job).
-- CI runs lint, unit/component tests, and build on every push/PR; it does not yet run Playwright or any
-  Supabase-backed integration job.
+- Milestones 0, 1, and 2 (foundation; core business-rule coverage; shared-data hardening infrastructure)
+  are implemented. The Supabase-backed integration/E2E suites are written, typed, and confirmed to skip
+  cleanly, but have not actually been *run* against a real backend in this environment (see "Milestone 2"
+  above) — that execution is the main outstanding verification step, not missing code.
+- Playwright's Setup-screen smoke test and the three `.supabase.spec.ts` files exist (`npx playwright test
+  --list` shows 7 specs across 4 files); only the Setup-screen ones have actually executed successfully so
+  far. Item 8 from the Milestone 2 E2E list ("generate Input List and PDF") remains uncovered by E2E and is
+  a reasonable Milestone 3 candidate.
+- `supabase/VERIFY.sql` is now also wrapped in a self-checking, CI-runnable form
+  (`supabase/scripts/assertions.sql` via `npm run test:supabase:sql`), executed for real in this
+  environment. It is not yet wired into the default CI job (only the new `supabase-integration` job's
+  `supabase start` bootstrap exercises the migrations for real; the native-Postgres script stays a local/CI
+  fallback command, not a required gate, since it needs `psql` or a `DATABASE_URL`).
+- CI runs lint, unit/component tests, typecheck of tests, build, and a secret scan on every push/PR
+  (`build` job); a second `supabase-integration` job runs the real Supabase CLI stack and the gated
+  integration/E2E suites, but its actual pass/fail is unknown until this branch's CI executes.
 
 ## Known design/implementation risks
 
@@ -143,7 +215,10 @@ Anonymous policies intentionally allow all data mutations. Public read-only mode
 
 ### Workspace conflict policy
 
-Shows receive explicit conflict resolution, but Workspace conflicts currently retry with the local Workspace over the latest revision. Concurrent Library/Preset/Preferences edits can overwrite remote changes without a user comparison.
+Shows receive explicit conflict resolution, but Workspace conflicts currently retry with the local Workspace over the latest revision. Concurrent Library/Preset/Preferences edits can overwrite remote changes without a user comparison. This exact behavior is now tested and documented
+(`tests/integration/workspace.test.ts`), not changed — it remains an **open decision** per
+`docs/25-DECISION_LOG.md` requiring your explicit approval before either formalizing it as-is or replacing
+it with field-level merge/conflict UI.
 
 ### Delete Undo and remote identity
 
@@ -178,9 +253,16 @@ the Setup screen Playwright smoke test, which had to fall back to placeholder-ba
 
 ## Recommended next action
 
-Milestone 0 (test foundation) and Milestone 1 (core business-rule coverage) from `CODEX_START_HERE.md` are
-implemented; see the sections above for exact results and remaining risk. Proceed to Milestone 2: verify
-shared synchronization (clean initial pull, offline queue/reconnect, revision conflicts, lock lifecycle,
-Realtime/periodic-sync fallback, workspace concurrent edits) against a disposable Supabase project or local
-stack, per the workflow documented in `docs/19-TESTING_STRATEGY.md`. Do not add new product features before
-the existing candidate is verified.
+Milestones 0, 1, and 2 from `CODEX_START_HERE.md` are implemented; see the sections above for exact results
+and remaining risk. Before Milestone 3:
+
+1. Run `npm run test:integration` and `npm run test:e2e` for real against a reachable Supabase instance
+   (locally with Docker via `supabase start`, or by letting this branch's CI run) and fix anything they
+   reveal — they were verified for correctness by review and type-checking only, never executed here.
+2. Get an explicit decision on the open Workspace conflict policy (see "Workspace conflict policy" above).
+3. Decide on the two open items already flagged: monitor-return output collision handling, and
+   permanent-delete-versus-Undo semantics after remote sync (`docs/25-DECISION_LOG.md`).
+
+Only after that, proceed to Milestone 3 (UX/resilience: modal accessibility, keyboard alternatives, mobile
+technical-table behavior, Service Worker update flow, structured error recovery, PDF bundle
+code-splitting). Do not add new product features before the existing candidate is verified.

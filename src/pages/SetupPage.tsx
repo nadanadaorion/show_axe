@@ -1,6 +1,6 @@
 import { Cloud, Database, ExternalLink, ShieldAlert } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
-import { getRuntimeConfig, saveLocalRuntimeConfig } from '../lib/config'
+import { getRuntimeConfig, isSupportedSupabaseUrl, saveLocalRuntimeConfig } from '../lib/config'
 import { Button, Input, Label } from '../components/ui'
 
 export default function SetupPage() {
@@ -11,7 +11,7 @@ export default function SetupPage() {
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    if (!/^https:\/\/.+\.supabase\.co\/?$/i.test(url.trim())) {
+    if (!isSupportedSupabaseUrl(url.trim())) {
       setError('Escribe una URL válida de proyecto Supabase.')
       return
     }

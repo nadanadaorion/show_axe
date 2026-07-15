@@ -12,9 +12,89 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run lint
       - run: npm run test
+      - run: npm run typecheck:tests
       - run: npm run build
+      - run: npm run check:secrets
+
+  # Runs the real Supabase-backed integration/E2E suites against a local
+  # `supabase start` stack. This needs Docker pulling images from Docker
+  # Hub/ghcr.io, which GitHub-hosted runners can do (unlike some sandboxed
+  # dev environments) — see docs/19-TESTING_STRATEGY.md for the equivalent
+  # local workflow and supabase/scripts/verify-sql-native.sh for a
+  # Docker-free fallback that checks the migrations/RPCs directly.
+  supabase-integration:
+    runs-on: ubuntu-latest
+    env:
+      # After `supabase start`, a missing/unreachable config must fail the
+      # suites loudly instead of skipping — see tests/integration/env.ts.
+      SUPABASE_INTEGRATION_REQUIRED: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: supabase start
+      - name: Export local Supabase connection details
+        run: |
+          # `supabase status` output is well-known, non-secret local dev
+          # defaults (the CLI's own banner: "API keys and JWT secrets are shared
+          # defaults. Do not use in production"), so printing it is safe and is
+          # exactly what makes a future field-name change fail loudly instead of
+          # silently exporting an empty value.
+          #
+          # This CLI version's default `-o env` output does not include the
+          # anon/publishable key at all (confirmed by dumping it in CI: only
+          # API_URL, DB_URL, GRAPHQL_URL, INBUCKET_URL, MAILPIT_URL, MCP_URL,
+          # REST_URL, STUDIO_URL). `--override-name` can force specific fields
+          # to be included under a chosen var name, and `-o json` exposes the
+          # full status object as a fallback if the field name guess is wrong.
+          STATUS_ENV="$(supabase status -o env \
+            --override-name anon_key=CLI_ANON_KEY \
+            --override-name publishable_key=CLI_PUBLISHABLE_KEY \
+            --override-name api.anon_key=CLI_API_ANON_KEY)"
+          echo "$STATUS_ENV"
+          echo "--- full JSON status (fallback source) ---"
+          STATUS_JSON="$(supabase status -o json)"
+          echo "$STATUS_JSON"
+
+          extract_env() {
+            for name in "$@"; do
+              value="$(echo "$STATUS_ENV" | grep -m1 "^${name}=" | cut -d= -f2- | tr -d '"')"
+              if [ -n "$value" ]; then echo "$value"; return 0; fi
+            done
+            return 1
+          }
+          extract_json() {
+            for name in "$@"; do
+              value="$(echo "$STATUS_JSON" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);const v=('$name'.split('.').reduce((o,k)=>o&&o[k],j));if(v)console.log(v)}catch(e){}})")"
+              if [ -n "$value" ]; then echo "$value"; return 0; fi
+            done
+            return 1
+          }
+
+          URL="$(extract_env API_URL SUPABASE_API_URL SUPABASE_URL || extract_json api_url url API_URL)"
+          KEY="$(extract_env CLI_ANON_KEY CLI_PUBLISHABLE_KEY CLI_API_ANON_KEY ANON_KEY PUBLISHABLE_KEY SUPABASE_ANON_KEY SUPABASE_PUBLISHABLE_KEY \
+            || extract_json anon_key publishable_key api.anon_key api.publishable_key ANON_KEY PUBLISHABLE_KEY)"
+
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then
+            echo "::error::Could not extract API URL/anon-or-publishable key from 'supabase status' (dumped above in both env and json form). The CLI's field names changed again — update the candidate list in this step using the JSON dump above."
+            exit 1
+          fi
+
+          echo "SUPABASE_TEST_URL=$URL" >> "$GITHUB_ENV"
+          echo "SUPABASE_TEST_ANON_KEY=$KEY" >> "$GITHUB_ENV"
+      - run: npm run test:integration
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e -- --grep supabase
+      - if: always()
+        run: supabase stop

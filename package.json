@@ -11,7 +11,11 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:e2e": "playwright test",
+    "test:supabase:sql": "bash supabase/scripts/verify-sql-native.sh",
+    "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
+    "check:secrets": "bash scripts/check-no-secrets.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.5",
@@ -30,6 +34,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^26.1.1",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
@@ -37,6 +42,7 @@
     "eslint": "^9.17.0",
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.4.16",
+    "fake-indexeddb": "^6.2.5",
     "globals": "^15.14.0",
     "jsdom": "^29.1.1",
     "postcss": "^8.4.49",

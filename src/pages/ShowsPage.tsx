@@ -51,7 +51,7 @@ export default function ShowsPage() {
       </div>
 
       {!filtered.length ? (
-        <EmptyState title={archived ? 'No hay shows archivados' : 'Crea tu primer show'} description={archived ? 'Los shows que archives aparecerán aquí.' : 'Crea primero y configura después. Entrarás directamente al espacio de trabajo del show.'} action={!archived ? <Button onClick={() => setCreateOpen(true)}><Plus size={17} />Nuevo show</Button> : undefined} />
+        <EmptyState title={archived ? 'No hay shows archivados' : 'Crea tu primer show'} description={archived ? 'Los shows que archives aparecerán aquí.' : 'Crea primero y configura después. Entrarás directamente al espacio de trabajo del show.'} action={!archived ? <Button onClick={() => setCreateOpen(true)}><Plus size={17} />Crear show</Button> : undefined} />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((show) => {

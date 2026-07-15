@@ -336,3 +336,8 @@ begin
     alter publication supabase_realtime add table public.orion_workspace;
   end if;
 end $$;
+
+-- Realtime DELETE events are filtered by public_slug (not the primary key) on
+-- the public Show route, so orion_shows needs full old-row data on delete.
+-- See supabase/migrations/202607150002_realtime_replica_identity.sql.
+alter table public.orion_shows replica identity full;

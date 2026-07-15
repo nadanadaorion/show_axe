@@ -43,7 +43,16 @@ where pubname = 'supabase_realtime'
   and tablename in ('orion_workspace', 'orion_shows')
 order by tablename;
 
--- 6. Transaction-scoped optimistic-write smoke test; rolls back all test data.
+-- 6. Replica identity: orion_shows must be FULL so a Realtime DELETE event
+--    carries public_slug (a non-primary-key column), which the public Show
+--    route filters on. Expected: replica_identity = 'full'.
+select relname as table_name,
+  case relreplident when 'd' then 'default' when 'f' then 'full' when 'n' then 'nothing' when 'i' then 'index' end as replica_identity
+from pg_class
+where relnamespace = 'public'::regnamespace
+  and relname = 'orion_shows';
+
+-- 7. Transaction-scoped optimistic-write smoke test; rolls back all test data.
 begin;
 
 select * from public.orion_save_show(

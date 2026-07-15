@@ -52,6 +52,8 @@ No secret/service-role key may be used in the browser.
 
 `orion_shows` and `orion_workspace` are added to `supabase_realtime`. Lock state may be polled/RPC-driven unless a later decision adds lock Realtime events.
 
+`orion_shows` uses `replica identity full`. The public Show route filters Realtime `DELETE` events by `public_slug`, a non-primary-key column; Postgres only includes non-key old-row data in the change feed when replica identity is `full`, so without it a live public page would not learn about a deletion until the visitor reloads (the initial fetch still correctly 404s). See `supabase/migrations/202607150002_realtime_replica_identity.sql`.
+
 ## Migrations
 
 - Never edit production data structures only through the dashboard.
@@ -69,6 +71,7 @@ A verification script should confirm:
 - expected policies exist;
 - RPC signatures exist;
 - Realtime publication contains required tables;
+- `orion_shows` replica identity is `full`;
 - a test optimistic insert/update conflict behaves correctly;
 - lock acquisition and expiry behave correctly.
 

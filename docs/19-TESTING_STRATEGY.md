@@ -45,8 +45,81 @@ Milestone 1 (business-rule coverage) is implemented:
   locally and a `show-delete` mutation is queued). Confirming the remote Supabase row is actually deleted
   requires a live/local Supabase instance and belongs to Milestone 2 below.
 
-Milestone 2 (live Supabase integration/E2E) is not yet implemented; see below for the disposable-project
-workflow it will use.
+Milestone 2 (shared-data hardening) is implemented:
+
+- **Fix**: `orion_shows` now uses `replica identity full`
+  (`supabase/migrations/202607150002_realtime_replica_identity.sql`). The public Show route filters
+  Realtime `DELETE` events by `public_slug`, a non-primary-key column; without full replica identity,
+  Postgres omits non-key old-row data from `DELETE` events, so a live public page would not learn about a
+  deletion until reload. This was found by code review, not by a failing test (no live Supabase was
+  reachable to observe it directly) — see "What could not be executed in this environment" below.
+- **SQL-level verification, executed for real**: `supabase/scripts/verify-sql-native.sh` (`npm run
+  test:supabase:sql`) applies every migration to a throwaway native-Postgres database twice from empty
+  (proving idempotency) and runs `supabase/scripts/assertions.sql`, a self-checking script (raises an
+  exception on any mismatch) covering optimistic concurrency, lock acquire/block/heartbeat-renew/release,
+  lock expiry after the ten-minute inactivity ceiling, delete (and its idempotency), open `anon` RLS, the
+  `public_slug` uniqueness constraint, and the replica-identity fix. This is a fallback for environments
+  without Docker (see "Native-Postgres fallback" below) — it approximates only the `anon`/`authenticated`
+  roles and an empty `supabase_realtime` publication that the real platform provides, and does not exercise
+  PostgREST or actual Realtime delivery.
+- **Real Supabase integration tests** (`tests/integration/`, `npm run test:integration`), using
+  `@supabase/supabase-js` against the actual RPC/table contract — never mocked:
+  - `shows.test.ts`: create, read from a second client, update, archive/restore, delete, and revision-conflict detection plus both resolution paths (keep local / keep online);
+  - `locks.test.ts`: acquire, heartbeat renew, release, ten-minute inactivity expiry, and a second client rejected while the lock is held;
+  - `workspace.test.ts`: Library/Presets/Preferences as one Workspace document, and the existing (untouched) local-last Workspace conflict policy — see "Open decision surfaced, not resolved" below;
+  - `realtime.test.ts`: an INSERT is delivered to a second subscribed client;
+  - `public.test.ts`: public lookup by slug while active/archived, gone after delete.
+  All five skip themselves (`describe.skipIf`) with a clear console message when `SUPABASE_TEST_URL`/
+  `SUPABASE_TEST_ANON_KEY` are unset or unreachable — never a mock standing in for a real response.
+- **Real Supabase E2E tests** (`tests/e2e/*.supabase.spec.ts`, `npm run test:e2e`), gated the same way via
+  `test.skip(!config, …)`: `public-route.supabase.spec.ts` (public link survives archive, stops resolving
+  after delete, no mutation controls visible), `lock-block.supabase.spec.ts` (a second device is blocked
+  and can acquire after the first releases), `offline-conflict.supabase.spec.ts` (offline edits queue and
+  flush on reconnect; a stale offline edit conflicts with a concurrent remote change, tested through both
+  "keep local" and "keep online").
+- **Unit/component coverage that does not need a live backend**: `tests/unit/supabase.test.ts`
+  (`remoteRowToShow` mapping, pure), `tests/unit/syncQueue.test.ts` (offline queue coalescing against a
+  real in-memory IndexedDB via `fake-indexeddb` — not a mock of the queue's own logic), and
+  `tests/component/useShowLock.test.tsx` (the lock hook's local state machine — acquire/blocked/heartbeat/
+  release/expiry/offline — with only `src/lib/supabase.ts` mocked, never a claim that this proves Supabase
+  itself works).
+- **Secret scanning, executed for real**: `scripts/check-no-secrets.sh` (`npm run check:secrets`) greps the
+  repo source and a production `dist/` build for service-role/secret-key patterns and JWT-shaped literals.
+- **CI**: `.github/workflows/ci.yml` gained a `supabase-integration` job that runs `supabase start` (via
+  `supabase/setup-cli`) on GitHub-hosted runners — which, unlike some sandboxed dev environments, can pull
+  the Supabase CLI's Docker images — then runs the real integration and `.supabase.spec.ts` E2E suites
+  against it. The default `build` job also gained `npm run typecheck:tests` and `npm run check:secrets`.
+
+#### What could not be executed in this environment
+
+This sandbox's Docker daemon cannot pull images from Docker Hub (an explicit `403`/policy denial from the
+network proxy — confirmed, not assumed), so `supabase start` cannot run here, and no real hosted Supabase
+project was available either. As a direct consequence, `tests/integration/`, `tests/e2e/*.supabase.spec.ts`,
+and the `supabase-integration` CI job were written and verified for syntax/types
+(`npm run typecheck:tests`, `npx playwright test --list`) and confirmed to skip cleanly (exit 0) rather than
+hang or fake-pass, but their actual assertions have **not** been executed against a real backend by this
+change. They will run for real the first time this branch's CI executes (GitHub-hosted runners are not
+subject to this sandbox's Docker restriction) or when a developer runs them locally with Docker available.
+The SQL-level checks (native-Postgres fallback) **were** executed for real, repeatedly, in this environment.
+
+#### Native-Postgres fallback (used in this environment)
+
+`supabase/scripts/verify-sql-native.sh` is a lightweight fallback for exactly this situation: no
+Docker-based local Supabase stack available. It uses whatever `psql`/Postgres is present (or a
+`DATABASE_URL`, e.g. the official `postgres:16` GitHub Actions service container) instead of the full
+platform. It proves the migrations and RPC/RLS logic are correct; it does **not** prove PostgREST request
+shapes or real Realtime delivery — that requires `supabase start` or a real project, which is exactly what
+the gated integration/E2E suites above are for.
+
+#### Open decision surfaced, not resolved
+
+`docs/21-ROADMAP.md` describes Milestone 2 as including "Workspace concurrent-edit policy decision and
+implementation," but `docs/25-DECISION_LOG.md` lists that same policy as an **open decision requiring
+explicit product-owner approval**, and `docs/00-SOURCE_OF_TRUTH.md` ranks the decision log above the
+roadmap. `tests/integration/workspace.test.ts` therefore tests and documents the *existing* local-last
+retry behavior (`src/components/SyncController.tsx`) exactly as implemented, and does not add a new
+field-level merge UI. Resolving the open decision (and, if the resolution requires new behavior,
+implementing it) is left for a future milestone once the product owner decides.
 
 ## Test layers
 
@@ -79,51 +152,54 @@ Use React Testing Library for:
 
 ### Integration tests
 
-Against a disposable Supabase project or local Supabase stack:
+Implemented in `tests/integration/` (`npm run test:integration`), against a disposable Supabase project or
+local Supabase stack — see "Milestone 2" above for exactly what each file covers:
 
-- bootstrap SQL;
-- optimistic create/update/delete;
-- revision conflict payload;
-- lock acquire/renew/block/release/expiry;
-- Realtime Show insert/update/delete;
-- anonymous RLS access exactly as documented.
+- bootstrap SQL (`supabase/scripts/verify-sql-native.sh`, executed against native Postgres);
+- optimistic create/update/delete (`shows.test.ts`);
+- revision conflict payload and both resolution paths (`shows.test.ts`);
+- lock acquire/renew/block/release/expiry (`locks.test.ts`);
+- Realtime Show insert delivery (`realtime.test.ts`);
+- anonymous RLS access exactly as documented (`supabase/scripts/assertions.sql`, and implicitly by every
+  integration test succeeding with only an anon key).
 
 #### Disposable Supabase workflow
 
-This environment has no live Supabase project and cannot provision one. The documented workflow for
-Milestone 2 is:
-
-1. Run the Supabase CLI local stack (`supabase start`) against a throwaway Docker Postgres instance, or
+1. Run the Supabase CLI local stack (`supabase start`, requires Docker) against `supabase/config.toml`, or
    create a short-lived free-tier Supabase project dedicated to CI/test runs — never point integration
    tests at the production project.
-2. Apply `supabase/SETUP.sql` (or the migrations under `supabase/migrations/`) to that instance so schema,
-   RPCs, RLS policies, and the Realtime publication match `docs/15-SUPABASE_AND_DATABASE.md` exactly.
-3. Run `supabase/VERIFY.sql` against the instance to confirm tables, policies, RPC signatures, and the
-   Realtime publication exist before running tests.
-4. Point `public/config.js` (or the local runtime-config override) at the disposable project's URL and
-   publishable key for the duration of the run only.
-5. Run the integration/E2E suites described above, then discard the instance (`supabase stop` or delete
-   the throwaway project) so no test data persists between runs.
-6. In CI, this stage runs as a separate, optional job gated on secrets for a dedicated test project (or a
-   `supabase start` service container); it must never share credentials with the production deployment and
-   must not run on forks/untrusted pull requests.
-
-Until this job exists, integration/E2E behavior against Supabase remains manually verified only, as noted
-in `docs/24-CURRENT_IMPLEMENTATION_AUDIT.md`.
+2. `supabase start` applies every migration under `supabase/migrations/` automatically from empty; for a
+   manually created project, run `supabase/SETUP.sql` in the SQL Editor instead.
+3. Run `supabase/VERIFY.sql` (or `npm run test:supabase:sql` for a self-checking pass) to confirm tables,
+   policies, RPC signatures, the Realtime publication, and replica identity match
+   `docs/15-SUPABASE_AND_DATABASE.md` exactly.
+4. Copy `.env.example` to `.env`, fill in `SUPABASE_TEST_URL`/`SUPABASE_TEST_ANON_KEY` (`supabase status`
+   prints the local values), and export them.
+5. Run `npm run test:integration` and `npm run test:e2e` (the `.supabase.spec.ts` files pick up the same
+   env vars), then discard the instance (`supabase stop` or delete the throwaway project) so no test data
+   persists between runs.
+6. In CI, this runs as the separate `supabase-integration` job in `.github/workflows/ci.yml`.
 
 ### End-to-end tests
 
-Use Playwright with two browser contexts to simulate devices:
+Implemented in `tests/e2e/`. `setup.spec.ts` needs no Supabase config (tests the unconfigured state); the
+`*.supabase.spec.ts` files need `SUPABASE_TEST_URL`/`SUPABASE_TEST_ANON_KEY` and self-skip otherwise:
 
-1. create Show on device A and observe on B;
-2. lock Show on A and block B;
-3. expire/release lock and acquire on B;
-4. edit offline on A, edit online on B, reconnect A, resolve conflict both ways;
-5. create public link and verify read-only route;
-6. archive and verify public link remains;
-7. delete and verify public route becomes not found;
-8. generate Input List and PDF action;
-9. reload offline after first successful visit.
+1. create Show on device A and observe on B — `tests/integration/realtime.test.ts` (no browser needed for
+   Realtime delivery itself);
+2. lock Show on A and block B, then release and acquire on B — `lock-block.supabase.spec.ts`;
+3. expire a lock and acquire on B — `tests/integration/locks.test.ts` (RPC-level; a real 10-minute wait in
+   a browser is impractical, so this is proven against the RPC directly, exactly like the product's own
+   lock UI does under the hood);
+4. edit offline on A, edit online on B (simulated via a second `@supabase/supabase-js` client, since a
+   truly concurrent third device only matters for the revision it leaves behind), reconnect A, resolve the
+   conflict both ways — `offline-conflict.supabase.spec.ts`;
+5. create public link and verify read-only route; 6. archive and verify public link remains; 7. delete and
+   verify public route becomes not found — all three in `public-route.supabase.spec.ts`;
+8. generate Input List and PDF action — not yet covered by E2E (existing local-only feature, unaffected by
+   Milestone 2; a good Milestone 3 candidate alongside the other UX items already scoped there);
+9. reload offline after first successful visit — covered already by the existing Service Worker baseline;
+   not re-verified by this change (see `docs/24-CURRENT_IMPLEMENTATION_AUDIT.md` Service Worker risk note).
 
 ## Fixtures
 
@@ -144,12 +220,15 @@ Call `resetFixtureSequence()` in a `beforeEach` when a test depends on exact gen
 
 Minimum release gates:
 
-- lint passes;
-- TypeScript build passes;
-- unit/component tests pass;
-- critical E2E suite passes;
-- SQL verification passes;
-- no secrets detected;
+- `npm run lint` passes;
+- TypeScript build passes (`npm run build`), and test files typecheck too (`npm run typecheck:tests`);
+- unit/component tests pass (`npm run test`);
+- critical E2E suite passes (`npm run test:e2e`, both the always-on and, when Supabase is configured, the
+  `.supabase.spec.ts` files);
+- SQL verification passes (`npm run test:supabase:sql`, and/or `supabase/VERIFY.sql` against a real
+  instance);
+- Supabase integration suite passes when a backend is configured (`npm run test:integration`);
+- no secrets detected (`npm run check:secrets`);
 - manual mobile smoke test completed.
 
 ## Regression rules
