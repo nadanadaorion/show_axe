@@ -2,6 +2,71 @@
 
 Audit date: 2026-07-15.
 
+## Milestone 0 — test foundation (this update)
+
+Added without changing product behavior:
+
+- Vitest (`vitest.config.ts`, jsdom environment) with React Testing Library, `@testing-library/jest-dom`,
+  and `@testing-library/user-event` for unit/component tests.
+- Playwright (`playwright.config.ts`) for end-to-end tests, currently limited to the deterministic Setup
+  screen smoke path since no live Supabase project is available in this environment.
+- Deterministic fixture builders (`tests/fixtures/builders.ts`) for Show, Equipment, Input List, Workspace,
+  Preset, and both conflict shapes.
+- Initial unit tests for `src/lib/inputList.ts` and `src/lib/utils.ts`, and a component test for
+  `src/components/ErrorBoundary.tsx`, to prove each test layer works end-to-end against real domain code.
+- `npm run test`, `npm run test:watch`, and `npm run test:e2e` scripts.
+- `.github/workflows/ci.yml` running `npm ci`, `npm run lint`, `npm run test`, and `npm run build` on every
+  push and pull request.
+- A documented disposable-Supabase workflow for future integration tests (`docs/19-TESTING_STRATEGY.md`).
+- A `.gitignore` (none existed previously), covering `node_modules/`, `dist/`, and test-tool output
+  directories so they are never accidentally committed.
+
+Exact verification results for this change are recorded in the "Milestone 0 verification" section below.
+
+## Milestone 1 — business-rule coverage (this update)
+
+Tests only; no product code changed. Added:
+
+- `tests/unit/store.test.ts` (15 tests): exercises `src/store.ts` directly with `src/lib/db.ts` and
+  `src/lib/syncQueue.ts` mocked, covering — Library edits never mutate already-copied Show equipment/
+  people, even after the Library source is renamed or deleted; Preset edits/deletion never mutate a Show
+  already created from that Preset; equipment quantity changes keep assignments consistent through the
+  real `updateEquipment` action (earliest assignments preserved on shrink, blank ones appended on grow);
+  `duplicateShow` gives every entity a new id (categories, equipment, assignments, people, schedule, Input
+  List rows/returns) and correctly remaps Input List provenance to the new equipment/assignment ids while
+  leaving the manual row's own id-less content untouched, and clears archived state on the copy; `archiveShow`
+  preserves the public slug across archive/restore; `deleteShow` removes the Show locally and queues a
+  `show-delete` mutation (not a fresh upsert); `importSnapshot` merge preserves non-colliding local data and
+  lets incoming data win on id collisions, replace discards local data absent from the import.
+- `applyPreset` onto an existing Show (5 tests, added in a follow-up coverage pass): merge mode adds Preset
+  content without removing existing Equipment/People/Schedule, reuses a category matched by
+  case-insensitive name instead of duplicating it, always resets `checked` to `false` on merged equipment,
+  keeps the Show's own `showType`/`note`/Input List untouched, and skips a Preset person whose name already
+  exists on the Show; replace mode fully overwrites Equipment/People/Schedule/Categories with remapped
+  Preset content while preserving Show identity (id, public slug, name, date, time, archived, createdAt)
+  and the existing (now out-of-sync but not deleted) Input List, and lets the Preset's own
+  `showType`/`note` win when defined; both modes were verified to never share object references with the
+  source Preset (mutating the resulting Show cannot affect the Preset); an empty Preset leaves the Show
+  unchanged on merge and wipes Equipment/People/Schedule/Categories (while keeping the Show's own
+  `showType`/`note`) on replace.
+- `tests/unit/inputList.test.ts`: one added regression test for decision D-114 ("reordering or
+  synchronization must not overwrite custom CH") — a retained row's manually set channel survives
+  `previewInputListSync` even when far outside the sequential numbering range.
+- `docs/19-TESTING_STRATEGY.md` updated with exact coverage and the two items deliberately left uncovered
+  (see below).
+
+Deliberately not covered by Milestone 1:
+
+- Monitor-return output collision validation — the product does not implement this check yet (see "Output
+  collisions" below); writing a test for it would mean adding new behavior, which is out of scope for a
+  tests-only milestone.
+- Full remote-deletion confirmation for "delete removes the public record" — verified only that the Show
+  disappears from local state and a `show-delete` mutation is queued; confirming the Supabase row is
+  actually deleted needs a live/local Supabase instance (Milestone 2).
+
+Full business-rule coverage of sync/lock/conflict flows and live Supabase integration/E2E coverage
+(Milestone 2) are not yet implemented.
+
 ## Verified in this package
 
 The included repository was installed from a clean dependency state and the following commands passed:
@@ -59,11 +124,16 @@ These must be treated as unverified until integration/E2E tests pass.
 
 ## Missing automated quality controls
 
-- No unit tests.
-- No component tests.
-- No Playwright/E2E tests.
-- No SQL verification test.
-- CI has been added by this handoff package, but tests must still be implemented.
+- Milestone 0 (foundation) and Milestone 1 (core business-rule coverage: snapshot isolation, equipment
+  consistency, duplication id remapping, archive/delete, JSON import merge/replace, and `applyPreset`
+  merge/replace onto an existing Show) are implemented. Still missing: sync/lock/conflict flows end-to-end,
+  which need a live/local Supabase instance (Milestone 2).
+- Playwright is configured, but only a Setup-screen smoke test exists; the full E2E suite in
+  `docs/19-TESTING_STRATEGY.md` (two-device locks, conflicts, public routes, PDF export) is not yet
+  implemented and requires a live or local Supabase instance (Milestone 2).
+- No SQL verification test run in CI (`supabase/VERIFY.sql` exists but is not wired into an automated job).
+- CI runs lint, unit/component tests, and build on every push/PR; it does not yet run Playwright or any
+  Supabase-backed integration job.
 
 ## Known design/implementation risks
 
@@ -99,6 +169,18 @@ Automatic backup creation exists, but retention/capping must be verified to avoi
 
 Stereo monitor output labels are calculated, but explicit collision validation should be added and tested.
 
+### Form label association
+
+`components/ui.tsx`'s `Label` renders a `<label>` with no `htmlFor`, and callers do not pass matching
+`id`s to `Input`/`Textarea`, so labels are not programmatically associated with their fields (confirmed via
+the Setup screen Playwright smoke test, which had to fall back to placeholder-based locators instead of
+`getByLabel`). This affects screen reader users and is in scope for the Milestone 3 accessibility audit.
+
 ## Recommended next action
 
-Implement Milestone 0 from `CODEX_START_HERE.md`: test foundation, fixtures, CI validation, and a documented disposable Supabase integration environment. Do not add new product features before the existing candidate is verified.
+Milestone 0 (test foundation) and Milestone 1 (core business-rule coverage) from `CODEX_START_HERE.md` are
+implemented; see the sections above for exact results and remaining risk. Proceed to Milestone 2: verify
+shared synchronization (clean initial pull, offline queue/reconnect, revision conflicts, lock lifecycle,
+Realtime/periodic-sync fallback, workspace concurrent edits) against a disposable Supabase project or local
+stack, per the workflow documented in `docs/19-TESTING_STRATEGY.md`. Do not add new product features before
+the existing candidate is verified.
