@@ -47,6 +47,12 @@ was unobstructed, while Playwright's locator auto-scroll moved the mobile layout
 mouse-style click. Mobile submits now use a real `touchscreen.tap` at the verified unobstructed center;
 there is no forced click or DOM invocation, and obstruction still fails before the tap.
 
+Run `29444981721` reached 12/13. The retained screenshot and error context showed the final failure at the
+initial Shows-list overflow assertion: long names from earlier serial cases forced CSS-grid cards 108 px
+beyond the 375 px viewport. Show cards now opt into shrinking with `min-w-0 w-full`, allowing the existing
+heading truncation to work. The always-on mobile regression seeds six long names and asserts zero page
+overflow before opening its modal.
+
 Milestone 0 (test foundation) is implemented:
 
 - Vitest + jsdom run unit and component tests (`npm run test`).

@@ -59,7 +59,7 @@ export default function ShowsPage() {
             const checked = show.equipment.filter((item) => item.checked).length
             const progress = total ? Math.round((checked / total) * 100) : 0
             return (
-              <article key={show.id} className="panel group relative overflow-visible p-5 transition hover:-translate-y-0.5 hover:shadow-soft">
+              <article key={show.id} className="panel group relative min-w-0 w-full overflow-visible p-5 transition hover:-translate-y-0.5 hover:shadow-soft">
                 <button className="absolute inset-0 rounded-2xl" aria-label={`Abrir ${show.name}`} onClick={() => navigate(`/shows/${show.id}`)} />
                 <div className="relative pointer-events-none">
                   <div className="flex items-start justify-between gap-3">

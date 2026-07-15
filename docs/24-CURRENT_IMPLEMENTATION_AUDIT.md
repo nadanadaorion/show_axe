@@ -174,6 +174,11 @@ the layout before its mouse-style click. The mobile specs now perform a genuine 
 at the already-verified unobstructed center. They do not use `force`, synthetic DOM `.click()`, retries, or
 longer timeouts.
 
+Run `29444981721` improved to 12/13. Its downloaded failure artifact identified the final case before any
+interaction: accumulated long Show names made grid items retain their intrinsic minimum width, producing
+108 px of horizontal overflow at 375 px. Show cards now set `min-w-0 w-full`; the always-on mobile test
+seeds six long names and verifies the list remains at zero page-level overflow.
+
 **A. Modal accessibility + form label association** — `src/components/ui.tsx`'s `Modal` was rewritten:
 `role="dialog"`, `aria-modal="true"`, `aria-labelledby` pointing at the title, a focus trap (`Tab`/`Shift+Tab`
 cycle within the dialog), initial focus moved into the dialog on open (respecting native `autoFocus`), focus

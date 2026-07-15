@@ -17,10 +17,13 @@ test('a mobile modal keeps its action footer separate from its scrollable conten
   // Seed the same history locally so the "Comenzar desde" select contains realistic options.
   for (let index = 0; index < 6; index += 1) {
     await page.getByRole('button', { name: 'Nuevo show' }).click()
-    await page.getByPlaceholder('Ej. TABU — Foro Indie Rocks').fill(`E2E Modal Seed ${index}`)
-    await page.getByRole('button', { name: 'Crear y abrir' }).click()
+    await page.getByPlaceholder('Ej. TABU — Foro Indie Rocks').fill(`E2E Mobile InputList Seed With A Long Name ${index}`)
+    await tapUnobstructedCenter(page, page.getByRole('button', { name: 'Crear y abrir' }))
     await page.goto('/')
   }
+
+  const listOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+  expect(listOverflow).toBe(0)
 
   await page.getByRole('button', { name: 'Nuevo show' }).click()
   const dialog = page.getByRole('dialog', { name: 'Nuevo show' })
