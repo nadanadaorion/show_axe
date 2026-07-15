@@ -1,0 +1,9 @@
+ORI♡N SHOWS 1.1.1
+
+- El número CH de cada entrada ahora es editable.
+- Los canales pueden iniciar en cualquier número.
+- Se añadió Canal inicial + Renumerar para numeración consecutiva opcional.
+- Reordenar entradas ya no modifica los canales personalizados.
+- Las entradas nuevas continúan desde el canal numérico más alto.
+- Los canales personalizados se conservan al sincronizar desde Equipo y se incluyen en el PDF.
+- Los input lists creados en 1.1.0 se migran automáticamente conservando su orden.

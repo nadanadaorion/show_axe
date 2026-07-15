@@ -1,0 +1,6 @@
+ORI♡N SHOWS 1.0.1
+
+- Corrige el ciclo de renderizado al abrir el detalle de un show.
+- Corrige el mismo patrón en el módulo Presets.
+- Añade una pantalla de recuperación ante errores inesperados.
+- Verificado con ESLint, TypeScript y compilación de producción.

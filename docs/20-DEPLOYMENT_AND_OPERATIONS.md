@@ -1,0 +1,83 @@
+# Deployment and operations
+
+## GitHub Pages build
+
+```bash
+npm ci
+npm run lint
+npm run test --if-present
+npm run build
+```
+
+Publish the contents of `dist/`:
+
+```text
+index.html
+config.js
+sw.js
+assets/
+```
+
+## Runtime configuration
+
+Edit deployed `config.js`:
+
+```js
+window.__ORION_CONFIG__ = {
+  supabaseUrl: 'https://PROJECT.supabase.co',
+  supabasePublishableKey: 'sb_publishable_...',
+}
+```
+
+Never commit a service-role or secret key.
+
+## Supabase setup
+
+Run `supabase/SETUP.sql` in Supabase SQL Editor for a fresh project. For later releases, use versioned migrations and verify before deploying frontend changes that depend on them.
+
+## Deployment order
+
+For backward-compatible schema changes:
+
+1. database migration;
+2. verification;
+3. frontend deployment;
+4. smoke test.
+
+For breaking changes, use expand-and-contract migrations so old and new frontend versions can coexist during cache propagation.
+
+## Service Worker updates
+
+- Change cache version for releases that modify shell behavior.
+- Ensure old caches are removed during activate.
+- Provide a visible update/reload prompt if an old tab is controlling stale assets.
+- Test hard refresh and ordinary refresh after deployment.
+
+## Backup and recovery
+
+Before major release:
+
+- export a JSON backup;
+- retain SQL/database backup where available;
+- document deployed commit SHA;
+- verify public links;
+- verify one full create/edit/export flow.
+
+Recovery paths:
+
+- restore JSON locally and resynchronize;
+- restore Supabase backup;
+- redeploy prior `dist/`;
+- clear Service Worker/site data only as a last resort because it removes offline local changes.
+
+## Operational monitoring
+
+Without accounts or telemetry, minimum operational checks are manual:
+
+- editor loads;
+- sync status reaches synchronized;
+- second device receives a new Show;
+- lock blocks correctly;
+- public route loads;
+- PDF exports;
+- offline reload works.

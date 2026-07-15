@@ -1,0 +1,28 @@
+ORI♡N SHOWS V2.0.0
+
+NUEVO
+- Sincronización compartida mediante Supabase.
+- Sin usuarios, cuentas ni autenticación.
+- Persistencia offline con cola de mutaciones en IndexedDB.
+- Estado: conectando, sincronizando, guardado, offline, conflicto o error.
+- Resolución de conflictos entre versión local y versión en línea.
+- Bloqueo de edición por show y dispositivo.
+- Liberación por salida o 10 minutos de inactividad.
+- Sin opción de forzar desbloqueo.
+- Identificación automática del dispositivo y navegador.
+- Enlace público permanente de solo lectura por show.
+- Vista pública actualizada mediante Supabase Realtime.
+- Service Worker para cargar la aplicación sin conexión.
+- Configuración runtime mediante config.js.
+- Script SQL idempotente para crear tablas, políticas, RPC y Realtime.
+
+SE CONSERVA
+- Equipo con usos internos por unidad.
+- Input List persistente, retornos y PDF vertical/horizontal.
+- Canales CH personalizados.
+- Biblioteca, Presets, Preferencias y respaldos JSON.
+
+MIGRACIÓN
+- V2 usa una base IndexedDB nueva y comienza sin shows.
+- No existe migración automática desde V1.
+- Se puede importar manualmente un respaldo JSON desde Preferencias.

@@ -1,0 +1,36 @@
+ORI♡N SHOWS 1.1.0
+
+NUEVO · USOS POR UNIDAD
+- Cada elemento de equipo puede incluirse o excluirse del input list.
+- La inclusión está activada de forma predeterminada.
+- Una cantidad agrupada puede tener un uso diferente por unidad.
+- Ejemplo: 2 × SM58 puede conservarse como una fila con los usos Snare Up y Snare Down.
+- Aumentar o reducir la cantidad conserva las asignaciones existentes siempre que sea posible.
+
+NUEVO · INPUT LIST
+- Generación automática desde las unidades incluidas en Equipo.
+- Configuración persistente dentro de cada show.
+- Entradas manuales, edición, eliminación y reordenamiento.
+- Columnas: canal, uso, equipo, phantom, patch y notas.
+- Actualización controlada desde Equipo con vista previa.
+- Conserva entradas manuales y campos editados por el usuario.
+
+NUEVO · RETORNOS DE MONITOREO
+- Retornos en la misma ventana del input list.
+- Destino, sistema, mono/estéreo, salida y notas.
+- Un retorno estéreo ocupa dos salidas consecutivas y se muestra como AUX 1–2.
+
+NUEVO · PDF
+- Exportación del input list en formato horizontal o vertical.
+- Incluye información del show, entradas, retornos y notas generales.
+- Paginación automática para listas extensas.
+
+PREFERENCIAS
+- Advertencia opcional al abrir el input list con equipo pendiente.
+- Botón No volver a mostrar dentro de la advertencia.
+- La advertencia puede reactivarse desde Preferencias.
+
+COMPATIBILIDAD
+- Los datos de la versión 1.0.1 se migran automáticamente al abrir la aplicación.
+- Los respaldos JSON de versión 1 continúan siendo importables.
+- Verificado con ESLint, TypeScript y compilación de producción.
