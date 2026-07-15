@@ -19,6 +19,13 @@ pending a completely green GitHub Actions run with zero skips and no retry-depen
 The corrective Playwright configuration sets `retries: 0`, making that requirement explicit rather than
 inferring it from a retried result.
 
+Corrective run `29441798211` proved the build and all 22 integration tests green, and uploaded the
+configured Playwright failure artifact, but E2E remained at 7 passed / 5 failed with zero retries. The
+mobile browser now starts correctly. Two annotated failures exposed a real modal-layout regression: the
+sticky action footer overlaid the scrollable form and intercepted the `Crear y abrir` click. The dialog is
+now a bounded flex column with an independently scrollable body and non-overlapping header/footer. The
+always-on `modal-layout.mobile.spec.ts` reproduces the 375×667 click path without needing Supabase.
+
 Milestone 0 (test foundation) is implemented:
 
 - Vitest + jsdom run unit and component tests (`npm run test`).
@@ -250,6 +257,10 @@ viewport:
   `testMatch: '**/*.mobile.spec.ts'`): the same
   breadth on a 375×667 viewport, plus explicit page-level horizontal-overflow assertions
   (`document.documentElement.scrollWidth - clientWidth === 0`) and a custom-channel-number edit.
+
+- `modal-layout.mobile.spec.ts` (`mobile` project, always on): proves that the create-Show form does not
+  overlap the action footer and that the real pointer click closes the modal, using an unreachable local
+  runtime so the local-first UI can be exercised without a Supabase dependency.
 
 No visual/snapshot tests were added — every assertion is role/name/focus/state/navigation-based, per the
 Milestone 3 authorization ("no golden snapshots this milestone").

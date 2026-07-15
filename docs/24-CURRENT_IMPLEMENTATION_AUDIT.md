@@ -146,6 +146,13 @@ handoff. Local gates pass, but this status must not be changed to complete until
 green without retry-dependent passes.
 The corrective run uses `retries: 0` so first-attempt stability is enforced by configuration.
 
+Corrective run `29441798211` subsequently passed the build job and all 22 integration tests, but E2E was
+still 7 passed / 5 failed with zero retries. Crucially, mobile Chromium did launch and the failure
+artifacts were uploaded. Two public annotations showed the create-Show modal footer overlapping its
+scrollable body and intercepting pointer events at 375×667. The follow-up changes the dialog to a flex
+column with an independently scrolling body and fixed, non-overlapping header/footer, and adds an
+always-on real-browser regression in `tests/e2e/modal-layout.mobile.spec.ts`.
+
 **A. Modal accessibility + form label association** — `src/components/ui.tsx`'s `Modal` was rewritten:
 `role="dialog"`, `aria-modal="true"`, `aria-labelledby` pointing at the title, a focus trap (`Tab`/`Shift+Tab`
 cycle within the dialog), initial focus moved into the dialog on open (respecting native `autoFocus`), focus
@@ -255,10 +262,11 @@ warning in the eagerly-loaded path — see "Bundle size" below), `npm run test:s
 native Postgres, all 8 assertions pass — confirms no SQL regression, though Milestone 3 did not touch
 `supabase/`), and `npm run check:secrets` (real — no secrets found in repo or `dist/`).
 
-`npx playwright test --list` shows 12 E2E tests across 8 files. GitHub Actions run `29426947786` executed
+`npx playwright test --list` shows 13 E2E tests across 9 files. GitHub Actions run `29426947786` executed
 all 12 against a real local Supabase stack with zero skips: 7 passed and 5 failed. The 22 integration tests
 all passed. The corrective branch keeps desktop and mobile separate but makes both Chromium projects; a
-new fully green run, rather than collection/typechecking alone, is required for acceptance.
+new always-on mobile-modal regression is the thirteenth collected test. A fully green run, rather than
+collection/typechecking alone, is required for acceptance.
 
 ## Implemented source areas
 
@@ -323,7 +331,8 @@ Supabase instance (locally with Docker, or in this branch's CI once pushed).
 
 - Milestones 0, 1, 2, and 2.1 are implemented. Milestone 3 code is in corrective verification: its
   Supabase-backed integration/E2E suites have run for real, but the first E2E run was not green.
-- `npx playwright test --list` shows 12 tests across 8 files. All Supabase tests executed in CI run
+- `npx playwright test --list` shows 13 tests across 9 files (including the always-on mobile-modal
+  regression). All Supabase tests executed in CI run
   `29426947786`; the three mobile tests did not reach their assertions because the old project selected an
   uninstalled WebKit executable. The correction selects Chromium explicitly and awaits a green CI proof.
 - `supabase/VERIFY.sql` is now also wrapped in a self-checking, CI-runnable form
