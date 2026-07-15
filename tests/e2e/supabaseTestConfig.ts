@@ -37,9 +37,42 @@ export async function configureSupabaseRuntime(page: Page, config: { url: string
 
 /** Starts observing before an action, then waits for its complete visible online-save cycle. */
 export async function performAndWaitForOnlineSave(page: Page, action: () => Promise<unknown>) {
-  const sidebar = page.getByRole('complementary')
-  const started = expect(sidebar.getByText(/Sincronizando/)).toBeVisible({ timeout: 5_000 })
+  await page.evaluate(() => {
+    const sidebar = document.querySelector('aside')
+    if (!sidebar) throw new Error('Sync sidebar was not found')
+
+    const marker = { sawSyncing: false, completed: false }
+    ;(
+      window as unknown as {
+        __orionObservedSyncCycle: typeof marker
+      }
+    ).__orionObservedSyncCycle = marker
+
+    const observer = new MutationObserver(() => {
+      const text = sidebar.textContent ?? ''
+      if (text.includes('Sincronizando')) marker.sawSyncing = true
+      if (marker.sawSyncing && text.includes('Guardado en línea')) {
+        marker.completed = true
+        observer.disconnect()
+      }
+    })
+    observer.observe(sidebar, { childList: true, subtree: true, characterData: true })
+  })
+
   await action()
-  await started
-  await expect(sidebar.getByText('Guardado en línea')).toBeVisible({ timeout: 20_000 })
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          () =>
+            (
+              window as unknown as {
+                __orionObservedSyncCycle?: { completed: boolean }
+              }
+            ).__orionObservedSyncCycle?.completed ?? false,
+        ),
+      { timeout: 20_000, message: 'the online save cycle to reach Guardado en línea' },
+    )
+    .toBe(true)
+  await expect(page.getByRole('complementary').getByText('Guardado en línea')).toBeVisible()
 }
