@@ -65,11 +65,12 @@ Real export mapping tests cover portrait/landscape, custom CH, phantom, patch, n
 
 ## Contradictions and known limitations
 
-1. **Undo vs remote delete (release-significant, unresolved):** an immediate Undo replaces a still-pending `show-delete` with a serialized upsert for the same queue key. If the remote delete has already completed, restoration can race with sync revision state and may require conflict resolution. Exact permanent-delete/Undo semantics is an open Decision Log item. Milestone 4 documents this behavior and intentionally stops before changing it. Acceptance remains open.
-2. **Return collisions (unresolved by instruction):** stereo labels consume consecutive outputs, but overlap detection is not implemented. Documentation now requires manual review. Acceptance remains open.
-3. **First offline visit:** unsupported. A successful controlled online load is required; lazy routes become offline-capable after request.
-4. **Open editor security:** RLS deliberately allows anonymous editing. Publishable keys are public; possession of the editor URL grants mutation access.
-5. **Classic `config.js` build warning:** Vite reports that the non-module runtime script cannot be bundled. It is intentionally copied as a runtime-editable file and does not affect build success.
+1. **Delayed Realtime revision can overwrite newer Show state (release blocker, protected area):** trace evidence from run `29457361000` shows `Torre de bajos` present locally, followed roughly 112 ms later by a delayed Realtime `INSERT` for the same Show at revision 1 with `equipment: []`; the UI then returned to 0/0 while reporting `Guardado en línea`. `handleRemoteShow` ignores only an equal recorded revision, so an older non-equal event can be applied. Fixing revision ordering belongs to the explicitly protected Supabase/Show synchronization semantics. Milestone 4 documents the defect and stops without changing that logic.
+2. **Undo vs remote delete (release-significant, unresolved):** an immediate Undo replaces a still-pending `show-delete` with a serialized upsert for the same queue key. If the remote delete has already completed, restoration can race with sync revision state and may require conflict resolution. Exact permanent-delete/Undo semantics is an open Decision Log item. Milestone 4 documents this behavior and intentionally stops before changing it. Acceptance remains open.
+3. **Return collisions (unresolved by instruction):** stereo labels consume consecutive outputs, but overlap detection is not implemented. Documentation now requires manual review. Acceptance remains open.
+4. **First offline visit:** unsupported. A successful controlled online load is required; lazy routes become offline-capable after request.
+5. **Open editor security:** RLS deliberately allows anonymous editing. Publishable keys are public; possession of the editor URL grants mutation access.
+6. **Classic `config.js` build warning:** Vite reports that the non-module runtime script cannot be bundled. It is intentionally copied as a runtime-editable file and does not affect build success.
 
 ## Verification status
 
@@ -86,4 +87,6 @@ Local candidate evidence:
 
 The local skips above are expected environment limitations and do not satisfy acceptance. The exact Bash secrets scan is not executable in this Windows environment without Bash/WSL.
 
-Final functional-candidate CI run `29456162914` on `ecc14f5d61a84b0ce75add0969fa8c02968bb4c2` completed successfully: 124/124 unit/component, 22/22 real Supabase integration, 1/1 Pages production and 13/13 configured E2E passed, with zero failed tests, zero required skips and zero retries. The source/`dist/` secret scan passed. This validates the technical candidate; it does not merge, deploy, tag or resolve the two open product decisions above.
+Historical functional-candidate CI run `29456162914` on `ecc14f5d61a84b0ce75add0969fa8c02968bb4c2` completed successfully: 124/124 unit/component, 22/22 real Supabase integration, 1/1 Pages production and 13/13 configured E2E passed, with zero failed tests, zero required skips and zero retries. The source/`dist/` secret scan passed.
+
+That green run is superseded as release evidence. Runs `29456494861` (desktop smoke), `29456764783` (mobile Equipment) and `29457361000` (mobile smoke) each exposed loss of newly added Equipment around online synchronization; all three had 12/13 E2E pass and no configured retry. The last trace proves the older-revision Realtime overwrite described above. Milestone 4 is therefore **not recommended for merge or release** until the owner authorizes a correction in the protected sync area and the final HEAD passes the complete gate.

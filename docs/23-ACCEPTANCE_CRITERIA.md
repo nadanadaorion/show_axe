@@ -46,6 +46,7 @@ Status for the `2.0.0` candidate. `[x]` requires automated or recorded manual ev
 ## Shared data, locks and public view
 
 - [x] Initial pull, clean push, Realtime, fallback polling and offline queue/reconnect are covered by real Supabase integration/E2E.
+- [ ] A delayed Realtime event with an older revision cannot overwrite newer local/synchronized Show data. Run `29457361000` proved that revision 1 can be applied after a newer Equipment update because the receiver rejects only equal revisions, not older ones. This is a release blocker in protected sync semantics.
 - [x] Revision conflicts expose keep-online/keep-local without silent overwrite.
 - [x] Workspace concurrent edits follow documented remote-wins behavior.
 - [x] Lock acquire/block/renew/release/expiry/offline behavior is covered without force unlock.
@@ -65,8 +66,8 @@ Status for the `2.0.0` candidate. `[x]` requires automated or recorded manual ev
 
 - [x] Local lint, typecheck, unit/component build and Pages production test pass on the working candidate.
 - [x] Production build emits no sourcemaps and no chunk-size warning; bundle measurements are recorded.
-- [x] Final functional candidate GitHub Actions run `29456162914` on `ecc14f5d61a84b0ce75add0969fa8c02968bb4c2`: all jobs success.
-- [x] Final functional candidate counts: 124/124 unit/component, 22/22 real Supabase integration, 1/1 Pages and 13/13 configured E2E; zero failed, zero required skips and zero retries.
-- [x] Final functional candidate secret scan: source and `dist/` clean.
+- [ ] Final HEAD GitHub Actions run: all jobs success. Run `29456162914` was green on an earlier SHA, but later runs `29456494861`, `29456764783` and `29457361000` failed on the current test-hardening sequence.
+- [ ] Final HEAD counts: zero failed, zero required skips and zero retries for Supabase/desktop/mobile.
+- [x] Final HEAD secret scan: source and `dist/` clean in the latest build job.
 
-The evidence above comes from the pushed functional candidate and its inspected CI run. The two open product-decision boxes do not authorize Milestone 4 to change their semantics; they are release risks for the owner to accept or resolve separately. Production deployment and the tag remain deliberately unaccepted until explicit approval.
+The earlier green functional-candidate evidence remains historical evidence, not acceptance for the current HEAD. The two open product-decision boxes and the protected synchronization blocker do not authorize Milestone 4 to change their semantics. Production deployment, merge and tag remain deliberately unaccepted.
