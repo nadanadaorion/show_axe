@@ -46,7 +46,7 @@ Status for the `2.0.0` candidate. `[x]` requires automated or recorded manual ev
 ## Shared data, locks and public view
 
 - [x] Initial pull, clean push, Realtime, fallback polling and offline queue/reconnect are covered by real Supabase integration/E2E.
-- [ ] A delayed Realtime event with an older revision cannot overwrite newer local/synchronized Show data. Run `29457361000` proved that revision 1 can be applied after a newer Equipment update because the receiver rejects only equal revisions, not older ones. This is a release blocker in protected sync semantics.
+- [x] A delayed Realtime event with an older revision cannot overwrite newer local/synchronized Show data. Remote Show application now compares against the last accepted revision in `syncRecords`: lower revisions and equal echoes perform no Zustand/IndexedDB write, while higher revisions retain the existing pending-mutation guard. A successful save also preserves and rebases any newer coalesced edit. Unit coverage and real-Supabase run `29460043696` (including 20/20 stress repetitions) prove the invariant.
 - [x] Revision conflicts expose keep-online/keep-local without silent overwrite.
 - [x] Workspace concurrent edits follow documented remote-wins behavior.
 - [x] Lock acquire/block/renew/release/expiry/offline behavior is covered without force unlock.
@@ -66,8 +66,8 @@ Status for the `2.0.0` candidate. `[x]` requires automated or recorded manual ev
 
 - [x] Local lint, typecheck, unit/component build and Pages production test pass on the working candidate.
 - [x] Production build emits no sourcemaps and no chunk-size warning; bundle measurements are recorded.
-- [ ] Final HEAD GitHub Actions run: all jobs success. Run `29456162914` was green on an earlier SHA, but later runs `29456494861`, `29456764783` and `29457361000` failed on the current test-hardening sequence.
+- [ ] Final HEAD GitHub Actions runs: three complete consecutive executions on the final documentation SHA must succeed. Code-candidate run `29460043696` is green, including the real-Supabase gate and 20/20 stress repetitions; final-SHA repetitions remain pending at this documentation commit.
 - [ ] Final HEAD counts: zero failed, zero required skips and zero retries for Supabase/desktop/mobile.
 - [x] Final HEAD secret scan: source and `dist/` clean in the latest build job.
 
-The earlier green functional-candidate evidence remains historical evidence, not acceptance for the current HEAD. The two open product-decision boxes and the protected synchronization blocker do not authorize Milestone 4 to change their semantics. Production deployment, merge and tag remain deliberately unaccepted.
+The two open product-decision boxes do not authorize Milestone 4 to change their semantics. Production deployment, merge and tag remain deliberately unaccepted until the final-SHA repeated gate and explicit owner approval.

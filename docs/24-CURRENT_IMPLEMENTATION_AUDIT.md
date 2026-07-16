@@ -15,7 +15,7 @@ Milestone 3 was merged to `main` as `139472eef1bd3af0e2906b67639fd0fc654323e4`, 
 - The SW registration adds `?v=2.0.0`; `sw.js` derives `orion-shows-show_axe-v2.0.0` from version plus scope.
 - Production build uses relative base by default and an explicit `/show_axe/` Pages build.
 - Sourcemaps are not emitted.
-- Local measured bundle: entry 250.85 kB / 78.94 kB gzip; PDF chunk 424.27 kB / 139.20 kB gzip; largest eager vendor 214.64 kB. No Vite 500 kB warning.
+- Local measured bundle: entry 252.19 kB / 79.25 kB gzip; PDF chunk 424.27 kB / 139.20 kB gzip; largest eager vendor 214.64 kB. No Vite 500 kB warning.
 
 ### GitHub Pages
 
@@ -55,6 +55,29 @@ Real export mapping tests cover portrait/landscape, custom CH, phantom, patch, n
 - Existing modal names/focus/Escape, form associations, keyboard ordering, mobile 44×44 targets and overflow tests remain intact.
 - This is not a complete manual WCAG audit; PDF accessibility, every theme/screen and assistive-technology combinations remain outside the automated claim.
 
+### Monotonic Show revisions
+
+- Root cause: Realtime delivery is not ordered relative to RPC responses. The receiver rejected only
+  an equal revision, so a delayed revision-1 `INSERT` could be applied after newer Show content. A
+  second race was exposed by the repeated gate: queue coalescing reused the same Show mutation ID,
+  and completion of an older in-flight RPC could delete a newer local payload before its save.
+- `applyRemoteShow` is the centralized application point for initial fetches, Realtime rows,
+  successful save responses and conflict-resolution rows. It serializes application and compares
+  `incomingRevision` with the last accepted remote revision in IndexedDB `syncRecords`.
+- Lower revisions are ignored completely; equal revisions are idempotent; higher revisions follow
+  the existing pending-mutation guard. Neither lower nor equal payloads write Zustand, snapshots or
+  revision records.
+- Show queue entries carry a local generation. Successful RPC completion removes only the generation
+  actually sent. If a newer payload was coalesced while the RPC was in flight, it remains queued and
+  its `expectedRevision` is atomically rebased to the accepted server revision.
+- Show conflict choices and Workspace remote-wins are unchanged. Remote DELETE has no comparable
+  revision payload and retains its previous treatment, as required.
+- Deterministic tests cover lower/equal/higher revisions, no-write behavior, all protected Show
+  sections, save-then-old-INSERT, out-of-order 3/2, pending edits, same-device echoes and the
+  in-flight coalescing race. Real Supabase integration covers a pre-subscribed second client; the
+  browser regression checks the subscribed UI and remote Equipment/Input List and runs 20 times in
+  CI with zero retries.
+
 ## Final product audit
 
 - All declared runtime routes are reachable through `App.tsx`; no abandoned page module was found.
@@ -65,12 +88,11 @@ Real export mapping tests cover portrait/landscape, custom CH, phantom, patch, n
 
 ## Contradictions and known limitations
 
-1. **Delayed Realtime revision can overwrite newer Show state (release blocker, protected area):** trace evidence from run `29457361000` shows `Torre de bajos` present locally, followed roughly 112 ms later by a delayed Realtime `INSERT` for the same Show at revision 1 with `equipment: []`; the UI then returned to 0/0 while reporting `Guardado en línea`. `handleRemoteShow` ignores only an equal recorded revision, so an older non-equal event can be applied. Fixing revision ordering belongs to the explicitly protected Supabase/Show synchronization semantics. Milestone 4 documents the defect and stops without changing that logic.
-2. **Undo vs remote delete (release-significant, unresolved):** an immediate Undo replaces a still-pending `show-delete` with a serialized upsert for the same queue key. If the remote delete has already completed, restoration can race with sync revision state and may require conflict resolution. Exact permanent-delete/Undo semantics is an open Decision Log item. Milestone 4 documents this behavior and intentionally stops before changing it. Acceptance remains open.
-3. **Return collisions (unresolved by instruction):** stereo labels consume consecutive outputs, but overlap detection is not implemented. Documentation now requires manual review. Acceptance remains open.
-4. **First offline visit:** unsupported. A successful controlled online load is required; lazy routes become offline-capable after request.
-5. **Open editor security:** RLS deliberately allows anonymous editing. Publishable keys are public; possession of the editor URL grants mutation access.
-6. **Classic `config.js` build warning:** Vite reports that the non-module runtime script cannot be bundled. It is intentionally copied as a runtime-editable file and does not affect build success.
+1. **Undo vs remote delete (release-significant, unresolved):** an immediate Undo replaces a still-pending `show-delete` with a serialized upsert for the same queue key. If the remote delete has already completed, restoration can race with sync revision state and may require conflict resolution. Exact permanent-delete/Undo semantics is an open Decision Log item. Milestone 4 documents this behavior and intentionally stops before changing it. Acceptance remains open.
+2. **Return collisions (unresolved by instruction):** stereo labels consume consecutive outputs, but overlap detection is not implemented. Documentation now requires manual review. Acceptance remains open.
+3. **First offline visit:** unsupported. A successful controlled online load is required; lazy routes become offline-capable after request.
+4. **Open editor security:** RLS deliberately allows anonymous editing. Publishable keys are public; possession of the editor URL grants mutation access.
+5. **Classic `config.js` build warning:** Vite reports that the non-module runtime script cannot be bundled. It is intentionally copied as a runtime-editable file and does not affect build success.
 
 ## Verification status
 
@@ -78,15 +100,15 @@ Local candidate evidence:
 
 - lint: passed;
 - test typecheck: passed;
-- unit/component: 124/124 passed;
+- unit/component: 135/135 passed;
 - build: passed;
 - Pages production E2E: 1/1 passed, retries 0;
 - Pages axe scan: passed after the contrast correction;
-- local Playwright without backend: 3 passed / 10 Supabase scenarios skipped / 0 failed / retries 0;
-- local integration without backend: 0 passed / 22 skipped / 0 failed.
+- local Playwright without backend: 3 passed / 11 Supabase scenarios skipped / 0 failed / retries 0;
+- local integration without backend: 0 passed / 23 skipped / 0 failed.
 
 The local skips above are expected environment limitations and do not satisfy acceptance. The exact Bash secrets scan is not executable in this Windows environment without Bash/WSL.
 
 Historical functional-candidate CI run `29456162914` on `ecc14f5d61a84b0ce75add0969fa8c02968bb4c2` completed successfully: 124/124 unit/component, 22/22 real Supabase integration, 1/1 Pages production and 13/13 configured E2E passed, with zero failed tests, zero required skips and zero retries. The source/`dist/` secret scan passed.
 
-That green run is superseded as release evidence. Runs `29456494861` (desktop smoke), `29456764783` (mobile Equipment) and `29457361000` (mobile smoke) each exposed loss of newly added Equipment around online synchronization; all three had 12/13 E2E pass and no configured retry. The last trace proves the older-revision Realtime overwrite described above. Milestone 4 is therefore **not recommended for merge or release** until the owner authorizes a correction in the protected sync area and the final HEAD passes the complete gate.
+Runs `29456494861` (desktop smoke), `29456764783` (mobile Equipment) and `29457361000` (mobile smoke) exposed loss of newly added Equipment around online synchronization. The authorized correction was implemented in `d79aaeb` and `fb58451`. Code-candidate run `29460043696` passed: 135/135 unit/component, 23/23 real Supabase integration, 1/1 Pages, 14/14 configured E2E and 20/20 dedicated stress repetitions, with zero test failures, required skips or retries; migrations from an empty stack, build and secret scan also passed. This proves the correction, but merge/release remains unapproved until three complete consecutive runs succeed on the final documentation SHA and the owner explicitly approves.

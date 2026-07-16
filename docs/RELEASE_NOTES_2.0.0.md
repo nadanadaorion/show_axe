@@ -38,8 +38,8 @@ Follow `GUIA_CONFIGURACION_V2.md` and `docs/20-DEPLOYMENT_AND_OPERATIONS.md`. De
 
 ## Verification record
 
-Local candidate: lint/typecheck/build passed; 124/124 unit/component passed; Pages production E2E 1/1 passed with no retry; bundle and limitations recorded in `docs/24-CURRENT_IMPLEMENTATION_AUDIT.md`.
+Local candidate: lint/typecheck/build passed; 135/135 unit/component passed; Pages production E2E 1/1 passed with no retry; bundle and limitations recorded in `docs/24-CURRENT_IMPLEMENTATION_AUDIT.md`.
 
 Historical functional-candidate CI run `29456162914` on `ecc14f5d61a84b0ce75add0969fa8c02968bb4c2` passed: 124/124 unit/component, 22/22 real Supabase integration, 1/1 Pages and 13/13 configured E2E, with zero failed tests, zero required skips and zero retries. The source and built-artifact secret scan also passed.
 
-Later hardening runs exposed a release-blocking delayed-Realtime revision overwrite that can remove newly added Equipment while the UI reports an online save. The current candidate is not approved for merge, deployment, tag or release; see `docs/24-CURRENT_IMPLEMENTATION_AUDIT.md`.
+Later hardening runs exposed a delayed-Realtime revision overwrite that could remove newly added Equipment while the UI reported an online save. The candidate now applies remote Show revisions monotonically, treats equal echoes idempotently and preserves/rebases newer edits coalesced while an RPC is in flight. Code-candidate run `29460043696` passed the complete gate plus 20/20 dedicated real-Supabase stress repetitions with no retries. Final repeated-SHA acceptance and explicit owner approval are still required; the candidate is not yet approved for merge, deployment, tag or release. See `docs/24-CURRENT_IMPLEMENTATION_AUDIT.md`.

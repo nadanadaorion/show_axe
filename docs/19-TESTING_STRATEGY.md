@@ -13,6 +13,7 @@ This document describes the current reproducible release gate. Historical failed
 - JSON snapshot validation, merge and replace;
 - backup retention and Error Boundary recovery/export failure;
 - sync queue coalescing, workspace policy and lock UI state;
+- monotonic Show revision application, idempotent echoes and preservation/rebasing of edits coalesced while a save RPC is in flight;
 - modal semantics/focus, keyboard reorder and update notice;
 - SW cache/update state machine;
 - real PDF mapping for portrait/landscape, custom CH, stereo, multipage numbering and non-mutation.
@@ -33,6 +34,12 @@ This document describes the current reproducible release gate. Historical failed
 Desktop and mobile smoke flows finish with `@axe-core/playwright` checks tagged WCAG 2 A/AA and 2.1 A/AA. This catches automatable violations only and is not a full WCAG conformance audit.
 
 Retries are `0`. A flaky pass obtained through retry would not satisfy release acceptance.
+
+The stale-Realtime release regression has a dedicated real-Supabase browser test in
+`tests/e2e/realtime-revision.supabase.spec.ts`. It subscribes the app before creation, applies
+rapid revisions through the real RPC, verifies Equipment and Input List in both the subscribed UI
+and the remote row, and waits for delayed events before asserting again. CI repeats this spec 20
+times with `--repeat-each=20`; retries remain disabled.
 
 ### GitHub Pages and offline shell
 
@@ -77,6 +84,7 @@ export SUPABASE_INTEGRATION_REQUIRED=true
 npm run test:integration
 npx playwright install chromium
 npm run test:e2e
+npx playwright test tests/e2e/realtime-revision.supabase.spec.ts --project=chromium --repeat-each=20
 supabase stop
 ```
 
