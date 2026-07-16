@@ -14,7 +14,12 @@ import {
   type RemoteShowRow,
   type RemoteWorkspaceRow,
 } from '../lib/supabase'
-import { pendingMutationCount, SYNC_NEEDED_EVENT } from '../lib/syncQueue'
+import {
+  acknowledgeShowMutation,
+  pendingMutationCount,
+  rebasePendingShowMutation,
+  SYNC_NEEDED_EVENT,
+} from '../lib/syncQueue'
 import { getClientId, now, uid } from '../lib/utils'
 import { processWorkspaceMutation } from '../lib/workspaceSync'
 import { useAppStore } from '../store'
@@ -114,8 +119,13 @@ export function SyncController({ children }: { children: ReactNode }) {
     if (mutation.kind === 'show-upsert' && mutation.show) {
       const result = await saveRemoteShow(mutation.show, mutation.expectedRevision, clientId)
       if (result.applied && result.row) {
-        await db.pendingMutations.delete(mutation.id)
-        await useAppStore.getState().applyRemoteShow(remoteRowToShow(result.row), result.row.revision)
+        const acknowledgement = await acknowledgeShowMutation(mutation, result.row.revision)
+        if (acknowledgement === 'completed') {
+          const applied = await useAppStore.getState().applyRemoteShow(remoteRowToShow(result.row), result.row.revision)
+          // A local edit may land in the narrow interval between acknowledgement and
+          // application. Preserve it and advance its optimistic concurrency baseline.
+          if (applied === 'pending') await rebasePendingShowMutation(mutation.id, result.row.revision)
+        }
       } else if (result.reason === 'conflict' && result.row) {
         useSyncStore.getState().addConflict(conflictFrom(mutation, result.row))
       } else if (result.reason === 'missing' && mutation.expectedRevision > 0) {

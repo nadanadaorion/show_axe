@@ -1,8 +1,12 @@
 /* Ori♡n Shows V2 offline shell */
-// Increment this explicit build suffix for every deployed release that changes the offline shell.
-// A new worker must populate a separate cache while the previous worker still controls open tabs.
-const CACHE_NAME = 'orion-shows-v2.0.0-m3.1'
+// The client registers this worker as sw.js?v=<package.json version>. The query string makes the
+// package version the single release source and gives every release an independent shell cache.
+const workerUrl = new URL(self.location.href)
+const APP_VERSION = workerUrl.searchParams.get('v') || 'development'
 const scopeUrl = new URL(self.registration.scope)
+const scopeKey = scopeUrl.pathname.replace(/^\/+|\/+$/g, '').replace(/[^a-z0-9_-]+/gi, '-') || 'root'
+const CACHE_PREFIX = `orion-shows-${scopeKey}-`
+const CACHE_NAME = `${CACHE_PREFIX}v${APP_VERSION}`
 const shellUrls = [scopeUrl.href, new URL('index.html', scopeUrl).href, new URL('config.js', scopeUrl).href]
 
 self.addEventListener('install', (event) => {
@@ -16,7 +20,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((key) => key.startsWith('orion-shows-') && key !== CACHE_NAME).map((key) => caches.delete(key))))
+      .then((keys) => Promise.all(keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME).map((key) => caches.delete(key))))
       .then(() => self.clients.claim()),
   )
 })

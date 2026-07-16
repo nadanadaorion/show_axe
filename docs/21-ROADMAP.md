@@ -1,5 +1,7 @@
 # Roadmap
 
+Status (2026-07-15): Milestones 0–3 are merged and accepted. Milestone 4 implementation is on the release-candidate branch, but final acceptance is blocked by a proven older-revision Realtime overwrite in protected Show synchronization semantics. Review, correction authorization, green final CI, merge, deployment and explicit tag approval remain pending.
+
 ## Baseline already present
 
 - Core V1 modules.
@@ -51,7 +53,7 @@ Exit: usable on desktop and mobile with resilient failure states.
 
 ## Milestone 4 — release candidate
 
-- acceptance checklist complete;
+- acceptance checklist audited with accepted items evidenced and open product decisions left visible;
 - security warning visible in docs/setup;
 - migration scripts verified;
 - GitHub Pages deployment tested;

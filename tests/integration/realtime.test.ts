@@ -120,4 +120,117 @@ describe.skipIf(!config)('Realtime propagation against a real Supabase instance'
     },
     70_000,
   )
+
+  it('9. delivers rapid Show revisions to a pre-subscribed second client without changing the highest remote state', async () => {
+    const id = uniqueId('rt-monotonic-show')
+    const slug = uniqueId('rt-monotonic-slug')
+    const timestamp = '2026-01-01T00:00:00.000Z'
+    const category = { id: 'category-audio', name: 'Audio', order: 0 }
+    const equipment = {
+      id: 'equipment-console',
+      categoryId: category.id,
+      name: 'Revision-safe console',
+      quantity: 1,
+      checked: false,
+      order: 0,
+      includeInInputList: true,
+      assignments: [{ id: 'assignment-console', use: 'FOH' }],
+    }
+    const base = {
+      id,
+      publicSlug: slug,
+      name: 'Monotonic Realtime Integration',
+      archived: false,
+      equipmentCategories: [category],
+      equipment: [],
+      people: [],
+      schedule: [],
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }
+    const observed: Array<{ revision: number; data: Record<string, unknown> }> = []
+    let resolveHighest: (() => void) | undefined
+    const highestObserved = new Promise<void>((resolve) => { resolveHighest = resolve })
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Timed out subscribing the second Realtime client')), 15_000)
+        channel = listener
+          .channel(`test-orion-monotonic-${id}`)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'orion_shows' }, (payload) => {
+            if (payload.eventType === 'DELETE') return
+            const row = payload.new as { id?: string; revision?: number; data?: Record<string, unknown> }
+            if (row.id !== id || typeof row.revision !== 'number') return
+            observed.push({ revision: row.revision, data: row.data || {} })
+            if (row.revision >= 3) resolveHighest?.()
+          })
+          .subscribe((status, error) => {
+            if (status === 'SUBSCRIBED') {
+              clearTimeout(timeout)
+              resolve()
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+              clearTimeout(timeout)
+              reject(new Error(`Realtime channel ${status}: ${error?.message ?? 'no further detail'}`))
+            }
+          })
+      })
+
+      const created = await writer.rpc('orion_save_show', {
+        p_id: id,
+        p_public_slug: slug,
+        p_data: base,
+        p_archived: false,
+        p_expected_revision: 0,
+        p_client_id: 'client-monotonic-writer',
+      })
+      expect(created.error).toBeNull()
+      expect(created.data[0].revision).toBe(1)
+
+      const withEquipment = { ...base, equipment: [equipment] }
+      const updated = await writer.rpc('orion_save_show', {
+        p_id: id,
+        p_public_slug: slug,
+        p_data: withEquipment,
+        p_archived: false,
+        p_expected_revision: 1,
+        p_client_id: 'client-monotonic-writer',
+      })
+      expect(updated.error).toBeNull()
+      expect(updated.data[0].revision).toBe(2)
+
+      const withInputList = {
+        ...withEquipment,
+        inputList: {
+          rows: [{ id: 'row-console', order: 0, channel: '1', use: 'FOH', equipment: equipment.name, phantom: false }],
+          channelStart: 1,
+          returns: [],
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+      }
+      const finalWrite = await writer.rpc('orion_save_show', {
+        p_id: id,
+        p_public_slug: slug,
+        p_data: withInputList,
+        p_archived: false,
+        p_expected_revision: 2,
+        p_client_id: 'client-monotonic-writer',
+      })
+      expect(finalWrite.error).toBeNull()
+      expect(finalWrite.data[0].revision).toBe(3)
+
+      await Promise.race([
+        highestObserved,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Second client did not observe revision 3')), 20_000)),
+      ])
+
+      const { data: remote, error } = await writer.from('orion_shows').select('data,revision').eq('id', id).maybeSingle()
+      expect(error).toBeNull()
+      expect(remote?.revision).toBe(3)
+      expect((remote?.data as typeof withInputList).equipment[0].name).toBe('Revision-safe console')
+      expect(observed.some((row) => row.revision === 3 && (row.data as typeof withInputList).equipment?.[0]?.name === 'Revision-safe console')).toBe(true)
+    } finally {
+      await writer.from('orion_shows').delete().eq('id', id)
+    }
+  }, 45_000)
 })

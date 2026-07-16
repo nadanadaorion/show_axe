@@ -32,6 +32,16 @@ beforeEach(() => {
 })
 
 describe('Equipment keyboard reordering (no drag & drop required)', () => {
+  it('gives every editable category name a contextual accessible label', async () => {
+    const { createShow, addShowCategory } = useAppStore.getState()
+    const showId = createShow({ name: 'Show de prueba' })
+    addShowCategory(showId, 'Audio')
+
+    renderShow(showId)
+
+    expect(await screen.findByRole('textbox', { name: 'Nombre de categoría: Audio' })).toHaveValue('Audio')
+  })
+
   it('6. moves an item up/down via accessible controls, disables at the boundaries, and gives feedback', async () => {
     const user = userEvent.setup()
     const { createShow, addEquipment } = useAppStore.getState()

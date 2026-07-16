@@ -1,132 +1,73 @@
 # Acceptance criteria
 
-A production V2 release is accepted only when all critical items pass.
+Status for the `2.0.0` candidate. `[x]` requires automated or recorded manual evidence; `[ ]` is deliberately not accepted. Final CI evidence must refer to the candidate SHA, not an earlier milestone.
 
-## Application shell
+## Application shell and release operations
 
-- [ ] Loads from GitHub Pages under a repository subpath.
-- [ ] Shows a useful setup screen when Supabase runtime config is missing.
-- [ ] Never exposes a black screen on uncaught runtime errors.
-- [ ] Reopens offline after one successful online load.
-- [ ] Shows update/recovery behavior for a new deployed Service Worker version.
+- [x] Production build loads under `/show_axe/` with shell, assets and lazy chunks (`tests/pages/github-pages.spec.ts`).
+- [x] Missing runtime config shows a usable Setup screen (`tests/e2e/setup.spec.ts`, Pages test).
+- [x] Global/route/lazy errors show recovery instead of a black screen (`tests/component/ErrorBoundary.test.tsx`).
+- [x] Subsequent offline reopen works after an online controlled load (Pages test).
+- [x] Controlled SW update, timeout, cleanup and reload guards are tested (SW/update unit/component suites).
+- [x] App/cache/docs use version `2.0.0` from one maintained source.
+- [x] Manual Pages workflow validates public runtime values and scans the artifact.
+- [ ] Production Pages deployment smoke on the final merged SHA (requires approval and deployment).
+- [ ] Annotated `v2.0.0` tag and GitHub Release (prohibited until final approval).
 
-## Shows
+## Core product
 
-- [ ] Create with name only and open immediately.
-- [ ] Create blank, from Preset, and from previous Show.
-- [ ] Duplicate remaps all internal IDs and public slug.
-- [ ] Search and active/archive views work.
-- [ ] Archive preserves public link.
-- [ ] Delete invalidates public link.
-- [ ] Undo behavior is honest and tested.
+- [x] Show create/open, blank/preset paths, duplicate ID/slug remapping, search/archive and snapshot isolation are covered by store/component/E2E tests.
+- [x] Equipment add/free/library, categories, quantity/assignments, inclusion, progress and keyboard ordering are covered by domain/component/E2E tests.
+- [x] People data, ordering and Library snapshot isolation are covered by store/domain tests.
+- [x] Information/schedule persistence, chronology and duration are covered by store and utility tests.
+- [x] Library and Preset CRUD/apply/merge behavior is covered by store and E2E regression suites.
+- [ ] Undo after a delete that already synchronized remotely is fully specified and deterministic. Immediate queued Undo is tested; the remote-completed edge remains an approved open decision.
 
-## Equipment
+## Input List and PDF
 
-- [ ] Add from Library and free creation.
-- [ ] Category CRUD and movement work.
-- [ ] Drag/drop and keyboard alternative work.
-- [ ] Quantity normalizes assignments.
-- [ ] Same model can contain distinct per-unit uses.
-- [ ] Input List inclusion defaults on and can be disabled.
-- [ ] Progress is correct overall and per category.
-- [ ] Library edits never mutate Show equipment.
+- [x] Generation from included Equipment assignments and explicit sync preview are tested.
+- [x] Manual rows/edits, custom CH, arbitrary start, explicit renumber, reorder preservation and next numeric CH are tested.
+- [x] Phantom, patch and notes survive domain sync and reach PDF mapping.
+- [x] Mono/stereo returns and consecutive stereo labels are tested.
+- [x] Portrait, landscape, multipage numbering, exact CH and non-mutating export are tested (`tests/unit/inputListPdf.test.ts`).
+- [x] PDF code is dynamically imported and isolated from the entry bundle.
+- [ ] Return-output collision handling is defined. It remains an explicit open decision and is not implemented.
 
-## People
+## Backups and recovery
 
-- [ ] Add from Library and free creation.
-- [ ] Multiple roles, types, phones, and emails persist.
-- [ ] Duplicate prevention/override behavior is defined.
-- [ ] Search and ordering work.
-- [ ] Library edits never mutate Show people.
+- [x] JSON snapshot version excludes credentials, locks, revisions and pending mutations by construction.
+- [x] Nested invalid/incompatible data is rejected before mutation.
+- [x] Merge and replace are deterministic and tested.
+- [x] A local emergency backup is created before import.
+- [x] Local backup retention is capped at ten newest records.
+- [x] Error Boundary offers safe emergency export and handles export failure.
+- [x] V1 local database is not automatically migrated; manual versioned JSON import is the only path.
 
-## Information and schedule
+## Shared data, locks and public view
 
-- [ ] Date, time, type, and note persist.
-- [ ] Schedule CRUD works.
-- [ ] Chronological display is correct.
-- [ ] Duration is correct for supported time ranges.
+- [x] Initial pull, clean push, Realtime, fallback polling and offline queue/reconnect are covered by real Supabase integration/E2E.
+- [x] A delayed Realtime event with an older revision cannot overwrite newer local/synchronized Show data. Remote Show application now compares against the last accepted revision in `syncRecords`: lower revisions and equal echoes perform no Zustand/IndexedDB write, while higher revisions retain the existing pending-mutation guard. A successful save also preserves and rebases any newer coalesced edit. Unit coverage and real-Supabase run `29460043696` (including 20/20 stress repetitions) prove the invariant.
+- [x] Revision conflicts expose keep-online/keep-local without silent overwrite.
+- [x] Workspace concurrent edits follow documented remote-wins behavior.
+- [x] Lock acquire/block/renew/release/expiry/offline behavior is covered without force unlock.
+- [x] Permanent public slug, read-only surface, archived visibility, delete/not-found and data minimization are covered.
+- [x] RLS is deliberately public and verified; documentation warns that the main editor URL grants write access.
+- [x] Migrations from an empty Supabase stack, schema objects, RPC/triggers, RLS, Realtime publication and replica identity are part of CI/verification scripts.
 
-## Input List
+## Accessibility and responsive
 
-- [ ] Can open before Equipment reaches 100%.
-- [ ] Warning can be dismissed permanently and re-enabled.
-- [ ] Generates one row per included equipment assignment.
-- [ ] Manual rows persist.
-- [ ] CH is individually editable.
-- [ ] Channels can start at any number.
-- [ ] Reordering does not alter CH.
-- [ ] Explicit renumber uses selected start.
-- [ ] New rows continue from highest numeric CH.
-- [ ] Update preview identifies add/remove/update.
-- [ ] Manual edits and manual rows survive update.
-- [ ] Phantom, patch, notes, and custom channels survive update.
-- [ ] Returns support mono/stereo and correct output labels.
-- [ ] Overlapping output behavior is clear.
-- [ ] Portrait PDF is correct.
-- [ ] Landscape PDF is correct.
-- [ ] Multi-page PDF retains headers/page numbers and exact CH values.
+- [x] Dialog role/name, form labels, Escape, focus restoration and keyboard reorder are tested.
+- [x] Mobile 375×667 flows, no page-level overflow and 44×44 critical reorder targets are tested.
+- [x] Axe WCAG A/AA-tag scans run on Setup and configured desktop/mobile critical flows.
+- [x] The audit-found light-theme muted contrast defect is corrected and guarded by the Pages axe scan.
+- [ ] Full WCAG conformance. No such claim is made without a comprehensive manual/AT audit.
 
-## Library and Presets
+## Final quality gate
 
-- [ ] All Library sections support CRUD/search.
-- [ ] Preset create/edit/duplicate/archive/apply work.
-- [ ] Merge preserves existing Show content.
-- [ ] Replace behavior for existing Input List is explicit and tested.
-- [ ] Preset edits do not mutate earlier Shows.
+- [x] Local lint, typecheck, unit/component build and Pages production test pass on the working candidate.
+- [x] Production build emits no sourcemaps and no chunk-size warning; bundle measurements are recorded.
+- [ ] Final HEAD GitHub Actions runs: three complete consecutive executions on the final documentation SHA must succeed. Code-candidate run `29460043696` is green, including the real-Supabase gate and 20/20 stress repetitions; final-SHA repetitions remain pending at this documentation commit.
+- [ ] Final HEAD counts: zero failed, zero required skips and zero retries for Supabase/desktop/mobile.
+- [x] Final HEAD secret scan: source and `dist/` clean in the latest build job.
 
-## Backups and import
-
-- [ ] JSON export is versioned and excludes secrets/sync internals.
-- [ ] Invalid import is rejected safely.
-- [ ] Merge and replace are deterministic.
-- [ ] Automatic backups are capped and restorable.
-- [ ] V1 is not automatically migrated.
-
-## Synchronization
-
-- [ ] Initial pull produces same data on two devices.
-- [ ] Clean local changes reach Supabase.
-- [ ] Realtime propagates changes.
-- [ ] Periodic fallback works when Realtime disconnects.
-- [ ] Offline changes queue and upload after reconnect.
-- [ ] Revision conflicts never overwrite silently.
-- [ ] Keep online discards pending local version.
-- [ ] Keep local applies against latest revision.
-- [ ] Remote deletion conflict works.
-- [ ] Workspace concurrent-edit policy is explicit and tested.
-
-## Locks
-
-- [ ] Opening Show acquires lock online.
-- [ ] Second device is blocked and sees automatic device label.
-- [ ] No force-unlock action exists.
-- [ ] Activity renews lock.
-- [ ] Ten minutes inactivity releases/expires lock.
-- [ ] Leaving Show releases lock when possible.
-- [ ] Offline editing remains available with warning.
-
-## Public view
-
-- [ ] Permanent slug loads current remote Show.
-- [ ] No editor mutation controls appear.
-- [ ] Archived Show remains visible.
-- [ ] Deleted Show returns not found.
-- [ ] Internal IDs/revisions/lock details are not shown.
-
-## Quality
-
-- [x] ESLint passes.
-- [x] TypeScript production build passes.
-- [x] Unit/component tests pass.
-- [x] Critical Playwright tests pass.
-- [x] Supabase verification passes.
-- [x] No secret keys are committed.
-- [x] Desktop and mobile smoke tests pass.
-
-For Milestone 3 acceptance specifically, desktop and mobile must both execute in Chromium against the CI
-Supabase stack with zero skips; focus restoration must pass after Escape and button closure, the mobile
-Equipment reorder target must measure at least approximately 44×44 CSS px, and no passing test may depend
-on retry. A failed run does not satisfy these boxes even when its build and integration jobs pass.
-Run `29447186230` satisfied these Milestone 3 quality boxes at that SHA: 22/22 integration and 13/13
-Playwright (9 desktop, 4 mobile), zero failed/skipped tests, and `retries: 0`. PR #4 is still unmerged;
-final corrective run `29452356582` retained the same result after the Equipment harness correction.
+The two open product-decision boxes do not authorize Milestone 4 to change their semantics. Production deployment, merge and tag remain deliberately unaccepted until the final-SHA repeated gate and explicit owner approval.

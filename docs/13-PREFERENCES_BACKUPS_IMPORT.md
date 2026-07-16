@@ -47,8 +47,8 @@ Merge by IDs while preserving existing data where IDs do not collide. Collision 
 ## Automatic backups
 
 - Stored in IndexedDB.
-- Rotated or capped to prevent unbounded storage growth.
-- Created on a reasonable interval and before risky import/replace operations.
+- Capped to the ten newest records in one IndexedDB transaction.
+- Created at most once per 15-minute persistence interval, on demand, and before either import mode.
 - Restoring a backup is a user-visible operation.
 
 ## V1 to V2

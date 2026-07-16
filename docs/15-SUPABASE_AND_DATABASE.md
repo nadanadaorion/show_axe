@@ -1,5 +1,16 @@
 # Supabase and database specification
 
+## Fresh project procedure
+
+1. Create a new Supabase project and wait for it to become healthy.
+2. Open SQL Editor and run all of `supabase/SETUP.sql`, or run `supabase start` locally so the timestamped migrations apply from empty.
+3. Run `supabase/VERIFY.sql`; do not deploy if an assertion fails.
+4. In **Connect**, copy the Project URL and publishable key (or legacy anon key).
+5. Configure only those two public values. Never request a secret/service-role key.
+6. Run integration and browser tests against this disposable instance before production use.
+
+The automated suites create and delete records. Never point them at a production workspace.
+
 ## Tables
 
 ### `public.orion_workspace`
@@ -74,6 +85,11 @@ A verification script should confirm:
 - `orion_shows` replica identity is `full`;
 - a test optimistic insert/update conflict behaves correctly;
 - lock acquisition and expiry behave correctly.
+
+`supabase/VERIFY.sql` is the deployed-project check. CI additionally starts Supabase from empty, applies
+`supabase/migrations/202607150001_initial_v2.sql` and
+`supabase/migrations/202607150002_realtime_replica_identity.sql`, then exercises PostgREST, RPC and
+Realtime through the integration/E2E suites.
 
 ## Data integrity expectations
 

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
-import { configureSupabaseRuntime, getE2ESupabaseConfig } from './supabaseTestConfig'
+import { configureSupabaseRuntime, getE2ESupabaseConfig, performAndWaitForOnlineSave } from './supabaseTestConfig'
+import { expectNoCriticalAccessibilityViolations } from './accessibilityAssertions'
 
 const config = getE2ESupabaseConfig()
 
@@ -18,20 +19,20 @@ test.describe('Desktop smoke test: Shows, Equipment, Input List, a modal, keyboa
     await page.getByRole('button', { name: 'Nuevo show' }).click()
     const name = `E2E Smoke ${Date.now()}`
     await page.getByPlaceholder('Ej. TABU — Foro Indie Rocks').fill(name)
-    await page.getByRole('button', { name: 'Crear y abrir' }).click()
+    await performAndWaitForOnlineSave(page, () => page.getByRole('button', { name: 'Crear y abrir' }).click())
     await expect(page.getByLabel('Nombre del show')).toHaveValue(name)
 
     // Equipment.
     await page.getByRole('button', { name: 'Agregar equipo' }).click()
     await page.getByRole('button', { name: 'Creación libre' }).click()
     await page.getByLabel('Nombre', { exact: true }).fill('Consola digital')
-    await page.getByRole('button', { name: 'Agregar', exact: true }).click()
+    await performAndWaitForOnlineSave(page, () => page.getByRole('button', { name: 'Agregar', exact: true }).click())
     await expect(page.getByText(/Consola digital$/)).toBeVisible()
 
     await page.getByRole('button', { name: 'Agregar equipo' }).click()
     await page.getByRole('button', { name: 'Creación libre' }).click()
     await page.getByLabel('Nombre', { exact: true }).fill('Multicable')
-    await page.getByRole('button', { name: 'Agregar', exact: true }).click()
+    await performAndWaitForOnlineSave(page, () => page.getByRole('button', { name: 'Agregar', exact: true }).click())
     await expect(page.getByText(/Multicable$/)).toBeVisible()
 
     // Input List.
@@ -65,5 +66,7 @@ test.describe('Desktop smoke test: Shows, Equipment, Input List, a modal, keyboa
     await expect(downButton).toBeFocused()
     await page.keyboard.press('Enter')
     await expect(page.getByText('Equipo movido')).toBeVisible()
+
+    await expectNoCriticalAccessibilityViolations(page)
   })
 })

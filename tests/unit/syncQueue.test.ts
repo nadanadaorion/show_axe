@@ -3,7 +3,13 @@
 import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from '../../src/lib/db'
-import { pendingMutationCount, queueShowDelete, queueShowUpsert, queueWorkspaceUpsert } from '../../src/lib/syncQueue'
+import {
+  acknowledgeShowMutation,
+  pendingMutationCount,
+  queueShowDelete,
+  queueShowUpsert,
+  queueWorkspaceUpsert,
+} from '../../src/lib/syncQueue'
 import { buildEmptyShow, buildWorkspace, resetFixtureSequence } from '../fixtures/builders'
 
 /**
@@ -31,6 +37,32 @@ describe('offline mutation queue coalescing', () => {
     expect(pending).toHaveLength(1)
     expect(pending[0].kind).toBe('show-upsert')
     expect(pending[0].show?.name).toBe('Third')
+    expect(pending[0].generation).toBe(3)
+  })
+
+  it('acknowledges only the generation sent and rebases a newer coalesced edit', async () => {
+    const show = buildEmptyShow({ id: 'show-race', name: 'Creating' })
+    await queueShowUpsert(show)
+    const inFlight = await db.pendingMutations.get('show:show-race')
+    expect(inFlight).toBeDefined()
+
+    await queueShowUpsert({ ...show, name: 'Edited while creating' })
+    await expect(acknowledgeShowMutation(inFlight!, 1)).resolves.toBe('rebased')
+
+    const pending = await db.pendingMutations.get('show:show-race')
+    expect(pending?.show?.name).toBe('Edited while creating')
+    expect(pending?.generation).toBe(2)
+    expect(pending?.expectedRevision).toBe(1)
+    expect((await db.syncRecords.get('show:show-race'))?.revision).toBe(1)
+  })
+
+  it('removes the exact generation after the server accepts it', async () => {
+    const show = buildEmptyShow({ id: 'show-complete' })
+    await queueShowUpsert(show)
+    const inFlight = await db.pendingMutations.get('show:show-complete')
+
+    await expect(acknowledgeShowMutation(inFlight!, 1)).resolves.toBe('completed')
+    await expect(db.pendingMutations.get('show:show-complete')).resolves.toBeUndefined()
   })
 
   it('keeps the originally captured expected revision across a coalesced re-queue', async () => {

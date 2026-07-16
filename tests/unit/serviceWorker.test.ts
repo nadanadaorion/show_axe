@@ -17,7 +17,12 @@ function loadWorker() {
       openedCaches.push(name)
       return { addAll, put: vi.fn() }
     }),
-    keys: vi.fn(async () => ['orion-shows-v2.0.0', 'orion-shows-v2.0.0-m3.1', 'another-app-cache']),
+    keys: vi.fn(async () => [
+      'orion-shows-show_axe-v1.9.0',
+      'orion-shows-show_axe-v2.0.0',
+      'orion-shows-other_project-v1.9.0',
+      'another-app-cache',
+    ]),
     delete: vi.fn(async (name: string) => {
       deletedCaches.push(name)
       return true
@@ -26,7 +31,7 @@ function loadWorker() {
   }
   const self = {
     registration: { scope: 'https://example.test/show_axe/' },
-    location: { origin: 'https://example.test' },
+    location: { origin: 'https://example.test', href: 'https://example.test/show_axe/sw.js?v=2.0.0' },
     clients: { claim },
     skipWaiting,
     addEventListener: (type: string, handler: WorkerHandler) => handlers.set(type, handler),
@@ -47,7 +52,7 @@ describe('Service Worker offline cache lifecycle', () => {
     const worker = loadWorker()
     await dispatchExtendable(worker.handlers.get('install')!)
 
-    expect(worker.openedCaches).toEqual(['orion-shows-v2.0.0-m3.1'])
+    expect(worker.openedCaches).toEqual(['orion-shows-show_axe-v2.0.0'])
     expect(worker.addAll).toHaveBeenCalledOnce()
     expect(worker.skipWaiting).not.toHaveBeenCalled()
   })
@@ -56,8 +61,9 @@ describe('Service Worker offline cache lifecycle', () => {
     const worker = loadWorker()
     await dispatchExtendable(worker.handlers.get('activate')!)
 
-    expect(worker.deletedCaches).toEqual(['orion-shows-v2.0.0'])
-    expect(worker.deletedCaches).not.toContain('orion-shows-v2.0.0-m3.1')
+    expect(worker.deletedCaches).toEqual(['orion-shows-show_axe-v1.9.0'])
+    expect(worker.deletedCaches).not.toContain('orion-shows-show_axe-v2.0.0')
+    expect(worker.deletedCaches).not.toContain('orion-shows-other_project-v1.9.0')
     expect(worker.deletedCaches).not.toContain('another-app-cache')
     expect(worker.claim).toHaveBeenCalledOnce()
   })

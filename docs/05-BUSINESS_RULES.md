@@ -87,7 +87,7 @@
 2. A mono return occupies one output.
 3. A stereo return occupies two consecutive outputs.
 4. Output labels render as one number for mono and a range for stereo.
-5. Changing stereo state must not silently collide with another return; collisions must be visible or validated.
+5. V2.0 does not validate output collisions. Stereo still occupies two consecutive outputs; operators must review overlaps manually until the open collision-handling decision is approved.
 
 ## Public links
 
