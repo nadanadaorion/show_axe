@@ -106,11 +106,11 @@ export function InputListModal({ open, show, onClose }: { open: boolean; show: S
   return (
     <>
       <div className="fixed inset-0 z-50 flex flex-col bg-[var(--bg)]">
-        <header className="flex flex-col gap-3 border-b border-[var(--line)] bg-[var(--panel)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <header className="signal-rule flex flex-col gap-3 border-b-2 border-[var(--strong-line)] bg-[var(--panel)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <FileText size={19} />
-              <h2 className="truncate font-semibold">Input list · {show.name}</h2>
+              <h2 className="truncate text-xl font-black uppercase tracking-[-.035em]">Input list · {show.name}</h2>
             </div>
             <div className="mt-1 flex flex-wrap gap-2 text-xs muted">
               <span>{rows.length} entradas</span>
@@ -137,8 +137,8 @@ export function InputListModal({ open, show, onClose }: { open: boolean; show: S
 
         <div className="flex-1 overflow-auto px-4 py-5 sm:px-6">
           <div className="mx-auto max-w-[1500px] space-y-6">
-            <section className="panel overflow-hidden">
-              <div className="flex flex-col gap-3 border-b border-[var(--line)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <section className="panel overflow-hidden border-t-4 border-t-[var(--accent)]">
+              <div className="flex flex-col gap-3 border-b-2 border-[var(--strong-line)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h3 className="font-semibold">Entradas</h3>
                   <p className="text-xs muted">El número de canal es editable y se conserva aunque cambies el orden.</p>
@@ -169,7 +169,7 @@ export function InputListModal({ open, show, onClose }: { open: boolean; show: S
               ) : (
                 <div className="overflow-x-auto">
                   <div className="min-w-[1050px]">
-                    <div className="grid grid-cols-[72px_minmax(170px,1.2fr)_minmax(170px,1fr)_70px_minmax(130px,.7fr)_minmax(210px,1.3fr)_116px] gap-2 border-b border-[var(--line)] bg-[var(--panel-2)] px-4 py-2 text-[11px] font-semibold uppercase tracking-wide muted">
+                    <div className="grid grid-cols-[72px_minmax(170px,1.2fr)_minmax(170px,1fr)_70px_minmax(130px,.7fr)_minmax(210px,1.3fr)_116px] gap-2 border-b-2 border-[var(--strong-line)] bg-[var(--panel-2)] px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[.12em] muted">
                       <div>CH</div><div>Uso</div><div>Equipo</div><div>48V</div><div>Patch</div><div>Notas</div><div />
                     </div>
                     <div className="divide-y divide-[var(--line)]">
@@ -194,8 +194,8 @@ export function InputListModal({ open, show, onClose }: { open: boolean; show: S
               )}
             </section>
 
-            <section className="panel overflow-hidden">
-              <div className="flex flex-col gap-3 border-b border-[var(--line)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <section className="panel overflow-hidden border-t-4 border-t-[var(--accent)]">
+              <div className="flex flex-col gap-3 border-b-2 border-[var(--strong-line)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h3 className="font-semibold">Retornos de monitoreo</h3>
                   <p className="text-xs muted">Un retorno estéreo ocupa dos salidas consecutivas.</p>
@@ -207,7 +207,7 @@ export function InputListModal({ open, show, onClose }: { open: boolean; show: S
               ) : (
                 <div className="overflow-x-auto">
                   <div className="min-w-[980px]">
-                    <div className="grid grid-cols-[55px_minmax(180px,1fr)_minmax(150px,.8fr)_120px_120px_minmax(220px,1.2fr)_116px] gap-2 border-b border-[var(--line)] bg-[var(--panel-2)] px-4 py-2 text-[11px] font-semibold uppercase tracking-wide muted">
+                    <div className="grid grid-cols-[55px_minmax(180px,1fr)_minmax(150px,.8fr)_120px_120px_minmax(220px,1.2fr)_116px] gap-2 border-b-2 border-[var(--strong-line)] bg-[var(--panel-2)] px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[.12em] muted">
                       <div>Mix</div><div>Destino</div><div>Sistema</div><div>Tipo</div><div>Salida</div><div>Contenido / notas</div><div />
                     </div>
                     <div className="divide-y divide-[var(--line)]">

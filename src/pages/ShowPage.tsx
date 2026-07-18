@@ -83,15 +83,15 @@ export default function ShowPage() {
 
   return (
     <>
-      {lock.status !== 'owned' && <div className={`mb-4 flex gap-3 rounded-xl border p-4 ${lock.status === 'offline' ? 'border-blue-300 bg-blue-50 text-blue-950 dark:border-blue-800 dark:bg-blue-950/25 dark:text-blue-100' : 'border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-800 dark:bg-amber-950/25 dark:text-amber-100'}`}><CloudOff className="mt-0.5 flex-none" size={19} /><div><p className="text-sm font-medium">{lock.status === 'offline' ? 'Edición sin conexión' : lock.status === 'waiting' ? 'Preparando el bloqueo en línea' : 'No fue posible verificar el bloqueo'}</p><p className="mt-1 text-xs opacity-80">{lock.status === 'offline' ? 'Puedes trabajar normalmente. Al volver la conexión, se comprobarán cambios y posibles conflictos.' : lock.status === 'waiting' ? 'El show todavía se está publicando en la nube. Puedes continuar editando en este dispositivo.' : 'Los cambios se guardarán localmente e intentarán sincronizarse de nuevo.'}</p></div></div>}
+      {lock.status !== 'owned' && <div className={`mb-5 flex gap-3 border-2 border-[var(--strong-line)] p-4 shadow-[4px_4px_0_var(--shadow-ink)] ${lock.status === 'offline' ? 'bg-[var(--accent)] text-white' : 'warning-panel'}`}><CloudOff className="mt-0.5 flex-none" size={19} /><div><p className="font-mono text-xs font-bold uppercase tracking-[.08em]">{lock.status === 'offline' ? 'Edición sin conexión' : lock.status === 'waiting' ? 'Preparando el bloqueo en línea' : 'No fue posible verificar el bloqueo'}</p><p className="mt-1 text-xs opacity-80">{lock.status === 'offline' ? 'Puedes trabajar normalmente. Al volver la conexión, se comprobarán cambios y posibles conflictos.' : lock.status === 'waiting' ? 'El show todavía se está publicando en la nube. Puedes continuar editando en este dispositivo.' : 'Los cambios se guardarán localmente e intentarán sincronizarse de nuevo.'}</p></div></div>}
       <div className="mb-5">
         <Link to="/shows" className="mb-4 inline-flex items-center gap-2 text-sm muted hover:text-[var(--text)]"><ArrowLeft size={16} />Todos los shows</Link>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-col gap-4">
           <div className="min-w-0 flex-1">
-            <Input value={show.name} onChange={(event) => updateShow(show.id, { name: event.target.value })} className="border-transparent bg-transparent p-0 text-2xl font-semibold tracking-tight focus:border-transparent focus:shadow-none" aria-label="Nombre del show" />
+            <Input value={show.name} onChange={(event) => updateShow(show.id, { name: event.target.value })} className="h-auto border-transparent bg-transparent p-0 text-3xl font-black uppercase leading-[.9] tracking-[-.05em] focus:border-transparent focus:shadow-none sm:text-5xl lg:text-6xl" aria-label="Nombre del show" />
             <div className="mt-2 flex flex-wrap gap-2">{show.date && <Badge>{show.date}</Badge>}{show.time && <Badge>{show.time}</Badge>}{show.showType && <Badge>{show.showType}</Badge>}{show.archived && <Badge>Archivado</Badge>}</div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 border-t border-dashed border-[var(--line)] pt-4 sm:justify-end">
             <Button variant="secondary" onClick={() => void sharePublicLink()}><Share2 size={16} />Compartir</Button>
             <Button onClick={requestInputList}><ListOrdered size={16} />Input list</Button>
             <Button variant="secondary" onClick={() => { setPresetName(`${show.name} — preset`); setPresetOpen(true) }}><Save size={16} />Guardar preset</Button>
@@ -102,14 +102,14 @@ export default function ShowPage() {
       </div>
 
       <div className="mb-6 grid gap-3 sm:grid-cols-[1fr_220px]">
-        <div className="flex overflow-x-auto rounded-xl border border-[var(--line)] bg-[var(--panel)] p-1">
+        <div className="flex overflow-x-auto border-2 border-[var(--strong-line)] bg-[var(--panel)] p-1">
           {([
             ['equipment', 'Equipo', Package],
             ['people', 'Personas', Users],
             ['info', 'Información', Info],
-          ] as const).map(([value, label, Icon]) => <button key={value} onClick={() => setTab(value)} className={`flex min-w-max flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition ${tab === value ? 'bg-[var(--accent)] text-[var(--accent-text)]' : 'muted hover:text-[var(--text)]'}`}><Icon size={16} />{label}</button>)}
+          ] as const).map(([value, label, Icon]) => <button key={value} onClick={() => setTab(value)} className={`flex min-h-11 min-w-max flex-1 items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-[.08em] transition ${tab === value ? 'bg-[var(--accent)] text-[var(--accent-text)]' : 'muted hover:bg-[var(--panel-2)] hover:text-[var(--text)]'}`}><Icon size={16} />{label}</button>)}
         </div>
-        <div className="panel flex items-center gap-3 px-4 py-3"><div className="min-w-0 flex-1"><div className="mb-1 flex justify-between text-xs"><span className="muted">Progreso de equipo</span><span>{checked}/{show.equipment.length}</span></div><ProgressBar value={progress} /></div><strong className="text-sm">{progress}%</strong></div>
+        <div className="panel flex items-center gap-3 px-4 py-3"><div className="min-w-0 flex-1"><div className="mb-1 flex justify-between font-mono text-[10px] uppercase tracking-[.08em]"><span className="muted">Progreso de equipo</span><span>{checked}/{show.equipment.length}</span></div><ProgressBar value={progress} /></div><strong className="font-mono text-sm">{progress}%</strong></div>
       </div>
 
       {tab === 'equipment' && <EquipmentTab show={show} />}
@@ -161,10 +161,10 @@ function EquipmentTab({ show }: { show: Show }) {
         const allInCategory = show.equipment.filter((item) => item.categoryId === category.id)
         const completed = allInCategory.filter((item) => item.checked).length
         const percent = allInCategory.length ? Math.round((completed / allInCategory.length) * 100) : 0
-        return <section key={category.id} className="panel overflow-hidden" onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, category.id)}>
-          <div className="flex flex-col gap-3 border-b border-[var(--line)] bg-[var(--panel-2)] px-4 py-3 sm:flex-row sm:items-center">
+        return <section key={category.id} className="panel overflow-hidden border-l-4 border-l-[var(--accent)]" onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, category.id)}>
+          <div className="flex flex-col gap-3 border-b-2 border-[var(--strong-line)] bg-[var(--panel-2)] px-4 py-3 sm:flex-row sm:items-center">
             <div className="min-w-0 flex-1"><Input value={category.name} onChange={(event) => updateShowCategory(show.id, category.id, { name: event.target.value })} className="border-transparent bg-transparent p-0 font-semibold focus:border-transparent focus:shadow-none" aria-label={`Nombre de categoría: ${category.name}`} /><div className="mt-2 max-w-xs"><ProgressBar value={percent} /></div></div>
-            <div className="flex items-center gap-1"><span className="mr-2 text-xs muted">{completed}/{allInCategory.length}</span><Button variant="ghost" size="icon" disabled={index === 0} onClick={() => moveShowCategory(show.id, category.id, -1)} aria-label="Subir categoría"><ChevronUp size={16} /></Button><Button variant="ghost" size="icon" disabled={index === categories.length - 1} onClick={() => moveShowCategory(show.id, category.id, 1)} aria-label="Bajar categoría"><ChevronDown size={16} /></Button><Button variant="ghost" size="icon" disabled={categories.length <= 1} onClick={() => deleteShowCategory(show.id, category.id)} aria-label="Eliminar categoría"><Trash2 size={16} /></Button></div>
+            <div className="flex items-center gap-1"><span className="mr-2 font-mono text-[10px] font-bold muted">{completed}/{allInCategory.length}</span><Button variant="ghost" size="icon" disabled={index === 0} onClick={() => moveShowCategory(show.id, category.id, -1)} aria-label="Subir categoría"><ChevronUp size={16} /></Button><Button variant="ghost" size="icon" disabled={index === categories.length - 1} onClick={() => moveShowCategory(show.id, category.id, 1)} aria-label="Bajar categoría"><ChevronDown size={16} /></Button><Button variant="ghost" size="icon" disabled={categories.length <= 1} onClick={() => deleteShowCategory(show.id, category.id)} aria-label="Eliminar categoría"><Trash2 size={16} /></Button></div>
           </div>
           {!items.length ? <div className="p-5 text-sm muted">{search ? 'No hay coincidencias en esta categoría.' : 'Arrastra equipo aquí o agrega un elemento.'}</div> : <div className="divide-y divide-[var(--line)]">{items.map((item, itemIndex) => <EquipmentRow key={item.id} show={show} item={item} categories={categories} origins={library.origins.filter((origin) => !origin.archived).map((origin) => origin.name)} canMoveUp={itemIndex > 0} canMoveDown={itemIndex < items.length - 1} onUpdate={(patch) => updateEquipment(show.id, item.id, patch)} onDropItem={(draggedId) => moveEquipment(show.id, draggedId, category.id, item.order)} onMove={(direction) => { const neighbor = items[itemIndex + direction]; if (!neighbor) return; moveEquipment(show.id, item.id, item.categoryId, direction === -1 ? neighbor.order - 0.5 : neighbor.order + 0.5); showToast('Equipo movido') }} onMoveToCategory={(categoryId) => { moveEquipment(show.id, item.id, categoryId); showToast(`Movido a "${categories.find((entry) => entry.id === categoryId)?.name}"`) }} onDuplicate={() => duplicateEquipment(show.id, item.id)} onDelete={() => { const removed = deleteEquipment(show.id, item.id); if (removed) showToast('Equipo eliminado', { onAction: () => restoreEquipment(show.id, removed) }) }} />)}</div>}
         </section>

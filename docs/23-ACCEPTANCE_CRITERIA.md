@@ -62,6 +62,15 @@ Status for the `2.0.0` candidate. `[x]` requires automated or recorded manual ev
 - [x] The audit-found light-theme muted contrast defect is corrected and guarded by the Pages axe scan.
 - [ ] Full WCAG conformance. No such claim is made without a comprehensive manual/AT audit.
 
+## Sonic Grunge visual redesign
+
+- [x] The shared palette, locally hosted Anybody typography, spacing, borders, shadows, texture, responsive behavior and component usage are documented in `docs/SONIC_GRUNGE_DESIGN_SYSTEM.md`.
+- [x] Existing routes, visible controls, accessible names and product behavior remain available; no synchronization, storage, conflict, lock, offline, Service Worker, Input List or PDF rule was changed.
+- [x] Desktop and 375×667 visual-contract E2E cover Shows, Show workspace, Equipment, Input List, Library, modal, focus, offline state, internal technical scrolling and page-level overflow.
+- [x] Electric blue remains an accent rather than body-copy color; focus-visible is explicit and reduced-motion preferences suppress non-essential transitions.
+- [x] Critical mobile icon controls provide at least 44×44 CSS pixels.
+- [ ] Comprehensive manual review with multiple assistive technologies and every route/state/theme. Automated checks and targeted visual inspection do not constitute full WCAG conformance.
+
 ## Final quality gate
 
 - [x] Local lint, typecheck, unit/component build and Pages production test pass on the working candidate.

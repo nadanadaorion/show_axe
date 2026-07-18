@@ -1,49 +1,168 @@
+@font-face {
+  font-family: "Anybody";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("@fontsource-variable/anybody/files/anybody-latin-wght-normal.woff2") format("woff2-variations");
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   color-scheme: light;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Anybody", Inter, ui-sans-serif, system-ui, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  --bg: #f5f5f3;
-  --panel: #ffffff;
-  --panel-2: #fafaf9;
-  --text: #171717;
-  --muted: #6b6b6b;
-  --line: #e7e5e4;
-  --strong-line: #d6d3d1;
-  --accent: #171717;
+  --bg: #e7e7df;
+  --panel: #fffef8;
+  --panel-2: #d4d4cc;
+  --text: #050505;
+  --muted: #535353;
+  --line: #9b9b94;
+  --strong-line: #050505;
+  --accent: #0029ff;
   --accent-text: #ffffff;
-  --danger: #b91c1c;
-  --success: #15803d;
+  --danger: #b00020;
+  --success: #087a3e;
+  --warning: #9a5200;
+  --warning-bg: #ffe37a;
+  --warning-text: #171000;
+  --danger-bg: #ffe0e5;
+  --danger-text: #710016;
+  --shadow-ink: #050505;
+  --font-display: "Anybody", Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
 html.dark {
   color-scheme: dark;
-  --bg: #111110;
-  --panel: #191918;
-  --panel-2: #222220;
-  --text: #f5f5f4;
-  --muted: #a8a29e;
-  --line: #333330;
-  --strong-line: #4a4a46;
-  --accent: #f5f5f4;
-  --accent-text: #171717;
-  --danger: #f87171;
-  --success: #4ade80;
+  --bg: #080808;
+  --panel: #111111;
+  --panel-2: #1d1d1d;
+  --text: #f7f7f2;
+  --muted: #b7b7af;
+  --line: #494949;
+  --strong-line: #f7f7f2;
+  --accent: #0029ff;
+  --accent-text: #ffffff;
+  --danger: #ff6b78;
+  --success: #56df91;
+  --warning: #ffb347;
+  --warning-bg: #2d1900;
+  --warning-text: #fff2d5;
+  --danger-bg: #300009;
+  --danger-text: #ffdce1;
+  --shadow-ink: #000000;
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; min-height: 100vh; background: var(--bg); color: var(--text); }
+html { min-width: 320px; background: var(--bg); }
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: var(--bg);
+  color: var(--text);
+}
+
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  content: "";
+  opacity: .045;
+  background-image:
+    radial-gradient(circle at 20% 20%, var(--text) 0 .55px, transparent .7px),
+    radial-gradient(circle at 80% 65%, var(--text) 0 .45px, transparent .65px);
+  background-position: 0 0, 3px 4px;
+  background-size: 7px 7px, 9px 9px;
+  mix-blend-mode: multiply;
+}
+
+html.dark body::before { mix-blend-mode: screen; opacity: .035; }
+
 button, input, select, textarea { font: inherit; }
 button { -webkit-tap-highlight-color: transparent; }
-::selection { background: var(--text); color: var(--panel); }
+input[type="date"], input[type="time"], input[type="number"], code, pre, table, .tabular-nums { font-family: var(--font-mono); }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
+::selection { background: var(--accent); color: #fff; }
+
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--accent) !important;
+  outline-offset: 2px !important;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+  font-variation-settings: "wdth" 82;
+}
+
+h1, h2 { text-wrap: balance; }
+
+/* Remove the generic SaaS softness while preserving circular status/icon primitives. */
+.rounded-md, .rounded-lg, .rounded-xl, .rounded-2xl, .rounded-t-2xl { border-radius: 3px !important; }
 
 @layer components {
-  .panel { @apply rounded-2xl border; background: var(--panel); border-color: var(--line); }
-  .field { @apply w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition; background: var(--panel); border-color: var(--line); color: var(--text); }
-  .field:focus { border-color: var(--strong-line); box-shadow: 0 0 0 3px color-mix(in srgb, var(--text) 8%, transparent); }
+  .panel {
+    @apply border;
+    position: relative;
+    border-width: 1px;
+    border-color: var(--strong-line);
+    border-radius: 3px;
+    background: var(--panel);
+  }
+
+  .panel::after {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 9px;
+    height: 9px;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    pointer-events: none;
+    content: "";
+    opacity: .55;
+  }
+
+  .field {
+    @apply w-full border px-3 py-2.5 text-sm outline-none transition;
+    min-height: 42px;
+    border-width: 2px;
+    border-color: var(--strong-line);
+    border-radius: 2px;
+    background: var(--panel);
+    color: var(--text);
+  }
+
+  .field::placeholder { color: var(--muted); opacity: .82; }
+  .field:hover { border-color: var(--accent); }
+  .field:focus { border-color: var(--accent); box-shadow: 3px 3px 0 color-mix(in srgb, var(--accent) 25%, transparent); }
   .muted { color: var(--muted); }
+  .technical { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .signal-shadow { box-shadow: 4px 4px 0 var(--shadow-ink); }
+  .signal-rule { border-top: 5px solid var(--accent); }
+  .warning-panel { border-color: var(--warning); background: var(--warning-bg); color: var(--warning-text); }
+  .danger-panel { border-color: var(--danger); background: var(--danger-bg); color: var(--danger-text); }
+}
+
+@media (hover: hover) {
+  button:not(:disabled), a { transition: transform 120ms ease, color 120ms ease, background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+@media print {
+  body::before { display: none; }
 }

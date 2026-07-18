@@ -33,6 +33,13 @@ This document describes the current reproducible release gate. Historical failed
 
 Desktop and mobile smoke flows finish with `@axe-core/playwright` checks tagged WCAG 2 A/AA and 2.1 A/AA. This catches automatable violations only and is not a full WCAG conformance audit.
 
+The Sonic Grunge redesign adds two visual-contract flows without snapshotting implementation details:
+
+- `sonic-grunge.visual.spec.ts` covers Shows, a Show workspace, Equipment/Input List, Library, a modal, keyboard focus, the offline state, the electric-blue token, the local Anybody face, hard-edged surfaces and page-level overflow on desktop;
+- `sonic-grunge.mobile.spec.ts` covers the 375×667 layout, Show creation, Equipment, Input List internal scrolling, no page-level horizontal overflow and 44×44 minimum icon targets.
+
+These checks protect usability and the design-system invariants while existing component, integration and E2E suites continue to own behavior. They do not make pixel-perfect or full manual-accessibility claims.
+
 Retries are `0`. A flaky pass obtained through retry would not satisfy release acceptance.
 
 The stale-Realtime release regression has a dedicated real-Supabase browser test in

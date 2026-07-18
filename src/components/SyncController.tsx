@@ -335,5 +335,5 @@ export function SyncStatusBadge() {
     error: ['Error de sincronización', AlertTriangle],
   } as const
   const [label, Icon] = details[status]
-  return <div className="rounded-xl border border-[var(--line)] bg-[var(--panel-2)] p-3 text-xs" title={error}><div className="mb-1 flex items-center gap-2 font-medium text-[var(--text)]"><Icon className={status === 'connecting' || status === 'syncing' ? 'animate-spin' : ''} size={14} />{label}</div><div className="muted">{status === 'synced' ? 'Los cambios se comparten entre dispositivos.' : status === 'offline' ? 'Puedes seguir trabajando; se sincronizará al volver.' : error || 'Espacio compartido sin cuentas.'}</div></div>
+  return <div className="border-2 border-[var(--strong-line)] bg-[var(--panel-2)] p-3 font-mono text-[10px]" title={error}><div className="mb-1 flex items-center gap-2 font-bold uppercase tracking-[.08em] text-[var(--text)]"><Icon className={status === 'connecting' || status === 'syncing' ? 'animate-spin text-[var(--accent)]' : 'text-[var(--accent)]'} size={14} />{label}</div><div className="leading-relaxed muted">{status === 'synced' ? 'Los cambios se comparten entre dispositivos.' : status === 'offline' ? 'Puedes seguir trabajando; se sincronizará al volver.' : error || 'Espacio compartido sin cuentas.'}</div></div>
 }

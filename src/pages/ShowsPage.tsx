@@ -44,9 +44,9 @@ export default function ShowsPage() {
       <PageHeader title="Shows" description="Prepara, consulta y archiva cada show desde un solo lugar." actions={<Button onClick={() => setCreateOpen(true)}><Plus size={17} />Nuevo show</Button>} />
       <div className="mb-5 grid gap-3 sm:grid-cols-[1fr_auto]">
         <SearchInput value={search} onChange={setSearch} placeholder="Buscar por nombre, tipo o fecha…" />
-        <div className="flex rounded-xl border border-[var(--line)] bg-[var(--panel)] p-1">
-          <button className={`rounded-lg px-4 py-2 text-sm font-medium ${!archived ? 'bg-[var(--accent)] text-[var(--accent-text)]' : 'muted'}`} onClick={() => setArchived(false)}>Activos</button>
-          <button className={`rounded-lg px-4 py-2 text-sm font-medium ${archived ? 'bg-[var(--accent)] text-[var(--accent-text)]' : 'muted'}`} onClick={() => setArchived(true)}>Archivados</button>
+        <div className="flex border-2 border-[var(--strong-line)] bg-[var(--panel)] p-1">
+          <button className={`px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-[.08em] ${!archived ? 'bg-[var(--accent)] text-[var(--accent-text)]' : 'muted'}`} onClick={() => setArchived(false)}>Activos</button>
+          <button className={`px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-[.08em] ${archived ? 'bg-[var(--accent)] text-[var(--accent-text)]' : 'muted'}`} onClick={() => setArchived(true)}>Archivados</button>
         </div>
       </div>
 
@@ -59,21 +59,21 @@ export default function ShowsPage() {
             const checked = show.equipment.filter((item) => item.checked).length
             const progress = total ? Math.round((checked / total) * 100) : 0
             return (
-              <article key={show.id} className="panel group relative min-w-0 w-full overflow-visible p-5 transition hover:-translate-y-0.5 hover:shadow-soft">
+              <article key={show.id} className="panel group relative min-w-0 w-full overflow-visible border-t-4 border-t-[var(--accent)] p-5 transition hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_var(--shadow-ink)]">
                 <button className="absolute inset-0 rounded-2xl" aria-label={`Abrir ${show.name}`} onClick={() => navigate(`/shows/${show.id}`)} />
                 <div className="relative pointer-events-none">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0"><h2 className="truncate text-lg font-semibold">{show.name}</h2><div className="mt-2 flex flex-wrap gap-2">{show.showType && <Badge>{show.showType}</Badge>}{show.archived && <Badge>Archivado</Badge>}</div></div>
+                    <div className="min-w-0"><h2 className="truncate text-2xl font-black uppercase leading-none tracking-[-.035em]">{show.name}</h2><div className="mt-3 flex flex-wrap gap-2">{show.showType && <Badge>{show.showType}</Badge>}{show.archived && <Badge>Archivado</Badge>}</div></div>
                     <div className="pointer-events-auto relative">
                       <Button variant="ghost" size="icon" onClick={() => setMenuId(menuId === show.id ? undefined : show.id)} aria-label="Más acciones"><MoreHorizontal size={18} /></Button>
-                      {menuId === show.id && <div className="absolute right-0 top-10 z-20 w-48 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-1 shadow-xl">
+                      {menuId === show.id && <div className="absolute right-0 top-10 z-20 w-48 border-2 border-[var(--strong-line)] bg-[var(--panel)] p-1 shadow-[5px_5px_0_var(--shadow-ink)]">
                         {!show.archived && <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-[var(--panel-2)]" onClick={() => { const id = duplicateShow(show.id); setMenuId(undefined); if (id) navigate(`/shows/${id}`) }}><Copy size={15} />Duplicar</button>}
                         <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-[var(--panel-2)]" onClick={() => { archiveShow(show.id, !show.archived); setMenuId(undefined) }}>{show.archived ? <RotateCcw size={15} /> : <Archive size={15} />}{show.archived ? 'Restaurar' : 'Archivar'}</button>
                         <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--danger)] hover:bg-[var(--panel-2)]" onClick={() => handleDelete(show.id)}><Trash2 size={15} />Eliminar</button>
                       </div>}
                     </div>
                   </div>
-                  <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
+                  <div className="mt-5 grid grid-cols-2 gap-3 border-t border-dashed border-[var(--line)] pt-4 font-mono text-xs">
                     <div className="flex items-center gap-2 muted"><Calendar size={15} />{formatDate(show.date, preferences.dateFormat)}</div>
                     <div className="flex items-center gap-2 muted"><Clock size={15} />{formatTime(show.time, preferences.timeFormat)}</div>
                     <div className="flex items-center gap-2 muted"><Users size={15} />{show.people.length} persona{show.people.length === 1 ? '' : 's'}</div>
