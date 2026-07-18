@@ -31,7 +31,9 @@ test.describe('Show lock blocks a second device (real Supabase)', () => {
     await configureSupabaseRuntime(pageB, config!)
     await pageB.goto(showUrl)
 
-    await expect(pageB.getByRole('heading', { name: 'Show en edición' })).toBeVisible({ timeout: 15_000 })
+    const blockedHeading = pageB.getByRole('heading', { name: 'Show en edición' })
+    await expect(blockedHeading).toBeVisible({ timeout: 15_000 })
+    expect(await blockedHeading.evaluate((element) => getComputedStyle(element.closest('.panel')!).borderWidth)).toBe('1px')
     await expect(pageB.getByText('No existe una opción de forzar desbloqueo.')).toBeVisible()
     await expect(pageB.getByRole('button', { name: /guardar preset|compartir/i })).toHaveCount(0)
 

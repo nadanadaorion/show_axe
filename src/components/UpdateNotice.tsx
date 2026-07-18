@@ -8,7 +8,7 @@ export function UpdateNotice() {
 
   return (
     <div role="status" className="fixed inset-x-4 bottom-4 z-[80] flex justify-center sm:inset-x-auto sm:right-6">
-      <div className="flex max-w-sm items-start gap-3 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4 shadow-xl">
+      <div className="signal-rule flex max-w-sm items-start gap-3 border-2 border-[var(--strong-line)] bg-[var(--panel)] p-4 shadow-[6px_6px_0_var(--shadow-ink)]">
         <RefreshCw size={18} className="mt-0.5 flex-none" aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium">Hay una nueva versión disponible</p>

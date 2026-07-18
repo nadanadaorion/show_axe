@@ -49,13 +49,13 @@ export class ErrorBoundary extends Component<Props, State> {
 
     return (
       <div className="flex min-h-64 items-center justify-center p-5">
-        <div className="panel w-full max-w-xl p-6 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--panel-2)]">
+        <div className="panel signal-rule w-full max-w-xl p-6 text-center shadow-[6px_6px_0_var(--shadow-ink)]">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center border-2 border-[var(--strong-line)] bg-[var(--panel-2)] text-[var(--accent)]">
             <AlertTriangle size={24} />
           </div>
-          <h1 className="text-xl font-semibold">{title}</h1>
+          <h1 className="text-3xl font-black uppercase tracking-[-.035em]">{title}</h1>
           <p className="mx-auto mt-2 max-w-md text-sm muted">{description}</p>
-          {exportFailed && <p role="alert" className="mx-auto mt-3 max-w-md text-sm text-red-700 dark:text-red-300">No se pudo generar el respaldo. Tus datos locales no se modificaron.</p>}
+          {exportFailed && <p role="alert" className="mx-auto mt-3 max-w-md text-sm text-[var(--danger)]">No se pudo generar el respaldo. Tus datos locales no se modificaron.</p>}
           {import.meta.env.DEV && (
             <details className="mt-5 rounded-xl border border-[var(--line)] bg-[var(--panel-2)] p-3 text-left text-xs muted">
               <summary className="cursor-pointer font-medium text-[var(--text)]">Detalles técnicos (solo en desarrollo)</summary>

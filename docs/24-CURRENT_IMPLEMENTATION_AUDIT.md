@@ -86,6 +86,27 @@ Real export mapping tests cover portrait/landscape, custom CH, phantom, patch, n
 - Developer-only Error Boundary details remain guarded by `import.meta.env.DEV` and are removed from production behavior.
 - Supabase sync, Workspace remote-wins, Show conflict choices, locks, authentication, Input List functional rules, PDF functional content, delete semantics and return collision policy were not changed.
 
+## Sonic Grunge visual layer
+
+The `codex/sonic-grunge-redesign` candidate is based on `main` at `c112af9f5e3363c870efaefe22a96d0248606a79`. Its scope is deliberately presentational:
+
+- shared colors, typography, surfaces, controls, navigation, status treatments and responsive composition now follow `docs/SONIC_GRUNGE_DESIGN_SYSTEM.md`;
+- Anybody is shipped as a local OFL-1.1 WOFF2 asset, so the identity does not depend on a network font request;
+- CSS texture uses a lightweight repeating gradient and does not introduce a bitmap payload;
+- the existing lazy-route and dynamic-PDF boundaries remain intact;
+- no route, label, control, store, IndexedDB schema, Supabase path, synchronization rule, lock/conflict rule, Service Worker behavior, Input List mapping or PDF content changed.
+
+Measured production bundle before/after the visual layer:
+
+- eager entry: 252.19 kB / 79.25 kB gzip → 254.13 kB / 79.79 kB gzip;
+- CSS: 23.60 kB / 5.60 kB gzip → 29.99 kB / 6.80 kB gzip;
+- local Anybody font: +24.05 kB (browser-compressed WOFF2);
+- PDF chunk: unchanged at 424.27 kB / 139.20 kB gzip;
+- largest eager vendor: unchanged at 214.64 kB / 55.52 kB gzip;
+- no Vite 500 kB chunk warning.
+
+Local redesign verification: lint passed; test typecheck passed; 135/135 unit/component tests passed; production build passed; 5/5 locally runnable browser E2E passed with 11 real-Supabase scenarios skipped, 0 failed and retries disabled; Pages/offline passed 1/1. Real-Supabase integration, blocked-lock visual state and the Linux secret scan remain CI evidence requirements for the final commit.
+
 ## Contradictions and known limitations
 
 1. **Undo vs remote delete (release-significant, unresolved):** an immediate Undo replaces a still-pending `show-delete` with a serialized upsert for the same queue key. If the remote delete has already completed, restoration can race with sync revision state and may require conflict resolution. Exact permanent-delete/Undo semantics is an open Decision Log item. Milestone 4 documents this behavior and intentionally stops before changing it. Acceptance remains open.
