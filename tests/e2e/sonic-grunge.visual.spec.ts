@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -60,6 +61,12 @@ test('Sonic Grunge desktop keeps Shows, workspace, Input List, Library, modal, f
   if (await continueButton.isVisible().catch(() => false)) await continueButton.click()
   await expect(page.getByRole('heading', { name: 'Entradas' })).toBeVisible()
   await expect(page.getByText(/Consola Sonic$/)).toBeVisible()
+  await expect(page.getByRole('combobox', { name: 'Orientación del PDF' })).toBeVisible()
+  await expect(page.getByRole('checkbox', { name: /Phantom de Consola Sonic/ })).toBeVisible()
+  const inputListAccessibility = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze()
+  expect(inputListAccessibility.violations).toEqual([])
   await page.getByRole('button', { name: 'Cerrar input list' }).click()
 
   await page.getByRole('link', { name: 'Biblioteca' }).click()
@@ -72,4 +79,23 @@ test('Sonic Grunge desktop keeps Shows, workspace, Input List, Library, modal, f
   await expect(page.getByText(/^Edici.n sin conexi.n$/i)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Agregar equipo' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0)
+
+  await context.setOffline(false)
+  await page.evaluate(() => window.dispatchEvent(new Event('online')))
+  await page.getByRole('link', { name: 'Preferencias' }).click()
+  await page.getByLabel('Apariencia').selectOption('light')
+  const warning = page.getByText(/No hay cuentas ni autenticación/)
+  await expect(warning).toBeVisible()
+  const warningColors = await warning.evaluate((element) => {
+    const panel = element.parentElement
+    const foreground = getComputedStyle(element).color
+    const background = panel ? getComputedStyle(panel).backgroundColor : ''
+    return { foreground, background }
+  })
+  expect(warningColors.foreground).toBe('rgb(23, 16, 0)')
+  expect(warningColors.background).toBe('rgb(255, 227, 122)')
+  const settingsAccessibility = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze()
+  expect(settingsAccessibility.violations).toEqual([])
 })

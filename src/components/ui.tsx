@@ -52,7 +52,7 @@ export function SearchInput({ value, onChange, placeholder = 'Buscar…' }: { va
 }
 
 export function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'neutral' | 'success' | 'warning' }) {
-  const classes = tone === 'success' ? 'text-[var(--success)]' : tone === 'warning' ? 'text-amber-600 dark:text-amber-400' : 'muted'
+  const classes = tone === 'success' ? 'text-[var(--success)]' : tone === 'warning' ? 'text-[var(--warning)]' : 'muted'
   return <span className={`inline-flex border border-[var(--strong-line)] bg-[var(--panel-2)] px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-[.08em] ${classes}`}>{children}</span>
 }
 

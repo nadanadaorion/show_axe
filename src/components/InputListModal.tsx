@@ -123,7 +123,7 @@ export function InputListModal({ open, show, onClose }: { open: boolean; show: S
             <Button variant="secondary" size="sm" onClick={() => setSyncOpen(true)}>
               <RefreshCw size={14} />Actualizar desde equipo
             </Button>
-            <Select value={pdfOrientation} onChange={(event) => setPdfOrientation(event.target.value as PdfOrientation)} className="h-8 w-auto py-1 text-xs">
+            <Select value={pdfOrientation} onChange={(event) => setPdfOrientation(event.target.value as PdfOrientation)} className="h-8 w-auto py-1 text-xs" aria-label="Orientación del PDF">
               <option value="landscape">PDF horizontal</option>
               <option value="portrait">PDF vertical</option>
             </Select>
@@ -178,7 +178,7 @@ export function InputListModal({ open, show, onClose }: { open: boolean; show: S
                           <div><Input value={row.channel} onChange={(event) => updateRow(row.id, { channel: event.target.value })} inputMode="numeric" className="text-center font-semibold tabular-nums" aria-label={`Canal de ${row.use || row.equipment || `entrada ${index + 1}`}`} /></div>
                           <div><Input value={row.use} onChange={(event) => updateRow(row.id, { use: event.target.value })} placeholder="Snare Up, Voz…" /></div>
                           <div><Input value={row.equipment} onChange={(event) => updateRow(row.id, { equipment: event.target.value })} placeholder="SM58, DI…" /></div>
-                          <label className="flex cursor-pointer items-center justify-center"><input type="checkbox" checked={row.phantom} onChange={(event) => updateRow(row.id, { phantom: event.target.checked })} className="h-4 w-4" /></label>
+                          <label className="flex cursor-pointer items-center justify-center"><input type="checkbox" checked={row.phantom} onChange={(event) => updateRow(row.id, { phantom: event.target.checked })} className="h-4 w-4" aria-label={`Phantom de ${row.use || row.equipment || `entrada ${index + 1}`}`} /></label>
                           <div><Input value={row.patch || ''} onChange={(event) => updateRow(row.id, { patch: event.target.value || undefined })} placeholder="A1 / Local 1" /></div>
                           <div><Input value={row.notes || ''} onChange={(event) => updateRow(row.id, { notes: event.target.value || undefined })} placeholder="Notas técnicas" /></div>
                           <div className="flex justify-end gap-1">
@@ -216,8 +216,8 @@ export function InputListModal({ open, show, onClose }: { open: boolean; show: S
                           <div className="text-center font-semibold tabular-nums">{index + 1}</div>
                           <Input value={item.destination} onChange={(event) => updateReturn(item.id, { destination: event.target.value })} placeholder="Voz principal" />
                           <Input value={item.system} onChange={(event) => updateReturn(item.id, { system: event.target.value })} placeholder="IEM / Wedge" />
-                          <Select value={item.stereo ? 'stereo' : 'mono'} onChange={(event) => updateReturn(item.id, { stereo: event.target.value === 'stereo' })}><option value="mono">Mono</option><option value="stereo">Estéreo</option></Select>
-                          <div className="space-y-1"><Input type="number" min="1" value={item.outputStart} onChange={(event) => updateReturn(item.id, { outputStart: Math.max(1, Number(event.target.value) || 1) })} /><div className="text-center text-[11px] muted">{outputLabel(item)}</div></div>
+                          <Select value={item.stereo ? 'stereo' : 'mono'} onChange={(event) => updateReturn(item.id, { stereo: event.target.value === 'stereo' })} aria-label={`Tipo de retorno ${index + 1}`}><option value="mono">Mono</option><option value="stereo">Estéreo</option></Select>
+                          <div className="space-y-1"><Input type="number" min="1" value={item.outputStart} onChange={(event) => updateReturn(item.id, { outputStart: Math.max(1, Number(event.target.value) || 1) })} aria-label={`Salida inicial del retorno ${index + 1}`} /><div className="text-center text-[11px] muted">{outputLabel(item)}</div></div>
                           <Input value={item.notes || ''} onChange={(event) => updateReturn(item.id, { notes: event.target.value || undefined })} placeholder="Voz, tracks, click…" />
                           <div className="flex justify-end gap-1">
                             <Button variant="ghost" size="icon" disabled={index === 0} onClick={() => moveReturn(item.id, -1)} aria-label="Subir retorno"><ArrowUp size={14} /></Button>

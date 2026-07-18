@@ -32,7 +32,8 @@ content, routes, accessible names, interaction contracts and business behavior r
 ## Typography
 
 - Display: **Anybody Variable**, self-hosted from `@fontsource-variable/anybody` 5.2.7,
-  OFL-1.1. Only the Latin variable WOFF2 is bundled.
+  OFL-1.1. Only the Latin variable WOFF2 is bundled; its copyright notice and complete license are
+  preserved in [`docs/licenses/ANYBODY-OFL-1.1.txt`](licenses/ANYBODY-OFL-1.1.txt).
 - UI/body: Anybody with system sans fallbacks.
 - Technical: `ui-monospace`, `SFMono-Regular`, Consolas, Liberation Mono, monospace.
 - Scale: 12 px metadata, 14 px body/control, 18–24 px section titles, and responsive 36–72 px
