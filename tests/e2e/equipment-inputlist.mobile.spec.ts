@@ -20,6 +20,14 @@ test.describe('Equipment and Input List are usable on a mobile viewport (real Su
     const showId = new URL(page.url()).hash.split('/').pop()!
     const admin = createClient(config!.url, config!.anonKey)
 
+    // The visible global sync badge can complete an unrelated lock/workspace cycle. Confirm the
+    // create RPC itself reached Supabase before starting a second Show mutation; the dedicated
+    // coalescing/revision suites own intentionally overlapping saves.
+    await expect.poll(async () => {
+      const { data } = await admin.from('orion_shows').select('data').eq('id', showId).maybeSingle()
+      return (data?.data as { name?: string } | undefined)?.name
+    }, { timeout: 20_000 }).toBe(name)
+
     const remoteEquipmentNames = async () => {
       const { data } = await admin.from('orion_shows').select('data').eq('id', showId).maybeSingle()
       return ((data?.data as { equipment?: Array<{ name: string }> } | undefined)?.equipment || []).map((item) => item.name)
