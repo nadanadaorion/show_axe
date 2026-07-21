@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom'
 import { Badge, EmptyState, ProgressBar } from '../components/ui'
 import { fetchRemoteShowBySlug, getSupabase, remoteRowToShow } from '../lib/supabase'
 import { formatDate, formatTime, scheduleDuration } from '../lib/utils'
+import { branding } from '../lib/branding'
 import type { Show } from '../types'
 
 export default function PublicShowPage() {
@@ -43,7 +44,7 @@ export default function PublicShowPage() {
   const progress = show.equipment.length ? Math.round(checked / show.equipment.length * 100) : 0
   return <div className="min-h-screen px-4 py-8 sm:px-6 lg:py-12">
     <main className="mx-auto max-w-6xl">
-      <header className="mb-8 border-b-2 border-[var(--strong-line)] pb-6"><div className="mb-5 flex items-center justify-between gap-3"><div className="text-lg font-black uppercase tracking-[-.04em]">Ori♡n Shows</div><Badge>Vista pública · solo lectura</Badge></div><h1 className="text-5xl font-black uppercase leading-[.9] tracking-[-.055em] sm:text-7xl">{show.name}</h1><div className="mt-5 flex flex-wrap gap-2">{show.date && <Badge>{formatDate(show.date, 'dd/MM/yyyy')}</Badge>}{show.time && <Badge>{formatTime(show.time, '24h')}</Badge>}{show.showType && <Badge>{show.showType}</Badge>}{show.archived && <Badge>Archivado</Badge>}</div></header>
+      <header className="mb-8 border-b-2 border-[var(--strong-line)] pb-6"><div className="mb-5 flex items-center justify-between gap-3"><div className="text-lg font-black uppercase tracking-[-.04em]">{branding.name}</div><Badge>Vista pública · solo lectura</Badge></div><h1 className="text-5xl font-black uppercase leading-[.9] tracking-[-.055em] sm:text-7xl">{show.name}</h1><div className="mt-5 flex flex-wrap gap-2">{show.date && <Badge>{formatDate(show.date, 'dd/MM/yyyy')}</Badge>}{show.time && <Badge>{formatTime(show.time, '24h')}</Badge>}{show.showType && <Badge>{show.showType}</Badge>}{show.archived && <Badge>Archivado</Badge>}</div></header>
 
       <div className="mb-5 grid gap-4 sm:grid-cols-3"><Stat icon={<Calendar size={17} />} label="Fecha" value={formatDate(show.date, 'dd/MM/yyyy')} /><Stat icon={<Clock size={17} />} label="Hora" value={formatTime(show.time, '24h')} /><div className="panel p-4"><div className="mb-2 flex items-center justify-between text-xs muted"><span>Equipo listo</span><span>{checked}/{show.equipment.length}</span></div><ProgressBar value={progress} /><div className="mt-2 text-sm font-semibold">{progress}%</div></div></div>
 
@@ -58,7 +59,7 @@ export default function PublicShowPage() {
 
         <section className="panel overflow-hidden"><SectionTitle icon={<ListOrdered size={17} />} title="Input list" subtitle={show.inputList ? `${show.inputList.rows.length} entradas` : 'Sin configurar'} />{!show.inputList ? <EmptyRows text="El input list todavía no está configurado." /> : <div><div className="overflow-x-auto"><table className="w-full min-w-[620px] text-left text-xs"><thead className="bg-[var(--panel-2)] muted"><tr><th className="px-4 py-2">CH</th><th className="px-4 py-2">Uso</th><th className="px-4 py-2">Equipo</th><th className="px-4 py-2">48V</th><th className="px-4 py-2">Patch</th></tr></thead><tbody className="divide-y divide-[var(--line)]">{[...show.inputList.rows].sort((a,b)=>a.order-b.order).map((row) => <tr key={row.id}><td className="px-4 py-2 font-semibold">{row.channel}</td><td className="px-4 py-2">{row.use}</td><td className="px-4 py-2">{row.equipment}</td><td className="px-4 py-2">{row.phantom ? 'Sí' : 'No'}</td><td className="px-4 py-2">{row.patch || '—'}</td></tr>)}</tbody></table></div>{show.inputList.returns.length > 0 && <div className="border-t border-[var(--line)]"><div className="flex items-center gap-2 px-5 py-3 text-sm font-semibold"><Headphones size={16} />Retornos</div><div className="divide-y divide-[var(--line)]">{[...show.inputList.returns].sort((a,b)=>a.order-b.order).map((item)=><div key={item.id} className="flex justify-between gap-3 px-5 py-3 text-sm"><span>{item.destination || 'Sin destino'} · {item.system || 'Sistema'}</span><span className="font-medium">AUX {item.stereo ? `${item.outputStart}–${item.outputStart+1}` : item.outputStart}</span></div>)}</div></div>}</div>}</section>
       </div>
-      <footer className="mt-8 text-center text-xs muted">Última actualización: {new Date(show.updatedAt).toLocaleString()} · Ori♡n Shows</footer>
+      <footer className="mt-8 text-center text-xs muted">Última actualización: {new Date(show.updatedAt).toLocaleString()} · {branding.name}</footer>
     </main>
   </div>
 }

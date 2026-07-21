@@ -1,6 +1,7 @@
 import { Cloud, Database, ExternalLink, ShieldAlert } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { getRuntimeConfig, isSupportedSupabaseUrl, saveLocalRuntimeConfig } from '../lib/config'
+import { branding } from '../lib/branding'
 import { Button, Field, Input } from '../components/ui'
 
 export default function SetupPage() {
@@ -25,7 +26,7 @@ export default function SetupPage() {
 
   return <div className="min-h-screen px-4 py-10 sm:px-6 lg:py-16">
     <div className="mx-auto max-w-3xl">
-      <div className="mb-10 border-b-2 border-[var(--strong-line)] pb-6 text-center"><div className="text-5xl font-black uppercase leading-none tracking-[-.065em] sm:text-7xl">Ori♡n Shows</div><p className="mt-3 font-mono text-[10px] uppercase tracking-[.18em] muted">Configuración inicial de la versión compartida</p></div>
+      <div className="mb-10 border-b-2 border-[var(--strong-line)] pb-6 text-center"><div className="text-5xl font-black uppercase leading-none tracking-[-.065em] sm:text-7xl">{branding.name}</div><p className="mt-3 font-mono text-[10px] uppercase tracking-[.18em] muted">Configuración inicial de la versión compartida</p></div>
       <div className="grid gap-5 lg:grid-cols-[1.05fr_.95fr]">
         <form onSubmit={submit} className="panel signal-rule p-6 shadow-[6px_6px_0_var(--shadow-ink)]">
           <div className="mb-5 flex h-11 w-11 items-center justify-center border-2 border-[var(--strong-line)] bg-[var(--accent)] text-white"><Cloud size={21} /></div>

@@ -25,6 +25,8 @@ npm run check:secrets
 
 For another repository name set an appropriate Vite base and update the corresponding deployment test before shipping. A custom domain is optional and requires the same validation.
 
+To run the app for a different team (its own name, subtitle, accent color and Supabase project) see `docs/27-BRANDING_AND_WHITE_LABEL.md`. Branding is optional runtime config; unset values keep the defaults. On GitHub Pages, set the optional `BRAND_NAME`, `BRAND_TAGLINE`, `BRAND_ACCENT`, and `BRAND_ACCENT_TEXT` Actions variables alongside the Supabase ones.
+
 ## GitHub Pages workflow
 
 Repository setup:

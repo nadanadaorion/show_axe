@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { Button } from './ui'
 import { SyncStatusBadge } from './SyncController'
+import { branding } from '../lib/branding'
 
 const links = [
   { to: '/shows', label: 'Shows', icon: CalendarDays },
@@ -16,7 +17,7 @@ export function Layout() {
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[252px_1fr]">
       <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b-2 border-[var(--strong-line)] bg-[var(--panel)] px-4 lg:hidden">
-        <div className="text-lg font-black uppercase tracking-[-.04em]">Ori♡n Shows</div>
+        <div className="text-lg font-black uppercase tracking-[-.04em]">{branding.name}</div>
         <Button variant="ghost" size="icon" onClick={() => setOpen(true)} aria-label="Abrir menú"><Menu size={20} /></Button>
       </header>
 
@@ -25,8 +26,8 @@ export function Layout() {
       <aside className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r-2 border-[var(--strong-line)] bg-[var(--panel)] transition-transform lg:sticky lg:top-0 lg:z-20 lg:h-screen lg:w-auto lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="signal-rule flex h-24 items-center justify-between border-b border-dashed border-[var(--line)] px-5">
           <div>
-            <div className="text-2xl font-black uppercase leading-none tracking-[-.06em]">Ori♡n Shows</div>
-            <div className="mt-2 font-mono text-[9px] uppercase tracking-[.18em] muted">Preparación de shows</div>
+            <div className="text-2xl font-black uppercase leading-none tracking-[-.06em]">{branding.name}</div>
+            <div className="mt-2 font-mono text-[9px] uppercase tracking-[.18em] muted">{branding.tagline}</div>
           </div>
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(false)} aria-label="Cerrar"><X size={18} /></Button>
         </div>

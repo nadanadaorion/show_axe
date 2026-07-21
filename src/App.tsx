@@ -6,6 +6,7 @@ import { GlobalErrorBoundary, RouteErrorBoundary } from './components/ErrorBound
 import { SyncController } from './components/SyncController'
 import { UpdateNotice } from './components/UpdateNotice'
 import { isRuntimeConfigured } from './lib/config'
+import { branding } from './lib/branding'
 import { useAppStore } from './store'
 import ShowsPage from './pages/ShowsPage'
 import SetupPage from './pages/SetupPage'
@@ -44,7 +45,7 @@ function EditorRoutes() {
     return () => query.removeEventListener('change', apply)
   }, [preferences.theme])
 
-  if (!ready) return <div className="flex min-h-screen items-center justify-center"><div className="text-center"><div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-[var(--line)] border-t-[var(--text)]" /><p className="text-sm muted">Abriendo Ori♡n Shows…</p></div></div>
+  if (!ready) return <div className="flex min-h-screen items-center justify-center"><div className="text-center"><div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-[var(--line)] border-t-[var(--text)]" /><p className="text-sm muted">Abriendo {branding.name}…</p></div></div>
 
   return <SyncController><Suspense fallback={<RouteFallback />}><Routes><Route element={<Layout />}><Route index element={<Navigate to={`/${preferences.initialModule}`} replace />} /><Route path="shows" element={<RouteErrorBoundary><ShowsPage /></RouteErrorBoundary>} /><Route path="shows/:id" element={<RouteErrorBoundary><ShowPage /></RouteErrorBoundary>} /><Route path="library" element={<RouteErrorBoundary><LibraryPage /></RouteErrorBoundary>} /><Route path="presets" element={<RouteErrorBoundary><PresetsPage /></RouteErrorBoundary>} /><Route path="settings" element={<RouteErrorBoundary><SettingsPage /></RouteErrorBoundary>} /><Route path="*" element={<Navigate to="/shows" replace />} /></Route></Routes></Suspense></SyncController>
 }

@@ -13,7 +13,11 @@ function runConfigScript(existing?: Record<string, string>) {
 
 describe('public/config.js', () => {
   it('ships empty placeholders when nothing has configured window.__ORION_CONFIG__ yet', () => {
-    expect(runConfigScript()).toEqual({ supabaseUrl: '', supabasePublishableKey: '' })
+    expect(runConfigScript()).toEqual({
+      supabaseUrl: '',
+      supabasePublishableKey: '',
+      branding: { name: '', tagline: '', accent: '', accentText: '' },
+    })
   })
 
   it('does not clobber a config already injected before this script runs', () => {

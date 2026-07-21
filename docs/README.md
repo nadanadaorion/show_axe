@@ -31,6 +31,7 @@ The documents in this folder are normative unless explicitly marked as an audit,
 | `24-CURRENT_IMPLEMENTATION_AUDIT.md` | Honest status of the included code. |
 | `25-DECISION_LOG.md` | Product decisions already approved. |
 | `26-GLOSSARY.md` | Domain terminology. |
+| `27-BRANDING_AND_WHITE_LABEL.md` | Per-team name, subtitle, accent color, and cloning to a new Supabase project. |
 | `TROUBLESHOOTING.md` | Recovery for configuration, sync, offline, backups, PDF, and deploys. |
 | `RELEASE_NOTES_2.0.0.md` | Candidate release notes and known limits. |
 | `ROLLBACK_2.0.0.md` | Data-preserving rollback procedure. |

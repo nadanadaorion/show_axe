@@ -21,6 +21,11 @@ jobs:
     env:
       SUPABASE_URL: ${{ vars.SUPABASE_URL }}
       SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+      # Optional white-label branding (see docs/27-BRANDING_AND_WHITE_LABEL.md). Unset = defaults.
+      BRAND_NAME: ${{ vars.BRAND_NAME }}
+      BRAND_TAGLINE: ${{ vars.BRAND_TAGLINE }}
+      BRAND_ACCENT: ${{ vars.BRAND_ACCENT }}
+      BRAND_ACCENT_TEXT: ${{ vars.BRAND_ACCENT_TEXT }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

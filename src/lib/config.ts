@@ -1,3 +1,5 @@
+import type { OrionBranding } from './branding'
+
 export interface OrionRuntimeConfig {
   supabaseUrl: string
   supabasePublishableKey: string
@@ -5,7 +7,9 @@ export interface OrionRuntimeConfig {
 
 declare global {
   interface Window {
-    __ORION_CONFIG__?: Partial<OrionRuntimeConfig>
+    // The runtime config file (public/config.js) carries both the Supabase credentials and the
+    // optional white-label branding block consumed by src/lib/branding.ts.
+    __ORION_CONFIG__?: Partial<OrionRuntimeConfig> & { branding?: Partial<OrionBranding> }
   }
 }
 
