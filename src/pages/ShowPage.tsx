@@ -239,6 +239,18 @@ function AddEquipmentModal({ open, onClose, show, onAdd }: { open: boolean; onCl
   const [quantity, setQuantity] = useState(1)
   const [search, setSearch] = useState('')
   const catalog = library.equipment.filter((item) => !item.archived && item.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()))
+  const selectLibraryItem = (itemId: string) => {
+    setLibraryId(itemId)
+    // Align the category select below with the item's library category (matched by name against
+    // this show's categories) so the picked item lands where it already belongs. The select stays
+    // editable: the user can still move it somewhere else after picking.
+    const item = library.equipment.find((entry) => entry.id === itemId)
+    const libraryCategory = library.categories.find((category) => category.id === item?.categoryId)
+    const match = libraryCategory
+      ? show.equipmentCategories.find((category) => category.name.toLocaleLowerCase() === libraryCategory.name.toLocaleLowerCase())
+      : undefined
+    if (match) setCategoryId(match.id)
+  }
   const submit = (event: FormEvent) => {
     event.preventDefault()
     if (mode === 'library' && libraryId) {
@@ -249,7 +261,7 @@ function AddEquipmentModal({ open, onClose, show, onAdd }: { open: boolean; onCl
   return <Modal open={open} title="Agregar equipo" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button type="submit" form="add-equipment" disabled={mode === 'library' ? !libraryId : !name.trim()}>Agregar</Button></>}>
     <form id="add-equipment" onSubmit={submit} className="space-y-4">
       <div className="flex rounded-xl border border-[var(--line)] p-1"><button type="button" onClick={() => setMode('library')} className={`flex-1 rounded-lg px-3 py-2 text-sm ${mode === 'library' ? 'bg-[var(--accent)] text-[var(--accent-text)]' : 'muted'}`}>Desde Biblioteca</button><button type="button" onClick={() => setMode('free')} className={`flex-1 rounded-lg px-3 py-2 text-sm ${mode === 'free' ? 'bg-[var(--accent)] text-[var(--accent-text)]' : 'muted'}`}>Creación libre</button></div>
-      {mode === 'library' ? <><SearchInput value={search} onChange={setSearch} placeholder="Buscar en Biblioteca…" /><div className="max-h-56 space-y-2 overflow-auto">{catalog.map((item) => <label key={item.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 ${libraryId === item.id ? 'border-[var(--text)]' : 'border-[var(--line)]'}`}><input type="radio" name="equipment-library" value={item.id} checked={libraryId === item.id} onChange={() => setLibraryId(item.id)} /><div><div className="text-sm font-medium">{item.name}</div><div className="text-xs muted">{item.unit || 'Sin unidad'} · {library.categories.find((category) => category.id === item.categoryId)?.name || 'Sin categoría'}</div></div></label>)}{!catalog.length && <div className="rounded-xl border border-dashed border-[var(--line)] p-5 text-center text-sm muted">No hay equipo en la Biblioteca. Usa creación libre.</div>}</div></> : <Field label="Nombre"><Input autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder="Ej. 2 micrófonos inalámbricos" /></Field>}
+      {mode === 'library' ? <><SearchInput value={search} onChange={setSearch} placeholder="Buscar en Biblioteca…" /><div className="max-h-56 space-y-2 overflow-auto">{catalog.map((item) => <label key={item.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 ${libraryId === item.id ? 'border-[var(--text)]' : 'border-[var(--line)]'}`}><input type="radio" name="equipment-library" value={item.id} checked={libraryId === item.id} onChange={() => selectLibraryItem(item.id)} /><div><div className="text-sm font-medium">{item.name}</div><div className="text-xs muted">{item.unit || 'Sin unidad'} · {library.categories.find((category) => category.id === item.categoryId)?.name || 'Sin categoría'}</div></div></label>)}{!catalog.length && <div className="rounded-xl border border-dashed border-[var(--line)] p-5 text-center text-sm muted">No hay equipo en la Biblioteca. Usa creación libre.</div>}</div></> : <Field label="Nombre"><Input autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder="Ej. 2 micrófonos inalámbricos" /></Field>}
       <div className="grid grid-cols-2 gap-4"><Field label="Cantidad"><Input type="number" min="0" value={quantity} onChange={(event) => setQuantity(Number(event.target.value))} /></Field><Field label="Categoría"><Select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>{[...show.equipmentCategories].sort((a, b) => a.order - b.order).map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</Select></Field></div>
     </form>
   </Modal>
