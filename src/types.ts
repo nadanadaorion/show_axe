@@ -31,6 +31,11 @@ export interface ShowEquipmentCategory {
   id: Id
   name: string
   order: number
+  /**
+   * Whether equipment in this category feeds the input list generator. Defaults to true
+   * (undefined = included) so shows saved before this field existed keep generating every row.
+   */
+  includeInInputList?: boolean
 }
 
 export interface EquipmentAssignment {

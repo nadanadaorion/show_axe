@@ -5,18 +5,26 @@ import {
   FileText,
   Hash,
   Plus,
+  Redo2,
   RefreshCw,
   Trash2,
+  Undo2,
   X,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAppStore } from '../store'
 import type { InputListConfig, InputListRow, MonitorReturn, Show } from '../types'
 import { createInputList, nextInputChannel, nextReturnOutput, outputLabel, previewInputListSync, renumberInputRows } from '../lib/inputList'
 import type { PdfOrientation } from '../lib/inputListPdf'
-import { now, uid } from '../lib/utils'
+import { clone, now, uid } from '../lib/utils'
 import { Badge, Button, Field, Input, Label, Modal, Select, Textarea } from './ui'
 import { useToast } from './Toast'
+
+// Undo history bounds: at most HISTORY_LIMIT snapshots, and consecutive edits within
+// SNAPSHOT_GROUP_MS (e.g. typing in one field) collapse into a single undo step so the
+// small history isn't consumed keystroke by keystroke.
+const HISTORY_LIMIT = 10
+const SNAPSHOT_GROUP_MS = 800
 
 export function InputListModal({ open, show, onClose }: { open: boolean; show: Show; onClose: () => void }) {
   const updateShow = useAppStore((state) => state.updateShow)
@@ -24,14 +32,49 @@ export function InputListModal({ open, show, onClose }: { open: boolean; show: S
   const [syncOpen, setSyncOpen] = useState(false)
   const [pdfOrientation, setPdfOrientation] = useState<PdfOrientation>('landscape')
   const [pdfExporting, setPdfExporting] = useState(false)
+  const [undoStack, setUndoStack] = useState<InputListConfig[]>([])
+  const [redoStack, setRedoStack] = useState<InputListConfig[]>([])
+  const lastSnapshotAt = useRef(0)
   const config = show.inputList || createInputList(show)
   const rows = useMemo(() => [...config.rows].sort((a, b) => a.order - b.order), [config.rows])
   const returns = useMemo(() => [...config.returns].sort((a, b) => a.order - b.order), [config.returns])
   const syncPreview = useMemo(() => previewInputListSync(show), [show])
 
+  useEffect(() => {
+    if (!open) {
+      setUndoStack([])
+      setRedoStack([])
+      lastSnapshotAt.current = 0
+    }
+  }, [open])
+
   if (!open) return null
 
-  const save = (next: InputListConfig) => updateShow(show.id, { inputList: { ...next, updatedAt: now() } })
+  const save = (next: InputListConfig) => {
+    const stamp = Date.now()
+    if (stamp - lastSnapshotAt.current > SNAPSHOT_GROUP_MS) {
+      setUndoStack((stack) => [...stack, clone(config)].slice(-HISTORY_LIMIT))
+    }
+    lastSnapshotAt.current = stamp
+    setRedoStack([])
+    updateShow(show.id, { inputList: { ...next, updatedAt: now() } })
+  }
+  const undo = () => {
+    const previous = undoStack[undoStack.length - 1]
+    if (!previous) return
+    setUndoStack((stack) => stack.slice(0, -1))
+    setRedoStack((stack) => [...stack, clone(config)].slice(-HISTORY_LIMIT))
+    lastSnapshotAt.current = 0
+    updateShow(show.id, { inputList: { ...previous, updatedAt: now() } })
+  }
+  const redo = () => {
+    const next = redoStack[redoStack.length - 1]
+    if (!next) return
+    setRedoStack((stack) => stack.slice(0, -1))
+    setUndoStack((stack) => [...stack, clone(config)].slice(-HISTORY_LIMIT))
+    lastSnapshotAt.current = 0
+    updateShow(show.id, { inputList: { ...next, updatedAt: now() } })
+  }
   const updateRow = (id: string, patch: Partial<InputListRow>) =>
     save({ ...config, rows: rows.map((row) => (row.id === id ? { ...row, ...patch, id: row.id } : row)) })
   const moveRow = (id: string, direction: -1 | 1) => {
@@ -120,6 +163,10 @@ export function InputListModal({ open, show, onClose }: { open: boolean; show: S
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center border-2 border-[var(--strong-line)]">
+              <Button variant="ghost" size="icon" onClick={undo} disabled={!undoStack.length} aria-label="Deshacer" title="Deshacer último cambio"><Undo2 size={16} /></Button>
+              <Button variant="ghost" size="icon" onClick={redo} disabled={!redoStack.length} aria-label="Rehacer" title="Rehacer cambio deshecho"><Redo2 size={16} /></Button>
+            </div>
             <Button variant="secondary" size="sm" onClick={() => setSyncOpen(true)}>
               <RefreshCw size={14} />Actualizar desde equipo
             </Button>

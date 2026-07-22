@@ -18,12 +18,12 @@ import {
   Trash2,
   Users,
 } from 'lucide-react'
-import { useMemo, useState, type DragEvent, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type DragEvent, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAppStore } from '../store'
 import type { ScheduleItem, Show, ShowEquipmentItem, ShowPerson } from '../types'
 import { scheduleDuration } from '../lib/utils'
-import { createInputList, normalizeAssignments } from '../lib/inputList'
+import { categoryFeedsInputList, createInputList, normalizeAssignments } from '../lib/inputList'
 import { useShowLock } from '../lib/useShowLock'
 import { Badge, Button, EmptyState, Field, Input, Label, Modal, ProgressBar, SearchInput, Select, Textarea } from '../components/ui'
 import { useToast } from '../components/Toast'
@@ -164,7 +164,7 @@ function EquipmentTab({ show }: { show: Show }) {
         return <section key={category.id} className="panel overflow-hidden border-l-4 border-l-[var(--accent)]" onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, category.id)}>
           <div className="flex flex-col gap-3 border-b-2 border-[var(--strong-line)] bg-[var(--panel-2)] px-4 py-3 sm:flex-row sm:items-center">
             <div className="min-w-0 flex-1"><Input value={category.name} onChange={(event) => updateShowCategory(show.id, category.id, { name: event.target.value })} className="border-transparent bg-transparent p-0 font-semibold focus:border-transparent focus:shadow-none" aria-label={`Nombre de categoría: ${category.name}`} /><div className="mt-2 max-w-xs"><ProgressBar value={percent} /></div></div>
-            <div className="flex items-center gap-1"><span className="mr-2 font-mono text-[10px] font-bold muted">{completed}/{allInCategory.length}</span><Button variant="ghost" size="icon" disabled={index === 0} onClick={() => moveShowCategory(show.id, category.id, -1)} aria-label="Subir categoría"><ChevronUp size={16} /></Button><Button variant="ghost" size="icon" disabled={index === categories.length - 1} onClick={() => moveShowCategory(show.id, category.id, 1)} aria-label="Bajar categoría"><ChevronDown size={16} /></Button><Button variant="ghost" size="icon" disabled={categories.length <= 1} onClick={() => deleteShowCategory(show.id, category.id)} aria-label="Eliminar categoría"><Trash2 size={16} /></Button></div>
+            <div className="flex items-center gap-1"><label className="mr-2 flex cursor-pointer items-center gap-1.5 border border-[var(--line)] bg-[var(--panel)] px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-[.08em]" title="Los elementos de esta categoría alimentan el generador del input list"><input type="checkbox" checked={category.includeInInputList !== false} onChange={(event) => updateShowCategory(show.id, category.id, { includeInInputList: event.target.checked })} className="h-3.5 w-3.5" aria-label={`Incluir la categoría ${category.name} en el input list`} />Input list</label><span className="mr-2 font-mono text-[10px] font-bold muted">{completed}/{allInCategory.length}</span><Button variant="ghost" size="icon" disabled={index === 0} onClick={() => moveShowCategory(show.id, category.id, -1)} aria-label="Subir categoría"><ChevronUp size={16} /></Button><Button variant="ghost" size="icon" disabled={index === categories.length - 1} onClick={() => moveShowCategory(show.id, category.id, 1)} aria-label="Bajar categoría"><ChevronDown size={16} /></Button><Button variant="ghost" size="icon" disabled={categories.length <= 1} onClick={() => deleteShowCategory(show.id, category.id)} aria-label="Eliminar categoría"><Trash2 size={16} /></Button></div>
           </div>
           {!items.length ? <div className="p-5 text-sm muted">{search ? 'No hay coincidencias en esta categoría.' : 'Arrastra equipo aquí o agrega un elemento.'}</div> : <div className="divide-y divide-[var(--line)]">{items.map((item, itemIndex) => <EquipmentRow key={item.id} show={show} item={item} categories={categories} origins={library.origins.filter((origin) => !origin.archived).map((origin) => origin.name)} canMoveUp={itemIndex > 0} canMoveDown={itemIndex < items.length - 1} onUpdate={(patch) => updateEquipment(show.id, item.id, patch)} onDropItem={(draggedId) => moveEquipment(show.id, draggedId, category.id, item.order)} onMove={(direction) => { const neighbor = items[itemIndex + direction]; if (!neighbor) return; moveEquipment(show.id, item.id, item.categoryId, direction === -1 ? neighbor.order - 0.5 : neighbor.order + 0.5); showToast('Equipo movido') }} onMoveToCategory={(categoryId) => { moveEquipment(show.id, item.id, categoryId); showToast(`Movido a "${categories.find((entry) => entry.id === categoryId)?.name}"`) }} onDuplicate={() => duplicateEquipment(show.id, item.id)} onDelete={() => { const removed = deleteEquipment(show.id, item.id); if (removed) showToast('Equipo eliminado', { onAction: () => restoreEquipment(show.id, removed) }) }} />)}</div>}
         </section>
@@ -181,6 +181,7 @@ function EquipmentRow({ item, show, categories, origins, canMoveUp, canMoveDown,
   const assignments = normalizeAssignments(item.assignments, item.quantity)
   const assignedUses = assignments.filter((assignment) => assignment.use.trim())
   const useSummary = assignedUses.map((assignment) => assignment.use.trim()).join(', ')
+  const categoryExcluded = !categoryFeedsInputList(show, item.categoryId)
   const updateAssignment = (assignmentId: string, use: string) =>
     onUpdate({ assignments: assignments.map((assignment) => (assignment.id === assignmentId ? { ...assignment, use } : assignment)) })
 
@@ -196,7 +197,7 @@ function EquipmentRow({ item, show, categories, origins, canMoveUp, canMoveDown,
         <div className={`truncate text-sm font-medium ${item.checked ? 'line-through opacity-55' : ''}`}>{item.quantity} {item.unit || '×'} {item.name}</div>
         <div className="mt-0.5 truncate text-xs muted">
           {item.originName || 'Sin origen'}
-          {item.includeInInputList !== false ? ` · Input list ${assignedUses.length}/${item.quantity}` : ' · Fuera del input list'}
+          {categoryExcluded ? ' · Fuera del input list (categoría)' : item.includeInInputList !== false ? ` · Input list ${assignedUses.length}/${item.quantity}` : ' · Fuera del input list'}
           {useSummary ? ` · ${useSummary}` : item.notes ? ` · ${item.notes}` : ''}
         </div>
       </button>
@@ -266,7 +267,12 @@ function PeopleTab({ show }: { show: Show }) {
   return <>
     <div className="mb-4 flex flex-col gap-3 sm:flex-row"><div className="flex-1"><SearchInput value={search} onChange={setSearch} placeholder="Buscar persona, empresa o función…" /></div><Button onClick={() => setAddOpen(true)}><Plus size={16} />Agregar persona</Button></div>
     {!people.length ? <EmptyState title={search ? 'Sin coincidencias' : 'No hay personas'} description={search ? 'Prueba con otro término.' : 'Agrega contactos desde la Biblioteca o crea personas solo para este show.'} action={!search ? <Button onClick={() => setAddOpen(true)}>Agregar persona</Button> : undefined} /> : <div className="panel divide-y divide-[var(--line)]">{people.map((person, index) => <PersonRow key={person.id} person={person} canMoveUp={index > 0} canMoveDown={index < people.length - 1} onMove={(direction) => { const target = people[index + direction]; if (!target) return; updatePerson(show.id, person.id, { order: target.order }); updatePerson(show.id, target.id, { order: person.order }) }} onUpdate={(patch) => updatePerson(show.id, person.id, patch)} onDelete={() => { const removed = deletePerson(show.id, person.id); if (removed) showToast('Persona eliminada', { onAction: () => restorePerson(show.id, removed) }) }} />)}</div>}
-    <AddPersonModal open={addOpen} onClose={() => setAddOpen(false)} show={show} onAdd={(input, libraryId) => { const id = addPerson(show.id, input, libraryId); if (!id) showToast('Esa persona ya está en el show'); else setAddOpen(false) }} />
+    <AddPersonModal open={addOpen} onClose={() => setAddOpen(false)} show={show} onAdd={(entries) => {
+      const added = entries.filter((entry) => addPerson(show.id, entry.input, entry.libraryId)).length
+      if (!added) { showToast(entries.length > 1 ? 'Esas personas ya están en el show' : 'Esa persona ya está en el show'); return }
+      showToast(added === 1 ? 'Persona agregada' : `${added} personas agregadas`)
+      setAddOpen(false)
+    }} />
   </>
 }
 
@@ -281,16 +287,29 @@ function PersonRow({ person, canMoveUp, canMoveDown, onMove, onUpdate, onDelete 
     </div>}</div>
 }
 
-function AddPersonModal({ open, onClose, show, onAdd }: { open: boolean; onClose: () => void; show: Show; onAdd: (input: Partial<ShowPerson> & { name: string }, libraryId?: string) => void }) {
+function AddPersonModal({ open, onClose, show, onAdd }: { open: boolean; onClose: () => void; show: Show; onAdd: (entries: Array<{ input: Partial<ShowPerson> & { name: string }; libraryId?: string }>) => void }) {
   const library = useAppStore((state) => state.library)
   const [mode, setMode] = useState<'library' | 'free'>('library')
-  const [libraryId, setLibraryId] = useState('')
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [name, setName] = useState('')
   const [search, setSearch] = useState('')
+  useEffect(() => {
+    if (!open) { setSelectedIds([]); setName(''); setSearch('') }
+  }, [open])
   const catalog = library.people.filter((person) => !person.archived && !show.people.some((existing) => existing.sourceLibraryId === person.id || existing.name.toLocaleLowerCase() === person.name.toLocaleLowerCase()) && `${person.name} ${person.company || ''}`.toLocaleLowerCase().includes(search.toLocaleLowerCase()))
-  return <Modal open={open} title="Agregar persona" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button disabled={mode === 'library' ? !libraryId : !name.trim()} onClick={() => { if (mode === 'library') { const person = library.people.find((item) => item.id === libraryId); if (person) onAdd({ name: person.name }, person.id) } else onAdd({ name: name.trim() }) }}>Agregar</Button></>}>
+  const toggle = (personId: string) => setSelectedIds((current) => current.includes(personId) ? current.filter((id) => id !== personId) : [...current, personId])
+  const submit = () => {
+    if (mode === 'library') {
+      const entries = selectedIds
+        .map((id) => library.people.find((person) => person.id === id))
+        .filter((person): person is NonNullable<typeof person> => Boolean(person))
+        .map((person) => ({ input: { name: person.name }, libraryId: person.id }))
+      if (entries.length) onAdd(entries)
+    } else if (name.trim()) onAdd([{ input: { name: name.trim() } }])
+  }
+  return <Modal open={open} title="Agregar personas" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button disabled={mode === 'library' ? !selectedIds.length : !name.trim()} onClick={submit}>{mode === 'library' && selectedIds.length > 1 ? `Agregar (${selectedIds.length})` : 'Agregar'}</Button></>}>
     <div className="space-y-4"><div className="flex rounded-xl border border-[var(--line)] p-1"><button type="button" onClick={() => setMode('library')} className={`flex-1 rounded-lg px-3 py-2 text-sm ${mode === 'library' ? 'bg-[var(--accent)] text-[var(--accent-text)]' : 'muted'}`}>Desde Biblioteca</button><button type="button" onClick={() => setMode('free')} className={`flex-1 rounded-lg px-3 py-2 text-sm ${mode === 'free' ? 'bg-[var(--accent)] text-[var(--accent-text)]' : 'muted'}`}>Creación libre</button></div>
-      {mode === 'library' ? <><SearchInput value={search} onChange={setSearch} placeholder="Buscar en Biblioteca…" /><div className="max-h-64 space-y-2 overflow-auto">{catalog.map((person) => <label key={person.id} className={`flex cursor-pointer gap-3 rounded-xl border p-3 ${libraryId === person.id ? 'border-[var(--text)]' : 'border-[var(--line)]'}`}><input type="radio" checked={libraryId === person.id} onChange={() => setLibraryId(person.id)} /><div><div className="text-sm font-medium">{person.name}</div><div className="text-xs muted">{person.company || 'Sin empresa'}</div></div></label>)}{!catalog.length && <div className="rounded-xl border border-dashed border-[var(--line)] p-5 text-center text-sm muted">No hay personas disponibles en la Biblioteca.</div>}</div></> : <Field label="Nombre"><Input autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder="Nombre completo" /></Field>}
+      {mode === 'library' ? <><SearchInput value={search} onChange={setSearch} placeholder="Buscar en Biblioteca…" /><p className="text-xs muted">Marca todas las personas que quieras agregar en una sola operación.</p><div className="max-h-64 space-y-2 overflow-auto">{catalog.map((person) => <label key={person.id} className={`flex cursor-pointer gap-3 rounded-xl border p-3 ${selectedIds.includes(person.id) ? 'border-[var(--text)]' : 'border-[var(--line)]'}`}><input type="checkbox" checked={selectedIds.includes(person.id)} onChange={() => toggle(person.id)} /><div><div className="text-sm font-medium">{person.name}</div><div className="text-xs muted">{person.company || 'Sin empresa'}</div></div></label>)}{!catalog.length && <div className="rounded-xl border border-dashed border-[var(--line)] p-5 text-center text-sm muted">No hay personas disponibles en la Biblioteca.</div>}</div></> : <Field label="Nombre"><Input autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder="Nombre completo" /></Field>}
     </div>
   </Modal>
 }

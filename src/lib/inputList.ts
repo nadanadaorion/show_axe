@@ -69,10 +69,18 @@ export function normalizeInputList(config: InputListConfig | undefined): InputLi
   }
 }
 
+export function categoryFeedsInputList(show: Show, categoryId: string): boolean {
+  const category = show.equipmentCategories.find((entry) => entry.id === categoryId)
+  return !category || category.includeInInputList !== false
+}
+
 export function generatedRowsFromEquipment(show: Show, channelStart = 1): InputListRow[] {
   const categoryOrder = new Map(show.equipmentCategories.map((category) => [category.id, category.order]))
+  const excludedCategories = new Set(
+    show.equipmentCategories.filter((category) => category.includeInInputList === false).map((category) => category.id),
+  )
   return show.equipment
-    .filter((item) => item.includeInInputList !== false)
+    .filter((item) => item.includeInInputList !== false && !excludedCategories.has(item.categoryId))
     .sort((a, b) => (categoryOrder.get(a.categoryId) ?? 0) - (categoryOrder.get(b.categoryId) ?? 0) || a.order - b.order)
     .flatMap((rawItem) => {
       const item = normalizeEquipmentItem(rawItem)

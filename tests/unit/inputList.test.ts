@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
+  categoryFeedsInputList,
   generatedRowsFromEquipment,
   nextInputChannel,
   nextReturnOutput,
@@ -69,6 +70,33 @@ describe('generatedRowsFromEquipment', () => {
     const show = buildShowWithMicrophones()
     const rows = generatedRowsFromEquipment(show, 1)
     expect(rows.every((r) => r.sourceEquipmentId && r.sourceAssignmentId)).toBe(true)
+  })
+
+  it('excludes every item of a category marked out of the Input List', () => {
+    const show = buildShowWithMicrophones()
+    show.equipmentCategories[0].includeInInputList = false
+    const rows = generatedRowsFromEquipment(show, 1)
+    expect(rows).toHaveLength(0)
+  })
+
+  it('keeps generating rows for categories without the flag (backward compatibility)', () => {
+    const show = buildShowWithMicrophones()
+    expect(show.equipmentCategories[0].includeInInputList).toBeUndefined()
+    expect(generatedRowsFromEquipment(show, 1)).toHaveLength(2)
+  })
+})
+
+describe('categoryFeedsInputList', () => {
+  it('treats a missing flag or unknown category as included', () => {
+    const show = buildShowWithMicrophones()
+    expect(categoryFeedsInputList(show, show.equipmentCategories[0].id)).toBe(true)
+    expect(categoryFeedsInputList(show, 'missing-category')).toBe(true)
+  })
+
+  it('reports exclusion when the category opts out', () => {
+    const show = buildShowWithMicrophones()
+    show.equipmentCategories[0].includeInInputList = false
+    expect(categoryFeedsInputList(show, show.equipmentCategories[0].id)).toBe(false)
   })
 })
 
