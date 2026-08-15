@@ -52,13 +52,33 @@ trap cleanup EXIT
 echo "==> Creating throwaway database $DB_NAME"
 admin_psql -c "create database $DB_NAME;" >/dev/null
 
-echo "==> Approximating Supabase platform bootstrap (anon/authenticated roles, empty supabase_realtime publication)"
+echo "==> Approximating Supabase platform bootstrap (anon/authenticated roles, auth schema, empty supabase_realtime publication)"
 db_psql -c "
 do \$\$ begin
   if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
   if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
 end \$\$;
 " >/dev/null
+
+# GoTrue's own schema, which the migrations reference from D-215 onwards:
+# orion_app_users has a foreign key to auth.users, and orion_is_member() calls
+# auth.uid(). Both are platform-provided on a real project. The stub below is
+# only enough for the schema to build and for the assertions to run as a member;
+# it is not an emulation of Supabase Auth, and nothing here proves anything about
+# real token handling — that needs `supabase start` (see docs/19-TESTING_STRATEGY.md).
+db_psql -c "
+create schema if not exists auth;
+create table if not exists auth.users (
+  id uuid primary key default gen_random_uuid(),
+  email text unique
+);
+create or replace function auth.uid() returns uuid
+language sql stable as \$\$
+  select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
+\$\$;
+grant usage on schema auth to anon, authenticated;
+" >/dev/null
+
 db_psql -c "create publication supabase_realtime;" >/dev/null 2>&1 || true
 
 echo "==> Applying migrations from empty (pass 1)"

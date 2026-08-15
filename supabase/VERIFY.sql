@@ -4,22 +4,45 @@
 select table_name
 from information_schema.tables
 where table_schema = 'public'
-  and table_name in ('orion_workspace', 'orion_shows', 'orion_show_locks')
+  and table_name in ('orion_workspace', 'orion_shows', 'orion_show_locks', 'orion_app_users')
 order by table_name;
 
 -- 2. RLS status
 select relname as table_name, relrowsecurity as rls_enabled
 from pg_class
 where relnamespace = 'public'::regnamespace
-  and relname in ('orion_workspace', 'orion_shows', 'orion_show_locks')
+  and relname in ('orion_workspace', 'orion_shows', 'orion_show_locks', 'orion_app_users')
 order by relname;
 
--- 3. Policies
+-- 3. Policies. Expected: every `roles` column reads {authenticated}. Any policy still
+--    listing `anon` means the editor is reachable without a session (D-215).
 select tablename, policyname, roles, cmd
 from pg_policies
 where schemaname = 'public'
-  and tablename in ('orion_workspace', 'orion_shows', 'orion_show_locks')
+  and tablename in ('orion_workspace', 'orion_shows', 'orion_show_locks', 'orion_app_users')
 order by tablename, policyname;
+
+-- 3b. Anonymous access audit. THIS IS THE ONE THAT MATTERS. Expected: exactly one
+--     row, orion_public_show, which serves the public read-only route and requires
+--     an exact slug (D-219). Anything else listed here is reachable by anyone
+--     holding the publishable key, which is public by construction.
+select 'table' as kind, t.table_name as object, p.privilege as detail
+from (values ('orion_shows'), ('orion_workspace'), ('orion_show_locks'), ('orion_app_users')) as t(table_name)
+cross join (values ('select'), ('insert'), ('update'), ('delete')) as p(privilege)
+where has_table_privilege('anon', format('public.%I', t.table_name), p.privilege)
+union all
+select 'function', f.signature, 'execute'
+from (values
+  ('public.orion_save_workspace(jsonb, bigint)'),
+  ('public.orion_save_show(text, text, jsonb, boolean, bigint, text)'),
+  ('public.orion_delete_show(text, bigint, text)'),
+  ('public.orion_acquire_show_lock(text, text, text, integer)'),
+  ('public.orion_release_show_lock(text, text)'),
+  ('public.orion_add_member(text, text, text)'),
+  ('public.orion_public_show(text)')
+) as f(signature)
+where has_function_privilege('anon', f.signature, 'execute')
+order by kind, object;
 
 -- 4. RPC signatures
 select p.proname, pg_get_function_identity_arguments(p.oid) as arguments
@@ -31,7 +54,10 @@ where n.nspname = 'public'
     'orion_save_show',
     'orion_delete_show',
     'orion_acquire_show_lock',
-    'orion_release_show_lock'
+    'orion_release_show_lock',
+    'orion_public_show',
+    'orion_is_member',
+    'orion_add_member'
   )
 order by p.proname;
 

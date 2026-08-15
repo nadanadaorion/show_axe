@@ -1,6 +1,13 @@
--- Ori♡n Shows V2.0 · Supabase setup
+-- Ori♡n Shows · Supabase setup
 -- Run this entire file in Supabase > SQL Editor.
--- This project intentionally has NO accounts: the anon role can read and edit all application data.
+--
+-- The editor requires an authenticated account that is a member of
+-- orion_app_users (D-215). The anon role may execute exactly one function,
+-- orion_public_show(slug), which serves the public read-only route.
+--
+-- After running this file: disable e-mail signups in Authentication > Providers,
+-- create the first account in Authentication > Users, then grant it membership:
+--   select * from public.orion_add_member('tu@email.com', 'Tu Nombre', 'owner');
 
 create table if not exists public.orion_workspace (
   id text primary key check (id = 'main'),
@@ -33,21 +40,15 @@ alter table public.orion_workspace enable row level security;
 alter table public.orion_shows enable row level security;
 alter table public.orion_show_locks enable row level security;
 
-grant select, insert, update, delete on public.orion_workspace to anon, authenticated;
-grant select, insert, update, delete on public.orion_shows to anon, authenticated;
-grant select, insert, update, delete on public.orion_show_locks to anon, authenticated;
+-- D-215: only authenticated members reach application data. The policies below
+-- reference public.orion_is_member(), created further down in this file.
+grant select, insert, update, delete on public.orion_workspace to authenticated;
+grant select, insert, update, delete on public.orion_shows to authenticated;
+grant select, insert, update, delete on public.orion_show_locks to authenticated;
 
-drop policy if exists "orion workspace open access" on public.orion_workspace;
-create policy "orion workspace open access" on public.orion_workspace
-  for all to anon, authenticated using (true) with check (true);
-
-drop policy if exists "orion shows open access" on public.orion_shows;
-create policy "orion shows open access" on public.orion_shows
-  for all to anon, authenticated using (true) with check (true);
-
-drop policy if exists "orion locks open access" on public.orion_show_locks;
-create policy "orion locks open access" on public.orion_show_locks
-  for all to anon, authenticated using (true) with check (true);
+revoke all on public.orion_workspace from anon;
+revoke all on public.orion_shows from anon;
+revoke all on public.orion_show_locks from anon;
 
 create or replace function public.orion_save_workspace(
   p_data jsonb,
@@ -310,11 +311,14 @@ revoke all on function public.orion_delete_show(text, bigint, text) from public;
 revoke all on function public.orion_acquire_show_lock(text, text, text, integer) from public;
 revoke all on function public.orion_release_show_lock(text, text) from public;
 
-grant execute on function public.orion_save_workspace(jsonb, bigint) to anon, authenticated;
-grant execute on function public.orion_save_show(text, text, jsonb, boolean, bigint, text) to anon, authenticated;
-grant execute on function public.orion_delete_show(text, bigint, text) to anon, authenticated;
-grant execute on function public.orion_acquire_show_lock(text, text, text, integer) to anon, authenticated;
-grant execute on function public.orion_release_show_lock(text, text) to anon, authenticated;
+-- Every function above is `security definer` and bypasses RLS, so these grants —
+-- not the policies — are the real gate on them. Granting any of these to `anon`
+-- would make the whole access model bypassable through the RPC.
+grant execute on function public.orion_save_workspace(jsonb, bigint) to authenticated;
+grant execute on function public.orion_save_show(text, text, jsonb, boolean, bigint, text) to authenticated;
+grant execute on function public.orion_delete_show(text, bigint, text) to authenticated;
+grant execute on function public.orion_acquire_show_lock(text, text, text, integer) to authenticated;
+grant execute on function public.orion_release_show_lock(text, text) to authenticated;
 
 -- Enable Realtime for shared data. The DO blocks keep this section idempotent.
 do $$
@@ -468,3 +472,26 @@ end;
 $$;
 
 revoke all on function public.orion_add_member(text, text, text) from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Authenticated editor access — phase 2 (member policies).
+-- Mirrors supabase/migrations/202608150004_revoke_anonymous_access.sql. Placed
+-- last because these policies call public.orion_is_member(), defined above.
+-- ---------------------------------------------------------------------------
+drop policy if exists "orion workspace member access" on public.orion_workspace;
+create policy "orion workspace member access" on public.orion_workspace
+  for all to authenticated
+  using (public.orion_is_member())
+  with check (public.orion_is_member());
+
+drop policy if exists "orion shows member access" on public.orion_shows;
+create policy "orion shows member access" on public.orion_shows
+  for all to authenticated
+  using (public.orion_is_member())
+  with check (public.orion_is_member());
+
+drop policy if exists "orion locks member access" on public.orion_show_locks;
+create policy "orion locks member access" on public.orion_show_locks
+  for all to authenticated
+  using (public.orion_is_member())
+  with check (public.orion_is_member());

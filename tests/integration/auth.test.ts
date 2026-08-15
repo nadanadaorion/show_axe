@@ -1,10 +1,10 @@
 /**
- * Real Supabase integration tests for the authorisation foundation (D-215/D-216).
+ * Real Supabase integration tests for the authorisation model (D-215/D-216).
  *
- * These assert what phase 1 of the migration establishes. The assertions that anonymous clients are
- * refused reads and writes on `orion_shows`/`orion_workspace` belong to the revocation migration and
- * are added with it — asserting them now would fail against a project that is still deliberately
- * open, which would say nothing about the code.
+ * This is the suite that would catch the model silently reopening: a policy edited back to
+ * `using (true)`, a grant restored to `anon`, or a new RPC granted too broadly. Every claim here is
+ * made against a real PostgREST, not a mock, because the failure mode being guarded against is
+ * precisely one where the client code is irrelevant.
  */
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -20,13 +20,57 @@ describe.skipIf(!config)('Authorisation foundation against a real Supabase insta
     visitor = newAnonymousClient(config!)
   })
 
-  it('the member registry is not readable without a session', async () => {
-    const { data, error } = await visitor.from('orion_app_users').select('user_id')
+  it('cannot read Shows, Workspace or locks with the publishable key alone', async () => {
+    // The exact request that worked before D-215, and is the whole reason a client-side password
+    // would have protected nothing: these two public strings are all an attacker needs.
+    const shows = await visitor.from('orion_shows').select('id,public_slug,data')
+    const workspace = await visitor.from('orion_workspace').select('id,data')
+    const locks = await visitor.from('orion_show_locks').select('show_id')
 
-    // Anonymous holds no privilege on this table, so PostgREST either errors or — depending on how
-    // it reports a missing grant — returns nothing. What must never happen is member data coming
-    // back: the registry carries the e-mail addresses of everyone with access.
-    expect(error ?? data).not.toBeNull()
+    expect(shows.error).not.toBeNull()
+    expect(shows.data ?? []).toEqual([])
+    expect(workspace.error).not.toBeNull()
+    expect(workspace.data ?? []).toEqual([])
+    expect(locks.error).not.toBeNull()
+    expect(locks.data ?? []).toEqual([])
+  })
+
+  it('cannot write through the RPCs, which bypass RLS and are gated only by their grant', async () => {
+    const saved = await visitor.rpc('orion_save_show', {
+      p_id: 'anon-intrusion',
+      p_public_slug: 'anon-intrusion-slug',
+      p_data: { name: 'Intrusion' },
+      p_archived: false,
+      p_expected_revision: 0,
+      p_client_id: 'anon-intruder',
+    })
+    const deleted = await visitor.rpc('orion_delete_show', {
+      p_id: 'anon-intrusion',
+      p_expected_revision: 1,
+      p_client_id: 'anon-intruder',
+    })
+    const workspace = await visitor.rpc('orion_save_workspace', { p_data: {}, p_expected_revision: 0 })
+    const lock = await visitor.rpc('orion_acquire_show_lock', {
+      p_show_id: 'anon-intrusion',
+      p_client_id: 'anon-intruder',
+      p_device_label: 'Intruder',
+      p_inactive_seconds: 0,
+    })
+
+    // Every one of these is `security definer`. A single grant left on `anon` would make the entire
+    // access model bypassable while the tables still looked correctly locked down.
+    expect(saved.error).not.toBeNull()
+    expect(deleted.error).not.toBeNull()
+    expect(workspace.error).not.toBeNull()
+    expect(lock.error).not.toBeNull()
+  })
+
+  it('the member registry is not readable without a session', async () => {
+    const { data, error } = await visitor.from('orion_app_users').select('user_id,display_name')
+
+    // The registry carries the identity of everyone with access, so this is the one table whose
+    // exposure would be a privacy incident as well as a security one.
+    expect(error).not.toBeNull()
     expect(data ?? []).toEqual([])
   })
 

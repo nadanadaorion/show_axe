@@ -144,18 +144,117 @@ end $$;
 
 do $$
 declare
-  visible_count integer;
+  offending text;
 begin
-  -- 15. RLS is deliberately open: anon can read and write directly (not just via RPC)
-  set local role anon;
-  insert into public.orion_shows (id, public_slug, data, archived, revision) values ('assert-rls', 'assert-rls-slug', '{}'::jsonb, false, 1);
-  select count(*) into visible_count from public.orion_shows where id = 'assert-rls';
-  reset role;
-  delete from public.orion_shows where id = 'assert-rls';
-  if visible_count <> 1 then
-    raise exception 'assertion failed: anon role must have open read/write access by design, got count=%', visible_count;
+  -- 15. D-215: anon reaches no application data. Asserted through the catalogue
+  -- rather than by attempting queries: a revoked grant makes the query itself
+  -- raise, and catching that would let a typo or a missing object pass for the
+  -- wrong reason. Before this migration this assertion claimed the exact
+  -- opposite — that open anonymous read/write was correct by design.
+  select string_agg(format('%s:%s', t.table_name, p.privilege), ', ')
+  into offending
+  from (values
+    ('orion_shows'), ('orion_workspace'), ('orion_show_locks'), ('orion_app_users')
+  ) as t(table_name)
+  cross join (values ('select'), ('insert'), ('update'), ('delete')) as p(privilege)
+  where has_table_privilege('anon', format('public.%I', t.table_name), p.privilege);
+
+  if offending is not null then
+    raise exception 'assertion failed: anon must hold no table privileges, found %', offending;
   end if;
-  raise notice 'PASS: anon RLS is open by design';
+  raise notice 'PASS: anon holds no table privileges';
+end $$;
+
+do $$
+declare
+  offending text;
+begin
+  -- 15b. The RPCs are `security definer` and bypass RLS, so their grants are the
+  -- only gate on them. Closing the tables while leaving one executable by anon
+  -- would leave the whole model bypassable through the RPC.
+  select string_agg(f.signature, ', ')
+  into offending
+  from (values
+    ('public.orion_save_workspace(jsonb, bigint)'),
+    ('public.orion_save_show(text, text, jsonb, boolean, bigint, text)'),
+    ('public.orion_delete_show(text, bigint, text)'),
+    ('public.orion_acquire_show_lock(text, text, text, integer)'),
+    ('public.orion_release_show_lock(text, text)'),
+    ('public.orion_add_member(text, text, text)')
+  ) as f(signature)
+  where has_function_privilege('anon', f.signature, 'execute');
+
+  if offending is not null then
+    raise exception 'assertion failed: anon must not execute the mutating RPCs, found %', offending;
+  end if;
+
+  if not has_function_privilege('authenticated', 'public.orion_save_show(text, text, jsonb, boolean, bigint, text)', 'execute') then
+    raise exception 'assertion failed: authenticated must retain execute on the editor RPCs';
+  end if;
+  raise notice 'PASS: mutating RPCs are executable only by authenticated';
+end $$;
+
+do $$
+declare
+  found_count integer;
+begin
+  -- 15c. The public read-only route must keep working for anon, scoped to an
+  -- exact slug. This is the one thing anon may still do (D-219).
+  insert into public.orion_shows (id, public_slug, data, archived, revision)
+  values ('assert-public', 'assert-public-slug', '{"name":"Public"}'::jsonb, false, 1);
+
+  set local role anon;
+  select count(*) into found_count from public.orion_public_show('assert-public-slug');
+  reset role;
+
+  delete from public.orion_shows where id = 'assert-public';
+
+  if found_count <> 1 then
+    raise exception 'assertion failed: anon must read its Show through orion_public_show, got count=%', found_count;
+  end if;
+  raise notice 'PASS: the public read-only accessor still serves anon';
+end $$;
+
+do $$
+declare
+  v_member uuid;
+  v_stranger uuid;
+  member_count integer;
+  stranger_count integer;
+begin
+  -- 15d. The positive half, and the distinction the whole model rests on
+  -- (D-216): a member reaches the data, while someone who authenticates without
+  -- being a member does not. Asserting only the anon denials above would pass
+  -- just as happily against a policy that locks everyone out.
+  insert into auth.users (email) values ('assert-member@orion.test') returning id into v_member;
+  insert into auth.users (email) values ('assert-stranger@orion.test') returning id into v_stranger;
+  insert into public.orion_app_users (user_id, display_name, role)
+  values (v_member, 'Assert Member', 'owner');
+
+  insert into public.orion_shows (id, public_slug, data, archived, revision)
+  values ('assert-member-show', 'assert-member-slug', '{}'::jsonb, false, 1);
+
+  set local role authenticated;
+
+  perform set_config('request.jwt.claim.sub', v_member::text, true);
+  select count(*) into member_count from public.orion_shows where id = 'assert-member-show';
+
+  perform set_config('request.jwt.claim.sub', v_stranger::text, true);
+  select count(*) into stranger_count from public.orion_shows where id = 'assert-member-show';
+
+  reset role;
+  perform set_config('request.jwt.claim.sub', '', true);
+  delete from public.orion_shows where id = 'assert-member-show';
+  delete from public.orion_app_users where user_id = v_member;
+  delete from auth.users where id in (v_member, v_stranger);
+
+  if member_count <> 1 then
+    raise exception 'assertion failed: a member must read orion_shows, got count=%', member_count;
+  end if;
+  if stranger_count <> 0 then
+    raise exception 'assertion failed: authentication without membership must not read orion_shows, got count=%', stranger_count;
+  end if;
+  raise notice 'PASS: membership, not mere authentication, grants access';
 end $$;
 
 do $$

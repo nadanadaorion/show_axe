@@ -55,19 +55,25 @@ All functions must be idempotently created by migration SQL and use an explicit 
 
 ## Access model
 
-D-215 replaces the original open anonymous model with authenticated editor access. The migration is staged,
-so a project may currently be in either state.
+D-215 replaces the original open anonymous model with authenticated editor access, in two migrations
+applied in order.
 
 **Phase 1 (`202608150003_auth_foundation.sql`, additive).** Adds the `orion_app_users` registry, the
 `orion_is_member()` predicate, the `orion_public_show(slug)` accessor and the dashboard-only
-`orion_add_member(email, display_name, role)` helper. It revokes nothing, so existing anonymous access and
-all current behaviour are unchanged. Safe to apply to a live project before the client can log in.
+`orion_add_member(email, display_name, role)` helper. It revokes nothing, so it is safe to apply to a live
+project before the client can log in.
 
-**Phase 2 (revocation, later migration).** Moves table policies and every mutating RPC grant from `anon` to
-`authenticated`, gated on `orion_is_member()`, leaving `orion_public_show` as the only function anonymous
-visitors may execute.
+**Phase 2 (`202608150004_revoke_anonymous_access.sql`).** Moves table policies and every mutating RPC grant
+from `anon` to `authenticated`, gated on `orion_is_member()`, leaving `orion_public_show` as the only
+function anonymous visitors may execute.
 
-Applying phase 2 before a verified login is deployed would lock the running application out of its own data.
+The order is not cosmetic: applying phase 2 before a verified login is deployed locks the running
+application out of its own data. Phase 2 carries its own rollback SQL in a header comment, which restores
+the fully open state — an incident action, not an option.
+
+After phase 2, `select` query 3b in `supabase/VERIFY.sql` audits everything `anon` can still reach. It must
+return exactly one row, `orion_public_show`. Any other row is reachable by anyone holding the publishable
+key, which is public by construction.
 
 Two properties are load-bearing and must survive any future edit:
 
