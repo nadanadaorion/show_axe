@@ -30,8 +30,8 @@ describe.skipIf(!config)('Show CRUD against a real Supabase instance', () => {
   let client: SupabaseClient
   const createdIds: string[] = []
 
-  beforeAll(() => {
-    client = newTestClient(config!)
+  beforeAll(async () => {
+    client = await newTestClient(config!)
   })
 
   afterEach(async () => {
@@ -75,7 +75,7 @@ describe.skipIf(!config)('Show CRUD against a real Supabase instance', () => {
       p_client_id: 'client-integration-a',
     })
 
-    const secondClient = newTestClient(config!)
+    const secondClient = await newTestClient(config!)
     const { data, error } = await secondClient
       .from('orion_shows')
       .select('id,public_slug,data,archived,revision')

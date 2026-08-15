@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { expect, test } from '@playwright/test'
-import { configureSupabaseRuntime, getE2ESupabaseConfig } from './supabaseTestConfig'
+import { configureSupabaseRuntime, getE2ESupabaseConfig, openEditor } from './supabaseTestConfig'
 
 const config = getE2ESupabaseConfig()
 
@@ -15,7 +15,7 @@ test.describe('Workspace (Library/Presets/Preferences) conflicts are remote-wins
     const context = await browser.newContext()
     const page = await context.newPage()
     await configureSupabaseRuntime(page, config!)
-    await page.goto('/#/settings')
+    await openEditor(page, config!, '/#/settings')
 
     // First save establishes a clean baseline revision — no conflict yet. Both selects are
     // properly label-associated (see the Field component in Milestone 3's accessibility work).

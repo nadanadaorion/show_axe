@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { expect, test } from '@playwright/test'
-import { configureSupabaseRuntime, getE2ESupabaseConfig, performAndWaitForOnlineSave } from './supabaseTestConfig'
+import { configureSupabaseRuntime, getE2ESupabaseConfig, openEditor, performAndWaitForOnlineSave } from './supabaseTestConfig'
 import { tapUnobstructedCenter } from './browserAssertions'
 
 const config = getE2ESupabaseConfig()
@@ -10,7 +10,7 @@ test.describe('Equipment and Input List are usable on a mobile viewport (real Su
 
   test('8. Equipment: adding, reading, and moving an item works without horizontal page overflow', async ({ page }) => {
     await configureSupabaseRuntime(page, config!)
-    await page.goto('/')
+    await openEditor(page, config!)
     await page.getByRole('button', { name: 'Nuevo show' }).click()
     const name = `E2E Mobile Equipment ${Date.now()}`
     await page.getByPlaceholder('Ej. TABU — Foro Indie Rocks').fill(name)
@@ -66,7 +66,7 @@ test.describe('Equipment and Input List are usable on a mobile viewport (real Su
 
   test('9,10. Input List: rows are editable on mobile, including a custom channel number, without page overflow', async ({ page }) => {
     await configureSupabaseRuntime(page, config!)
-    await page.goto('/')
+    await openEditor(page, config!)
     await page.getByRole('button', { name: 'Nuevo show' }).click()
     const name = `E2E Mobile InputList ${Date.now()}`
     await page.getByPlaceholder('Ej. TABU — Foro Indie Rocks').fill(name)

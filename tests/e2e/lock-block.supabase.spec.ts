@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { configureSupabaseRuntime, getE2ESupabaseConfig } from './supabaseTestConfig'
+import { configureSupabaseRuntime, getE2ESupabaseConfig, openEditor } from './supabaseTestConfig'
 
 const config = getE2ESupabaseConfig()
 
@@ -10,7 +10,7 @@ test.describe('Show lock blocks a second device (real Supabase)', () => {
     const contextA = await browser.newContext()
     const pageA = await contextA.newPage()
     await configureSupabaseRuntime(pageA, config!)
-    await pageA.goto('/')
+    await openEditor(pageA, config!)
     await pageA.getByRole('button', { name: 'Nuevo show' }).click()
     const name = `E2E Lock ${Date.now()}`
     await pageA.getByPlaceholder('Ej. TABU — Foro Indie Rocks').fill(name)
@@ -29,7 +29,8 @@ test.describe('Show lock blocks a second device (real Supabase)', () => {
     const contextB = await browser.newContext()
     const pageB = await contextB.newPage()
     await configureSupabaseRuntime(pageB, config!)
-    await pageB.goto(showUrl)
+    // A separate browser context holds no session, so device B signs in on its own.
+    await openEditor(pageB, config!, showUrl)
 
     const blockedHeading = pageB.getByRole('heading', { name: 'Show en edición' })
     await expect(blockedHeading).toBeVisible({ timeout: 15_000 })

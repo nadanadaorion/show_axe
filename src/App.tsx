@@ -1,15 +1,18 @@
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, type ReactNode } from 'react'
 import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { ToastProvider } from './components/Toast'
 import { GlobalErrorBoundary, RouteErrorBoundary } from './components/ErrorBoundary'
+import { SessionNotice } from './components/SessionNotice'
 import { SyncController } from './components/SyncController'
 import { UpdateNotice } from './components/UpdateNotice'
 import { isRuntimeConfigured } from './lib/config'
+import { useAuthGate } from './lib/useAuthGate'
 import { branding } from './lib/branding'
 import { useAppStore } from './store'
 import ShowsPage from './pages/ShowsPage'
 import SetupPage from './pages/SetupPage'
+import LoginPage from './pages/LoginPage'
 
 // Lazy-loaded: not needed for first paint of the (very common) Shows landing route. Vite splits
 // each into its own chunk, so opening the app doesn't pay for Library/Presets/Settings/ShowPage/
@@ -31,7 +34,34 @@ function RouteFallback() {
   )
 }
 
-function EditorRoutes() {
+function FullScreenStatus({ message }: { message: string }) {
+  return <div className="flex min-h-screen items-center justify-center"><div className="text-center"><div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-[var(--line)] border-t-[var(--text)]" /><p className="text-sm muted">{message}</p></div></div>
+}
+
+/**
+ * Authentication gate for the editor (D-215). Mounted inside the editor branch only: public Show
+ * routes are resolved before this and stay reachable without a session (D-219).
+ */
+function EditorGate() {
+  const { gate, loginRequested, requestLogin, cancelLogin } = useAuthGate(true)
+
+  if (gate === 'checking') return <FullScreenStatus message={`Abriendo ${branding.name}…`} />
+  if (gate === 'anonymous') return <LoginPage onSignedIn={() => undefined} />
+  if (gate === 'grace' && loginRequested) {
+    return <LoginPage
+      onSignedIn={() => undefined}
+      onCancel={cancelLogin}
+      notice="Tus cambios locales siguen guardados. Iniciá sesión para volver a compartirlos."
+    />
+  }
+
+  return <EditorRoutes
+    offline={gate === 'grace'}
+    notice={gate === 'grace' ? <SessionNotice onSignIn={requestLogin} /> : undefined}
+  />
+}
+
+function EditorRoutes({ offline = false, notice }: { offline?: boolean; notice?: ReactNode }) {
   const ready = useAppStore((state) => state.ready)
   const initialize = useAppStore((state) => state.initialize)
   const preferences = useAppStore((state) => state.preferences)
@@ -45,15 +75,15 @@ function EditorRoutes() {
     return () => query.removeEventListener('change', apply)
   }, [preferences.theme])
 
-  if (!ready) return <div className="flex min-h-screen items-center justify-center"><div className="text-center"><div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-[var(--line)] border-t-[var(--text)]" /><p className="text-sm muted">Abriendo {branding.name}…</p></div></div>
+  if (!ready) return <FullScreenStatus message={`Abriendo ${branding.name}…`} />
 
-  return <SyncController><Suspense fallback={<RouteFallback />}><Routes><Route element={<Layout />}><Route index element={<Navigate to={`/${preferences.initialModule}`} replace />} /><Route path="shows" element={<RouteErrorBoundary><ShowsPage /></RouteErrorBoundary>} /><Route path="shows/:id" element={<RouteErrorBoundary><ShowPage /></RouteErrorBoundary>} /><Route path="library" element={<RouteErrorBoundary><LibraryPage /></RouteErrorBoundary>} /><Route path="presets" element={<RouteErrorBoundary><PresetsPage /></RouteErrorBoundary>} /><Route path="settings" element={<RouteErrorBoundary><SettingsPage /></RouteErrorBoundary>} /><Route path="*" element={<Navigate to="/shows" replace />} /></Route></Routes></Suspense></SyncController>
+  return <SyncController signedOut={offline}>{notice}<Suspense fallback={<RouteFallback />}><Routes><Route element={<Layout />}><Route index element={<Navigate to={`/${preferences.initialModule}`} replace />} /><Route path="shows" element={<RouteErrorBoundary><ShowsPage /></RouteErrorBoundary>} /><Route path="shows/:id" element={<RouteErrorBoundary><ShowPage /></RouteErrorBoundary>} /><Route path="library" element={<RouteErrorBoundary><LibraryPage /></RouteErrorBoundary>} /><Route path="presets" element={<RouteErrorBoundary><PresetsPage /></RouteErrorBoundary>} /><Route path="settings" element={<RouteErrorBoundary><SettingsPage /></RouteErrorBoundary>} /><Route path="*" element={<Navigate to="/shows" replace />} /></Route></Routes></Suspense></SyncController>
 }
 
 function AppRoutes() {
   const location = useLocation()
   if (location.pathname.startsWith('/public/')) return <Suspense fallback={<RouteFallback />}><Routes><Route path="public/:slug" element={<RouteErrorBoundary title="Este enlace no pudo cargarse" description="Es posible que el show ya no exista o que el enlace haya cambiado."><PublicShowPage /></RouteErrorBoundary>} /><Route path="*" element={<Navigate to="/shows" replace />} /></Routes></Suspense>
-  return <EditorRoutes />
+  return <EditorGate />
 }
 
 export default function App() {

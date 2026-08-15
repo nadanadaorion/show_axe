@@ -14,8 +14,8 @@ describe.skipIf(!config)('Show lock protocol against a real Supabase instance', 
   let client: SupabaseClient
   let showId: string
 
-  beforeAll(() => {
-    client = newTestClient(config!)
+  beforeAll(async () => {
+    client = await newTestClient(config!)
   })
 
   beforeEach(async () => {

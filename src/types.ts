@@ -194,7 +194,7 @@ export interface WorkspaceData {
   preferences: Preferences
 }
 
-export type SyncStatus = 'unconfigured' | 'connecting' | 'synced' | 'syncing' | 'offline' | 'conflict' | 'error'
+export type SyncStatus = 'unconfigured' | 'connecting' | 'synced' | 'syncing' | 'offline' | 'conflict' | 'error' | 'signed-out'
 
 export interface ShowConflict {
   id: Id

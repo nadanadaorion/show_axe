@@ -41,16 +41,19 @@ src/
     Toast.tsx
     ui.tsx
   lib/
+    auth.ts
     config.ts
     db.ts
     inputList.ts
     inputListPdf.ts
     supabase.ts
     syncQueue.ts
+    useAuthGate.ts
     useShowLock.ts
     utils.ts
   pages/
     LibraryPage.tsx
+    LoginPage.tsx
     PresetsPage.tsx
     PublicShowPage.tsx
     SettingsPage.tsx
@@ -113,6 +116,39 @@ Pure functions should own:
 - next channel/output calculation.
 
 These functions are high-priority unit-test targets.
+
+## Authentication (D-215)
+
+`src/lib/auth.ts` wraps Supabase Auth: sign-in, sign-out, password change, session lookup and the
+trusted-device record. It decides nothing about authorisation — that lives in Postgres policies
+gated on `orion_is_member()`, so a client that lies to itself about its session still cannot write.
+
+`src/lib/useAuthGate.ts` resolves the editor into one of four states:
+
+- `checking` — the stored session is being resolved; no screen is shown yet;
+- `authenticated` — fully operational;
+- `grace` — no session, but this device signed in before. Local data stays readable and editable and
+  synchronisation is suspended (D-218). Signing in requires connectivity, and the app is used in
+  venues without it, so gating offline work on a live session would lock a user out of an
+  already-downloaded Show mid-setup;
+- `anonymous` — no session and no history on this device; `LoginPage` is the only view.
+
+Signing out clears the trusted-device record, which is what separates a deliberate logout (landing on
+`anonymous`) from an expired session (landing on `grace`).
+
+The gate is mounted inside the editor branch of `App.tsx` only. Public Show routes resolve before it
+and stay reachable without a session.
+
+`SyncController` receives the grace state as `signedOut` and suspends synchronisation rather than
+attempting calls that are certain to be rejected; the pending queue accumulates exactly as it does
+during an ordinary offline period. The Realtime subscription is torn down and rebuilt with the
+session, since Realtime enforces the same policies.
+
+One call cannot use supabase-js: `releaseRemoteLockKeepalive` runs during `pagehide`, where there is
+no opportunity to await a session lookup. `src/lib/supabase.ts` therefore mirrors the last known
+access token, refreshed by `auth.ts` on every auth state change. Sending the publishable key as the
+bearer instead — as this did before D-215 — authenticates as `anon` and leaves the Show locked for
+every other device until the ten-minute expiry.
 
 ## Configuration
 

@@ -19,9 +19,15 @@ This repository contains a real, compilable baseline of Ori♡n Shows plus the p
 - Common actions must require as few steps as possible.
 - Prefer Undo over blocking confirmation dialogs.
 - Catalogs are helpers, never mandatory.
-- V2 has no accounts or authentication.
-- Anyone who can access the editor URL can edit all shared information.
-- Public Show routes are read-only in the UI.
+- The editor requires an authenticated, authorised account (D-215). This supersedes the original
+  "no accounts" rule; do not restore anonymous editor access.
+- Access control is enforced in the database, never in the client. A check that exists only in React
+  is not a security boundary: the publishable key is public, so anything anonymous roles are granted
+  is reachable without the app.
+- Authorisation is membership in `orion_app_users`. Never hardcode an identity in code or policy.
+- Public Show routes are read-only in the UI and reachable without a session.
+- A device that has authenticated before keeps working offline with an expired session; only
+  synchronisation is withheld.
 - Offline editing is allowed.
 - Show conflicts offer exactly two outcomes: keep local or keep online.
 - A Show lock expires after ten minutes of inactivity and cannot be forcibly overridden.
@@ -34,6 +40,8 @@ This repository contains a real, compilable baseline of Ori♡n Shows plus the p
 - Shared backend with Supabase.
 - Runtime Supabase credentials are loaded from `public/config.js`.
 - Never commit a Supabase secret key or service-role key.
+- Every RPC is `security definer` and bypasses RLS, so its `execute` grant is the only gate on it.
+  A new RPC must be granted to `authenticated` alone unless it is deliberately public.
 - GitHub Pages must remain supported; routing must work under a repository subpath.
 - Preserve JSON import/export compatibility unless a documented migration is added.
 - Database changes require an idempotent SQL migration and an update to `docs/15-SUPABASE_AND_DATABASE.md`.

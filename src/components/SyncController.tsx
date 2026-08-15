@@ -1,4 +1,4 @@
-import { AlertTriangle, Cloud, CloudOff, GitCompareArrows, LoaderCircle } from 'lucide-react'
+import { AlertTriangle, Cloud, CloudOff, GitCompareArrows, LoaderCircle, ShieldAlert } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { db, type PendingMutation } from '../lib/db'
 import { isRuntimeConfigured } from '../lib/config'
@@ -82,19 +82,30 @@ function conflictWithRemoteDeletion(mutation: PendingMutation): ShowConflict {
   }
 }
 
-export function SyncController({ children }: { children: ReactNode }) {
+/**
+ * `signedOut` is the offline grace state (D-218): the device is usable but has no session, so every
+ * remote call would be rejected. Synchronisation is suspended rather than attempted and failed, and
+ * the pending queue simply keeps accumulating until a session returns — which is the same path an
+ * ordinary offline period already takes.
+ */
+export function SyncController({ children, signedOut = false }: { children: ReactNode; signedOut?: boolean }) {
   const syncing = useRef(false)
   const rerun = useRef(false)
   const subscription = useRef<ReturnType<typeof subscribeToRemoteChanges>>()
   const [resolving, setResolving] = useState(false)
   const { showToast } = useToast()
   const conflict = useSyncStore((state) => state.conflicts[0])
+  // Mirrored into a ref so `syncNow` keeps a stable identity: it is reachable from timers, event
+  // listeners and a 60s interval, all of which would otherwise be rebuilt on every session change.
+  const signedOutRef = useRef(signedOut)
+  signedOutRef.current = signedOut
 
   const setSettledStatus = useCallback(async () => {
     const sync = useSyncStore.getState()
     const count = await pendingMutationCount()
     sync.setPendingCount(count)
     if (sync.conflicts.length) sync.setStatus('conflict')
+    else if (signedOutRef.current) sync.setStatus('signed-out')
     else if (!navigator.onLine) sync.setStatus('offline')
     else if (count) sync.setStatus('syncing')
     else {
@@ -148,6 +159,11 @@ export function SyncController({ children }: { children: ReactNode }) {
   const syncNow = useCallback(async () => {
     if (!isRuntimeConfigured()) {
       useSyncStore.getState().setStatus('unconfigured')
+      return
+    }
+    if (signedOutRef.current) {
+      await refreshPendingCount()
+      useSyncStore.getState().setStatus('signed-out')
       return
     }
     if (!navigator.onLine) {
@@ -215,7 +231,10 @@ export function SyncController({ children }: { children: ReactNode }) {
     window.addEventListener(SYNC_NEEDED_EVENT, onNeeded)
     const interval = window.setInterval(() => void syncNow(), 60_000)
 
-    if (isRuntimeConfigured()) {
+    // Realtime authenticates with the same session, so a subscription attempted without one only
+    // produces channel errors. It is rebuilt when the session returns, because this effect depends
+    // on `signedOut`.
+    if (isRuntimeConfigured() && !signedOut) {
       subscription.current = subscribeToRemoteChanges({
         onShowUpsert: (row) => void handleRemoteShow(row),
         onShowDelete: (id) => {
@@ -247,7 +266,7 @@ export function SyncController({ children }: { children: ReactNode }) {
       window.clearInterval(interval)
       void removeRemoteChannel(subscription.current)
     }
-  }, [syncNow])
+  }, [syncNow, signedOut])
 
   const chooseOnline = async () => {
     if (!conflict) return
@@ -333,7 +352,12 @@ export function SyncStatusBadge() {
     offline: [pending ? `Sin conexión · ${pending} pendiente${pending === 1 ? '' : 's'}` : 'Sin conexión', CloudOff],
     conflict: ['Conflicto pendiente', AlertTriangle],
     error: ['Error de sincronización', AlertTriangle],
+    'signed-out': [pending ? `Sesión expirada · ${pending} pendiente${pending === 1 ? '' : 's'}` : 'Sesión expirada', ShieldAlert],
   } as const
   const [label, Icon] = details[status]
-  return <div className="border-2 border-[var(--strong-line)] bg-[var(--panel-2)] p-3 font-mono text-[10px]" title={error}><div className="mb-1 flex items-center gap-2 font-bold uppercase tracking-[.08em] text-[var(--text)]"><Icon className={status === 'connecting' || status === 'syncing' ? 'animate-spin text-[var(--accent)]' : 'text-[var(--accent)]'} size={14} />{label}</div><div className="leading-relaxed muted">{status === 'synced' ? 'Los cambios se comparten entre dispositivos.' : status === 'offline' ? 'Puedes seguir trabajando; se sincronizará al volver.' : error || 'Espacio compartido sin cuentas.'}</div></div>
+  const description = status === 'synced' ? 'Los cambios se comparten entre dispositivos.'
+    : status === 'offline' ? 'Puedes seguir trabajando; se sincronizará al volver.'
+    : status === 'signed-out' ? 'Tus cambios se guardan aquí; inicia sesión para compartirlos.'
+    : error || 'Espacio compartido protegido por cuenta.'
+  return <div className="border-2 border-[var(--strong-line)] bg-[var(--panel-2)] p-3 font-mono text-[10px]" title={error}><div className="mb-1 flex items-center gap-2 font-bold uppercase tracking-[.08em] text-[var(--text)]"><Icon className={status === 'connecting' || status === 'syncing' ? 'animate-spin text-[var(--accent)]' : 'text-[var(--accent)]'} size={14} />{label}</div><div className="leading-relaxed muted">{description}</div></div>
 }

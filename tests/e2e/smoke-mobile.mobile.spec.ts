@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { configureSupabaseRuntime, getE2ESupabaseConfig, performAndWaitForOnlineSave } from './supabaseTestConfig'
+import { configureSupabaseRuntime, getE2ESupabaseConfig, openEditor, performAndWaitForOnlineSave } from './supabaseTestConfig'
 import { tapUnobstructedCenter } from './browserAssertions'
 import { expectNoCriticalAccessibilityViolations } from './accessibilityAssertions'
 
@@ -12,7 +12,7 @@ test.describe('Mobile smoke test: Shows listing, opening a Show, a modal, keyboa
     await configureSupabaseRuntime(page, config!)
 
     // Shows listing.
-    await page.goto('/')
+    await openEditor(page, config!)
     await expect(page.getByRole('heading', { name: 'Shows' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Nuevo show' })).toBeVisible()
     let overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)

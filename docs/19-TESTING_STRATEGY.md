@@ -87,6 +87,12 @@ With disposable Supabase:
 supabase start
 export SUPABASE_TEST_URL=http://127.0.0.1:54321
 export SUPABASE_TEST_ANON_KEY='local-publishable-or-anon-key'
+# D-215: the editor requires a session. Create the account once against the local stack
+# (Studio > Authentication > Add user, with Auto Confirm), then grant it membership:
+#   psql "$DB_URL" -c "select public.orion_add_member('e2e@orion.test', 'E2E', 'owner');"
+# An account that authenticates but is not a member passes login and is denied by every policy.
+export SUPABASE_TEST_EMAIL='e2e@orion.test'
+export SUPABASE_TEST_PASSWORD='...'
 export SUPABASE_INTEGRATION_REQUIRED=true
 npm run test:integration
 npx playwright install chromium

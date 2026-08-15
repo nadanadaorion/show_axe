@@ -14,9 +14,9 @@ describe.skipIf(!config)('Realtime propagation against a real Supabase instance'
   let listener: SupabaseClient
   let channel: RealtimeChannel | undefined
 
-  beforeAll(() => {
-    writer = newTestClient(config!)
-    listener = newTestClient(config!)
+  beforeAll(async () => {
+    writer = await newTestClient(config!)
+    listener = await newTestClient(config!)
   })
 
   afterEach(async () => {

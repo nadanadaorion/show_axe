@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { configureSupabaseRuntime, getE2ESupabaseConfig, performAndWaitForOnlineSave } from './supabaseTestConfig'
+import { configureSupabaseRuntime, getE2ESupabaseConfig, openEditor, performAndWaitForOnlineSave } from './supabaseTestConfig'
 import { expectNoCriticalAccessibilityViolations } from './accessibilityAssertions'
 
 const config = getE2ESupabaseConfig()
@@ -11,7 +11,7 @@ test.describe('Desktop smoke test: Shows, Equipment, Input List, a modal, keyboa
     await configureSupabaseRuntime(page, config!)
 
     // Shows listing.
-    await page.goto('/')
+    await openEditor(page, config!)
     await expect(page.getByRole('heading', { name: 'Shows' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Nuevo show' })).toBeVisible()
 

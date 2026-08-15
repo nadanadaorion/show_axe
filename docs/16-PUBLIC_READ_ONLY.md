@@ -32,6 +32,21 @@ Fetch the current Show by `public_slug`. Public view always reflects the latest 
 - Deleted Show: not found.
 - Slug never changes during normal Show edits.
 
+## Data access (D-219)
+
+The route reads through `orion_public_show(slug)`, a `security definer` accessor returning at most
+the one Show whose `public_slug` matches exactly. It is the only function anonymous visitors may
+execute.
+
+This replaced an anonymous `select` over `orion_shows`, under which the link restricted nothing at
+data level: anyone holding the publishable key could enumerate every Show, archived ones included.
+
+Realtime enforces the same policies, so this route no longer subscribes to live changes. It reloads
+when the tab regains visibility or focus, and offers an explicit refresh control. That is adequate
+for a page consulted a few times during a load-in, and it leaves no anonymous access to the table.
+
 ## Privacy warning
 
-Because the backend allows anonymous select access and the editor is intentionally open, public read-only mode is a UI mode, not a secure authorization boundary. Do not describe it as access-controlled.
+A public link is an unguessable capability, not an identity check. Anyone holding the URL can read
+that Show, and the page must therefore never expose anything not intended for everyone in the venue.
+It remains a read-only *view*: it is scoped to one Show, but it does not authenticate its visitor.
