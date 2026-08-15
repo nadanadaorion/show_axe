@@ -1,13 +1,9 @@
 import { expect, test } from '@playwright/test'
 import { tapUnobstructedCenter } from './browserAssertions'
+import { useLocalOnlyEditor } from './localEditor'
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => {
-    ;(window as unknown as { __ORION_CONFIG__: unknown }).__ORION_CONFIG__ = {
-      supabaseUrl: 'http://127.0.0.1:9',
-      supabasePublishableKey: 'local-e2e-placeholder-key-1234567890',
-    }
-  })
+  await useLocalOnlyEditor(page)
 })
 
 test('Sonic Grunge remains usable at 375x667 with internal technical scrolling and no global overflow', async ({ page }) => {

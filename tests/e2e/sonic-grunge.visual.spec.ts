@@ -1,13 +1,9 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
+import { useLocalOnlyEditor } from './localEditor'
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => {
-    ;(window as unknown as { __ORION_CONFIG__: unknown }).__ORION_CONFIG__ = {
-      supabaseUrl: 'http://127.0.0.1:9',
-      supabasePublishableKey: 'local-e2e-placeholder-key-1234567890',
-    }
-  })
+  await useLocalOnlyEditor(page)
 })
 
 test('Sonic Grunge desktop keeps Shows, workspace, Input List, Library, modal, focus and offline state usable', async ({ page, context }) => {
@@ -84,10 +80,18 @@ test('Sonic Grunge desktop keeps Shows, workspace, Input List, Library, modal, f
   await page.evaluate(() => window.dispatchEvent(new Event('online')))
   await page.getByRole('link', { name: 'Preferencias' }).click()
   await page.getByLabel('Apariencia').selectOption('light')
-  const warning = page.getByText(/No hay cuentas ni autenticación/)
+  await expect(page.getByText(/El acceso está protegido por cuenta/)).toBeVisible()
+
+  // Light-theme contrast of the warning treatment, where a real 4.34:1 defect was once found. The
+  // panel asserted here is the session notice (D-218), which this spec renders because it runs the
+  // editor in the offline grace state; the Settings security panel it used to target is no longer
+  // a warning now that access is protected.
+  // Scoped to the banner's own sentence: "Sesión expirada" alone also matches the sync badge, which
+  // this state renders in both the sidebar and the Preferences panel.
+  const warning = page.getByText(/Sesión expirada\. Podés seguir trabajando/)
   await expect(warning).toBeVisible()
   const warningColors = await warning.evaluate((element) => {
-    const panel = element.parentElement
+    const panel = element.closest('.warning-panel')
     const foreground = getComputedStyle(element).color
     const background = panel ? getComputedStyle(panel).backgroundColor : ''
     return { foreground, background }

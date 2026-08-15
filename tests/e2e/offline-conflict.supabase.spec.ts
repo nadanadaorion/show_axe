@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { expect, test } from '@playwright/test'
-import { configureSupabaseRuntime, getE2ESupabaseConfig, performAndWaitForOnlineSave } from './supabaseTestConfig'
+import { configureSupabaseRuntime, getE2ESupabaseConfig, openEditor, performAndWaitForOnlineSave } from './supabaseTestConfig'
 
 const config = getE2ESupabaseConfig()
 
@@ -11,7 +11,7 @@ test.describe('Offline queue, reconnect, and conflict resolution (real Supabase)
     const context = await browser.newContext()
     const page = await context.newPage()
     await configureSupabaseRuntime(page, config!)
-    await page.goto('/')
+    await openEditor(page, config!)
     await page.getByRole('button', { name: 'Nuevo show' }).click()
     const name = `E2E Offline ${Date.now()}`
     await page.getByPlaceholder('Ej. TABU — Foro Indie Rocks').fill(name)
@@ -44,7 +44,7 @@ test.describe('Offline queue, reconnect, and conflict resolution (real Supabase)
     const context = await browser.newContext()
     const page = await context.newPage()
     await configureSupabaseRuntime(page, config!)
-    await page.goto('/')
+    await openEditor(page, config!)
     await page.getByRole('button', { name: 'Nuevo show' }).click()
     const name = `E2E Conflict ${Date.now()}`
     await page.getByPlaceholder('Ej. TABU — Foro Indie Rocks').fill(name)
@@ -98,7 +98,7 @@ test.describe('Offline queue, reconnect, and conflict resolution (real Supabase)
     const context = await browser.newContext()
     const page = await context.newPage()
     await configureSupabaseRuntime(page, config!)
-    await page.goto('/')
+    await openEditor(page, config!)
     await page.getByRole('button', { name: 'Nuevo show' }).click()
     const name = `E2E Conflict Online ${Date.now()}`
     await page.getByPlaceholder('Ej. TABU — Foro Indie Rocks').fill(name)

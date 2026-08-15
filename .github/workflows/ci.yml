@@ -62,7 +62,10 @@ jobs:
           STATUS_ENV="$(supabase status -o env \
             --override-name anon_key=CLI_ANON_KEY \
             --override-name publishable_key=CLI_PUBLISHABLE_KEY \
-            --override-name api.anon_key=CLI_API_ANON_KEY)"
+            --override-name api.anon_key=CLI_API_ANON_KEY \
+            --override-name service_role_key=CLI_SERVICE_ROLE_KEY \
+            --override-name secret_key=CLI_SECRET_KEY \
+            --override-name api.service_role_key=CLI_API_SERVICE_ROLE_KEY)"
           echo "$STATUS_ENV"
           echo "--- full JSON status (fallback source) ---"
           STATUS_JSON="$(supabase status -o json)"
@@ -94,6 +97,46 @@ jobs:
 
           echo "SUPABASE_TEST_URL=$URL" >> "$GITHUB_ENV"
           echo "SUPABASE_TEST_ANON_KEY=$KEY" >> "$GITHUB_ENV"
+
+          DB="$(extract_env DB_URL SUPABASE_DB_URL || extract_json db_url DB_URL)"
+          SERVICE_KEY="$(extract_env CLI_SERVICE_ROLE_KEY CLI_SECRET_KEY CLI_API_SERVICE_ROLE_KEY SERVICE_ROLE_KEY SECRET_KEY SUPABASE_SERVICE_ROLE_KEY \
+            || extract_json service_role_key secret_key api.service_role_key SERVICE_ROLE_KEY)"
+          if [ -z "$DB" ] || [ -z "$SERVICE_KEY" ]; then
+            echo "::error::Could not extract DB URL/service-role key from 'supabase status' (dumped above). Update the candidate list in this step using the JSON dump."
+            exit 1
+          fi
+          echo "SUPABASE_TEST_DB_URL=$DB" >> "$GITHUB_ENV"
+          echo "::add-mask::$SERVICE_KEY"
+          echo "SUPABASE_TEST_SERVICE_KEY=$SERVICE_KEY" >> "$GITHUB_ENV"
+      - name: Create the authorised E2E account
+        # D-215: the editor requires a session, so the suites need a real account. This is the local
+        # CLI stack's throwaway database, seeded from empty on every run, and the service-role key
+        # here is the CLI's well-known local default — it never leaves the runner and is never a
+        # production credential.
+        #
+        # An account that authenticates but is not a member of orion_app_users would pass login and
+        # then be denied by every policy, so both halves are done here and verified below.
+        run: |
+          set -euo pipefail
+          EMAIL="e2e@orion.test"
+          PASSWORD="$(head -c 32 /dev/urandom | base64 | tr -d '/+=' | head -c 32)"
+          echo "::add-mask::$PASSWORD"
+
+          CREATED="$(curl -sS -X POST "${SUPABASE_TEST_URL%/}/auth/v1/admin/users" \
+            -H "apikey: $SUPABASE_TEST_SERVICE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_TEST_SERVICE_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\",\"email_confirm\":true}")"
+          if ! echo "$CREATED" | grep -q '"id"'; then
+            echo "::error::Could not create the E2E auth user. Response: $CREATED"
+            exit 1
+          fi
+
+          psql "$SUPABASE_TEST_DB_URL" -v ON_ERROR_STOP=1 -q \
+            -c "select public.orion_add_member('$EMAIL', 'E2E', 'owner');"
+
+          echo "SUPABASE_TEST_EMAIL=$EMAIL" >> "$GITHUB_ENV"
+          echo "SUPABASE_TEST_PASSWORD=$PASSWORD" >> "$GITHUB_ENV"
       - run: npm run test:integration
       - run: npx playwright install --with-deps chromium
       - run: npm run test:pages

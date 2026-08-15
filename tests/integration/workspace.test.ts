@@ -36,8 +36,8 @@ const config = await getSupabaseTestConfig()
 describe.skipIf(!config)('Workspace (Library/Presets/Preferences) against a real Supabase instance', () => {
   let client: SupabaseClient
 
-  beforeAll(() => {
-    client = newTestClient(config!)
+  beforeAll(async () => {
+    client = await newTestClient(config!)
     // Points the real app modules (src/lib/supabase.ts, via src/lib/config.ts) at the same local
     // instance the other integration tests use — the same mechanism
     // tests/e2e/supabaseTestConfig.ts uses for Playwright, just injected directly here.

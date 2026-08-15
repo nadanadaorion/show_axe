@@ -1,16 +1,12 @@
 import { expect, test } from '@playwright/test'
 import { tapUnobstructedCenter } from './browserAssertions'
+import { useLocalOnlyEditor } from './localEditor'
 
 test('a mobile modal keeps its action footer separate from its scrollable content', async ({ page }) => {
   // A syntactically valid but unreachable local runtime lets the local-first editor render
   // without requiring Supabase. The modal interaction under test completes before background
   // synchronization and remains deterministic when developers run this spec offline.
-  await page.addInitScript(() => {
-    ;(window as unknown as { __ORION_CONFIG__: unknown }).__ORION_CONFIG__ = {
-      supabaseUrl: 'http://127.0.0.1:9',
-      supabasePublishableKey: 'local-e2e-placeholder-key-1234567890',
-    }
-  })
+  await useLocalOnlyEditor(page)
 
   await page.goto('/')
   // The real Supabase job reaches the mobile project after desktop scenarios have created Shows.

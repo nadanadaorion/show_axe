@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { configureSupabaseRuntime, getE2ESupabaseConfig } from './supabaseTestConfig'
+import { configureSupabaseRuntime, getE2ESupabaseConfig, openEditor } from './supabaseTestConfig'
 
 const config = getE2ESupabaseConfig()
 
@@ -12,7 +12,7 @@ test.describe('Public read-only Show link (real Supabase)', () => {
     const editor = editorContext.pages()[0] ?? (await editorContext.newPage())
     await editorContext.grantPermissions(['clipboard-read', 'clipboard-write'])
 
-    await editor.goto('/')
+    await openEditor(editor, config!)
     await editor.getByRole('button', { name: 'Nuevo show' }).click()
     const name = `E2E Public ${Date.now()}`
     await editor.getByPlaceholder('Ej. TABU — Foro Indie Rocks').fill(name)
@@ -26,6 +26,8 @@ test.describe('Public read-only Show link (real Supabase)', () => {
     const publicContext = await browser.newContext()
     await configureSupabaseRuntime(publicContext.pages()[0] ?? (await publicContext.newPage()), config!)
     const publicPage = publicContext.pages()[0] ?? (await publicContext.newPage())
+    // Deliberately never signed in: this is the whole claim of D-219, that a public link opens for
+    // a visitor holding nothing but the URL.
     await publicPage.goto(`/${hashPath}`)
 
     await expect(publicPage.getByRole('heading', { name })).toBeVisible()

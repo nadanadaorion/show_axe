@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { expect, test } from '@playwright/test'
-import { configureSupabaseRuntime, getE2ESupabaseConfig } from './supabaseTestConfig'
+import { configureSupabaseRuntime, getE2ESupabaseConfig, openEditor } from './supabaseTestConfig'
 
 const config = getE2ESupabaseConfig()
 
@@ -9,7 +9,7 @@ test.describe('Realtime Show revisions remain monotonic in a second browser clie
 
   test('rapid create, Equipment, and Input List revisions never restore the empty revision', async ({ page }) => {
     await configureSupabaseRuntime(page, config!)
-    await page.goto('/')
+    await openEditor(page, config!)
     await expect(page.getByRole('heading', { name: 'Shows' })).toBeVisible()
     await expect(page.getByRole('complementary').getByText('Guardado en línea')).toBeVisible({ timeout: 20_000 })
 

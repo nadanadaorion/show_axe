@@ -1,8 +1,8 @@
-import { Calendar, Check, Clock, Headphones, ListOrdered, Package, Users } from 'lucide-react'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Calendar, Check, Clock, Headphones, ListOrdered, Package, RefreshCw, Users } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
-import { Badge, EmptyState, ProgressBar } from '../components/ui'
-import { fetchRemoteShowBySlug, getSupabase, remoteRowToShow } from '../lib/supabase'
+import { Badge, Button, EmptyState, ProgressBar } from '../components/ui'
+import { fetchPublicShow, remoteRowToShow } from '../lib/supabase'
 import { formatDate, formatTime, scheduleDuration } from '../lib/utils'
 import { branding } from '../lib/branding'
 import type { Show } from '../types'
@@ -11,30 +11,49 @@ export default function PublicShowPage() {
   const { slug = '' } = useParams()
   const [show, setShow] = useState<Show>()
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
+  const active = useRef(true)
 
-  useEffect(() => {
-    let active = true
-    const load = async () => {
-      try {
-        const row = await fetchRemoteShowBySlug(slug)
-        if (active) setShow(row ? remoteRowToShow(row) : undefined)
-      } catch (cause) {
-        if (active) setError(cause instanceof Error ? cause.message : 'No fue posible abrir el show.')
-      } finally {
-        if (active) setLoading(false)
+  const load = useCallback(async () => {
+    try {
+      const row = await fetchPublicShow(slug)
+      if (!active.current) return
+      setShow(row ? remoteRowToShow(row) : undefined)
+      setError('')
+    } catch (cause) {
+      if (active.current) setError(cause instanceof Error ? cause.message : 'No fue posible abrir el show.')
+    } finally {
+      if (active.current) {
+        setLoading(false)
+        setRefreshing(false)
       }
     }
-    void load()
-    const supabase = getSupabase()
-    const channel = supabase?.channel(`public-show-${slug}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orion_shows', filter: `public_slug=eq.${slug}` }, () => void load())
-      .subscribe()
-    return () => {
-      active = false
-      if (supabase && channel) void supabase.removeChannel(channel)
-    }
   }, [slug])
+
+  // D-219: anonymous visitors hold no table privileges, and Realtime enforces the same policies, so
+  // this route can no longer subscribe to live changes. Refreshing when the tab regains focus covers
+  // the actual usage — a page consulted a few times during a load-in — and the explicit button
+  // covers the rest without leaving the visitor guessing whether they are looking at stale data.
+  useEffect(() => {
+    active.current = true
+    void load()
+    const onFocus = () => {
+      if (document.visibilityState === 'visible') void load()
+    }
+    document.addEventListener('visibilitychange', onFocus)
+    window.addEventListener('focus', onFocus)
+    return () => {
+      active.current = false
+      document.removeEventListener('visibilitychange', onFocus)
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [load])
+
+  const refresh = () => {
+    setRefreshing(true)
+    void load()
+  }
 
   const categories = useMemo(() => show ? [...show.equipmentCategories].sort((a, b) => a.order - b.order) : [], [show])
   if (loading) return <div className="flex min-h-screen items-center justify-center"><div className="text-center"><div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-[var(--line)] border-t-[var(--text)]" /><p className="text-sm muted">Abriendo show…</p></div></div>
@@ -59,7 +78,12 @@ export default function PublicShowPage() {
 
         <section className="panel overflow-hidden"><SectionTitle icon={<ListOrdered size={17} />} title="Input list" subtitle={show.inputList ? `${show.inputList.rows.length} entradas` : 'Sin configurar'} />{!show.inputList ? <EmptyRows text="El input list todavía no está configurado." /> : <div><div className="overflow-x-auto"><table className="w-full min-w-[620px] text-left text-xs"><thead className="bg-[var(--panel-2)] muted"><tr><th className="px-4 py-2">CH</th><th className="px-4 py-2">Uso</th><th className="px-4 py-2">Equipo</th><th className="px-4 py-2">48V</th><th className="px-4 py-2">Patch</th></tr></thead><tbody className="divide-y divide-[var(--line)]">{[...show.inputList.rows].sort((a,b)=>a.order-b.order).map((row) => <tr key={row.id}><td className="px-4 py-2 font-semibold">{row.channel}</td><td className="px-4 py-2">{row.use}</td><td className="px-4 py-2">{row.equipment}</td><td className="px-4 py-2">{row.phantom ? 'Sí' : 'No'}</td><td className="px-4 py-2">{row.patch || '—'}</td></tr>)}</tbody></table></div>{show.inputList.returns.length > 0 && <div className="border-t border-[var(--line)]"><div className="flex items-center gap-2 px-5 py-3 text-sm font-semibold"><Headphones size={16} />Retornos</div><div className="divide-y divide-[var(--line)]">{[...show.inputList.returns].sort((a,b)=>a.order-b.order).map((item)=><div key={item.id} className="flex justify-between gap-3 px-5 py-3 text-sm"><span>{item.destination || 'Sin destino'} · {item.system || 'Sistema'}</span><span className="font-medium">AUX {item.stereo ? `${item.outputStart}–${item.outputStart+1}` : item.outputStart}</span></div>)}</div></div>}</div>}</section>
       </div>
-      <footer className="mt-8 text-center text-xs muted">Última actualización: {new Date(show.updatedAt).toLocaleString()} · {branding.name}</footer>
+      <footer className="mt-8 flex flex-col items-center gap-3 text-center text-xs muted">
+        <Button variant="secondary" size="sm" onClick={refresh} disabled={refreshing}>
+          <RefreshCw className={refreshing ? 'animate-spin' : ''} size={14} />{refreshing ? 'Actualizando…' : 'Actualizar'}
+        </Button>
+        <div>Última actualización: {new Date(show.updatedAt).toLocaleString()} · {branding.name}</div>
+      </footer>
     </main>
   </div>
 }

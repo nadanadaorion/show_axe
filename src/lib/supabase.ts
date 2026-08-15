@@ -39,11 +39,27 @@ export function getSupabase(): SupabaseClient | undefined {
   if (!client) {
     const config = getRuntimeConfig()
     client = createClient(config.supabaseUrl, config.supabasePublishableKey, {
-      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      // D-215: the editor holds a real session. It must survive reloads and refresh itself, or the
+      // user would be asked for the password on every visit and mid-session token expiry would
+      // surface as sync failures.
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
       realtime: { params: { eventsPerSecond: 10 } },
     })
   }
   return client
+}
+
+/**
+ * Last known access token, mirrored here by src/lib/auth.ts on every auth state change.
+ *
+ * It exists for exactly one caller: `releaseRemoteLockKeepalive` runs during `pagehide`, where
+ * there is no opportunity to await `getSession()`. Everything else goes through supabase-js, which
+ * attaches the token itself.
+ */
+let accessToken: string | undefined
+
+export function cacheAccessToken(token: string | undefined) {
+  accessToken = token
 }
 
 function asNumber(value: unknown, fallback = 0) {
@@ -107,12 +123,20 @@ export async function fetchRemoteShows() {
   return (data || []) as RemoteShowRow[]
 }
 
-export async function fetchRemoteShowBySlug(slug: string) {
+/**
+ * Public read-only route accessor (D-219).
+ *
+ * Deliberately an RPC rather than a table select: anonymous visitors hold no table privileges, and
+ * `orion_public_show` requires an exact slug, so the Show catalogue cannot be enumerated with the
+ * publishable key the way a `select` over `orion_shows` allowed.
+ */
+export async function fetchPublicShow(slug: string) {
   const supabase = getSupabase()
   if (!supabase) throw new Error('Supabase no está configurado')
-  const { data, error } = await supabase.from('orion_shows').select('id,public_slug,data,archived,revision,updated_at').eq('public_slug', slug).maybeSingle()
+  const { data, error } = await supabase.rpc('orion_public_show', { p_slug: slug })
   if (error) throw error
-  return data as RemoteShowRow | null
+  const row = Array.isArray(data) ? data[0] : data
+  return (row as RemoteShowRow | undefined) || null
 }
 
 export async function fetchRemoteWorkspace() {
@@ -199,12 +223,17 @@ export async function releaseRemoteLock(showId: string, clientId: string) {
 export function releaseRemoteLockKeepalive(showId: string, clientId: string) {
   if (!isRuntimeConfigured()) return
   const config = getRuntimeConfig()
+  // This hand-built request bypasses supabase-js because `pagehide` cannot await, so the session
+  // token has to be attached explicitly. Sending the publishable key as the bearer (as this did
+  // before D-215) authenticates as `anon`, which no longer holds execute on this RPC: the lock
+  // would silently survive until its ten-minute expiry, blocking the Show on every other device.
+  if (!accessToken) return
   void fetch(`${config.supabaseUrl.replace(/\/$/, '')}/rest/v1/rpc/orion_release_show_lock`, {
     method: 'POST',
     keepalive: true,
     headers: {
       apikey: config.supabasePublishableKey,
-      Authorization: `Bearer ${config.supabasePublishableKey}`,
+      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ p_show_id: showId, p_client_id: clientId }),

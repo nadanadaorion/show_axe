@@ -17,13 +17,21 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 export interface TestSupabaseConfig {
   url: string
   anonKey: string
+  /** Credentials of the authorised test account. Absent while a project still allows anonymous access. */
+  email?: string
+  password?: string
 }
 
 function readConfig(): TestSupabaseConfig | undefined {
   const url = process.env.SUPABASE_TEST_URL?.trim()
   const anonKey = process.env.SUPABASE_TEST_ANON_KEY?.trim()
   if (!url || !anonKey) return undefined
-  return { url, anonKey }
+  return {
+    url,
+    anonKey,
+    email: process.env.SUPABASE_TEST_EMAIL?.trim() || undefined,
+    password: process.env.SUPABASE_TEST_PASSWORD?.trim() || undefined,
+  }
 }
 
 async function isReachable(config: TestSupabaseConfig): Promise<boolean> {
@@ -71,7 +79,40 @@ export function getSupabaseTestConfig(): Promise<TestSupabaseConfig | undefined>
   return cached
 }
 
-export function newTestClient(config: TestSupabaseConfig): SupabaseClient {
+/**
+ * A client authenticated as the authorised test account when credentials are configured (D-215).
+ *
+ * Signing in is what keeps this suite meaningful once anonymous access is revoked: every policy is
+ * gated on `orion_is_member()`, so an anonymous client would fail every assertion for the right
+ * reason but tell us nothing about the product. While the project still allows anonymous access the
+ * credentials may be absent, and these clients behave exactly as they did before.
+ *
+ * Each call returns an independent client with its own session, which the two-device tests rely on.
+ */
+export async function newTestClient(config: TestSupabaseConfig): Promise<SupabaseClient> {
+  const client = createClient(config.url, config.anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  })
+
+  if (config.email && config.password) {
+    const { error } = await client.auth.signInWithPassword({ email: config.email, password: config.password })
+    if (error) {
+      throw new Error(
+        `[integration] Could not sign in as ${config.email}: ${error.message}. ` +
+        'Check SUPABASE_TEST_EMAIL/SUPABASE_TEST_PASSWORD, and that the account exists and is a member (orion_app_users).',
+      )
+    }
+  }
+
+  return client
+}
+
+/**
+ * A never-authenticated client, holding only the publishable key — exactly what a visitor opening a
+ * public Show link has. Used to prove both halves of D-219: that the slug-scoped RPC still serves
+ * them, and that the Show catalogue is not otherwise reachable.
+ */
+export function newAnonymousClient(config: TestSupabaseConfig): SupabaseClient {
   return createClient(config.url, config.anonKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   })
