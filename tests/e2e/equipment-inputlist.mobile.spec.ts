@@ -1,6 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
 import { expect, test } from '@playwright/test'
-import { configureSupabaseRuntime, getE2ESupabaseConfig, openEditor, performAndWaitForOnlineSave } from './supabaseTestConfig'
+import { configureSupabaseRuntime, getE2ESupabaseConfig, openEditor, performAndWaitForOnlineSave, newTestClient } from './supabaseTestConfig'
 import { tapUnobstructedCenter } from './browserAssertions'
 
 const config = getE2ESupabaseConfig()
@@ -18,7 +17,7 @@ test.describe('Equipment and Input List are usable on a mobile viewport (real Su
     await performAndWaitForOnlineSave(page, () => tapUnobstructedCenter(page, createButton))
     await expect(page.getByLabel('Nombre del show')).toHaveValue(name)
     const showId = new URL(page.url()).hash.split('/').pop()!
-    const admin = createClient(config!.url, config!.anonKey)
+    const admin = await newTestClient(config!)
 
     // The visible global sync badge can complete an unrelated lock/workspace cycle. Confirm the
     // create RPC itself reached Supabase before starting a second Show mutation; the dedicated

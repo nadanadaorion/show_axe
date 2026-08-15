@@ -1,6 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
 import { expect, test } from '@playwright/test'
-import { configureSupabaseRuntime, getE2ESupabaseConfig, openEditor } from './supabaseTestConfig'
+import { configureSupabaseRuntime, getE2ESupabaseConfig, openEditor, newTestClient } from './supabaseTestConfig'
 
 const config = getE2ESupabaseConfig()
 
@@ -8,7 +7,7 @@ test.describe('Workspace (Library/Presets/Preferences) conflicts are remote-wins
   test.skip(!config, 'SUPABASE_TEST_URL/SUPABASE_TEST_ANON_KEY not set — see .env.example')
 
   test('D-214: a confirmed Workspace conflict after an offline edit discards the local change, applies the remote version, notifies the user, and never shows a version picker', async ({ browser }) => {
-    const admin = createClient(config!.url, config!.anonKey)
+    const admin = await newTestClient(config!)
     // Start from an empty Workspace so this test is independent of whatever earlier specs left behind.
     await admin.from('orion_workspace').delete().eq('id', 'main')
 

@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 /**
  * Shared gate for the Supabase-backed E2E specs (tests/e2e/*.supabase.spec.ts).
@@ -35,6 +36,33 @@ export function getE2ESupabaseConfig(): E2ESupabaseConfig | undefined {
     )
   }
   return undefined
+}
+
+/**
+ * A Supabase client for the test process itself — used to inspect the database and to play "the
+ * other device" that produces a conflict. It signs in for the same reason the app does (D-215):
+ * after anonymous access is revoked, an unauthenticated client is refused every table read and
+ * every mutating RPC, so it can neither set up a scenario nor observe its result.
+ *
+ * Mirrors tests/integration/env.ts's helper of the same name. While a project still allows
+ * anonymous access the credentials may be absent, and the client behaves as it did before.
+ */
+export async function newTestClient(config: E2ESupabaseConfig): Promise<SupabaseClient> {
+  const client = createClient(config.url, config.anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  })
+
+  if (config.email && config.password) {
+    const { error } = await client.auth.signInWithPassword({ email: config.email, password: config.password })
+    if (error) {
+      throw new Error(
+        `[e2e] Could not sign in as ${config.email}: ${error.message}. ` +
+        'Check SUPABASE_TEST_EMAIL/SUPABASE_TEST_PASSWORD, and that the account is a member (orion_app_users).',
+      )
+    }
+  }
+
+  return client
 }
 
 /** Injects runtime config before the app boots, the same way public/config.js does in production. */

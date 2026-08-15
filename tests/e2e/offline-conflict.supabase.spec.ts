@@ -1,6 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
 import { expect, test } from '@playwright/test'
-import { configureSupabaseRuntime, getE2ESupabaseConfig, openEditor, performAndWaitForOnlineSave } from './supabaseTestConfig'
+import { configureSupabaseRuntime, getE2ESupabaseConfig, openEditor, performAndWaitForOnlineSave, newTestClient } from './supabaseTestConfig'
 
 const config = getE2ESupabaseConfig()
 
@@ -31,7 +30,7 @@ test.describe('Offline queue, reconnect, and conflict resolution (real Supabase)
     await context.setOffline(false)
     await expect(sidebar.getByText('Guardado en línea')).toBeVisible({ timeout: 20_000 })
 
-    const admin = createClient(config!.url, config!.anonKey)
+    const admin = await newTestClient(config!)
     await expect.poll(async () => {
       const { data } = await admin.from('orion_shows').select('data').eq('id', showId).maybeSingle()
       return (data?.data as { name?: string } | undefined)?.name
@@ -66,7 +65,7 @@ test.describe('Offline queue, reconnect, and conflict resolution (real Supabase)
 
     // A second, unrelated writer advances the remote revision while A is offline
     // and holds no lock, producing a genuine revision conflict (not `locked`).
-    const admin = createClient(config!.url, config!.anonKey)
+    const admin = await newTestClient(config!)
     const { data: current } = await admin.from('orion_shows').select('data,revision').eq('id', showId).maybeSingle()
     const remoteWrite = await admin.rpc('orion_save_show', {
       p_id: showId,
@@ -115,7 +114,7 @@ test.describe('Offline queue, reconnect, and conflict resolution (real Supabase)
     await page.getByLabel('Nombre del show').fill(`${name} (discarded)`)
     await expect(page.getByRole('complementary').getByText(/1 pendiente/)).toBeVisible({ timeout: 5_000 })
 
-    const admin = createClient(config!.url, config!.anonKey)
+    const admin = await newTestClient(config!)
     const { data: current } = await admin.from('orion_shows').select('data,revision').eq('id', showId).maybeSingle()
     const remoteWrite = await admin.rpc('orion_save_show', {
       p_id: showId,

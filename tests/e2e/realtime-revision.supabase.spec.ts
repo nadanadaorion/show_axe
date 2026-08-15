@@ -1,6 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
 import { expect, test } from '@playwright/test'
-import { configureSupabaseRuntime, getE2ESupabaseConfig, openEditor } from './supabaseTestConfig'
+import { configureSupabaseRuntime, getE2ESupabaseConfig, openEditor, newTestClient } from './supabaseTestConfig'
 
 const config = getE2ESupabaseConfig()
 
@@ -13,7 +12,7 @@ test.describe('Realtime Show revisions remain monotonic in a second browser clie
     await expect(page.getByRole('heading', { name: 'Shows' })).toBeVisible()
     await expect(page.getByRole('complementary').getByText('Guardado en línea')).toBeVisible({ timeout: 20_000 })
 
-    const admin = createClient(config!.url, config!.anonKey)
+    const admin = await newTestClient(config!)
     const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`
     const probeId = `e2e-realtime-probe-${suffix}`
     const probeSlug = `e2e-realtime-probe-slug-${suffix}`
