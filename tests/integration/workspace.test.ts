@@ -25,6 +25,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getSupabaseTestConfig, newTestClient } from './env'
 import { buildWorkspace } from '../fixtures/builders'
+import { signIn } from '../../src/lib/auth'
 import { db } from '../../src/lib/db'
 import { useAppStore } from '../../src/store'
 import * as supabaseLib from '../../src/lib/supabase'
@@ -42,6 +43,15 @@ describe.skipIf(!config)('Workspace (Library/Presets/Preferences) against a real
     // instance the other integration tests use — the same mechanism
     // tests/e2e/supabaseTestConfig.ts uses for Playwright, just injected directly here.
     window.__ORION_CONFIG__ = { supabaseUrl: config!.url, supabasePublishableKey: config!.anonKey }
+
+    // The app's own client needs its own session (D-215). This file is the only one here that drives
+    // shipped code rather than a test client, so it is the only one that has to sign in the way the
+    // shipped app does — through src/lib/auth.ts. Without this the Workspace RPC is refused, which
+    // is exactly what a real unauthenticated build would deserve.
+    if (config!.email && config!.password) {
+      const result = await signIn(config!.email, config!.password)
+      if (!result.ok) throw new Error(`[integration] app client could not sign in: ${result.message}`)
+    }
   })
 
   beforeEach(async () => {
