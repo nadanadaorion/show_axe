@@ -35,12 +35,21 @@ test.describe('Public read-only Show link (real Supabase)', () => {
     await expect(publicPage.getByRole('button', { name: /nuevo show/i })).toHaveCount(0)
     await expect(publicPage.getByRole('button', { name: /archivar/i })).toHaveCount(0)
     await expect(publicPage.getByRole('button', { name: /eliminar/i })).toHaveCount(0)
+    // The refresh control that replaced Realtime on this route (D-219).
+    await expect(publicPage.getByRole('button', { name: 'Actualizar' })).toBeVisible()
+
+    // D-219 removed Realtime from the public route, so it no longer updates itself: a reload
+    // reflects only what had reached Supabase by the time it ran. Both state changes below are
+    // therefore asserted by retrying the visitor's own refresh until the editor's change has
+    // synchronised, rather than assuming a single reload lands after it.
 
     // Archive: the public link keeps working.
     await editor.getByRole('button', { name: 'Archivar' }).click()
-    await publicPage.reload()
+    await expect(async () => {
+      await publicPage.reload()
+      await expect(publicPage.getByText('Archivado')).toBeVisible({ timeout: 2_000 })
+    }).toPass({ timeout: 30_000 })
     await expect(publicPage.getByRole('heading', { name })).toBeVisible()
-    await expect(publicPage.getByText('Archivado')).toBeVisible()
 
     // Delete (from the Shows list, Archivados tab): the public link stops resolving.
     await editor.goto('/#/shows')
@@ -48,8 +57,10 @@ test.describe('Public read-only Show link (real Supabase)', () => {
     await editor.getByRole('article').filter({ hasText: name }).getByRole('button', { name: 'Más acciones' }).click()
     await editor.getByRole('button', { name: 'Eliminar' }).click()
 
-    await publicPage.reload()
-    await expect(publicPage.getByText('Show no disponible')).toBeVisible()
+    await expect(async () => {
+      await publicPage.reload()
+      await expect(publicPage.getByText('Show no disponible')).toBeVisible({ timeout: 2_000 })
+    }).toPass({ timeout: 30_000 })
 
     await editorContext.close()
     await publicContext.close()
