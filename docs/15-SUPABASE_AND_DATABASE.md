@@ -53,11 +53,44 @@ The automated suites create and delete records. Never point them at a production
 
 All functions must be idempotently created by migration SQL and use an explicit safe `search_path`.
 
-## Open access model
+## Access model
 
-RLS is enabled, but policies allow anonymous read/write access deliberately. Grants expose table operations and approved RPCs to `anon` and `authenticated`.
+D-215 replaces the original open anonymous model with authenticated editor access. The migration is staged,
+so a project may currently be in either state.
 
-No secret/service-role key may be used in the browser.
+**Phase 1 (`202608150003_auth_foundation.sql`, additive).** Adds the `orion_app_users` registry, the
+`orion_is_member()` predicate, the `orion_public_show(slug)` accessor and the dashboard-only
+`orion_add_member(email, display_name, role)` helper. It revokes nothing, so existing anonymous access and
+all current behaviour are unchanged. Safe to apply to a live project before the client can log in.
+
+**Phase 2 (revocation, later migration).** Moves table policies and every mutating RPC grant from `anon` to
+`authenticated`, gated on `orion_is_member()`, leaving `orion_public_show` as the only function anonymous
+visitors may execute.
+
+Applying phase 2 before a verified login is deployed would lock the running application out of its own data.
+
+Two properties are load-bearing and must survive any future edit:
+
+- **RPC grants are the real gate.** Every RPC is `security definer` and therefore bypasses RLS entirely.
+  Tightening the table policies while leaving an `execute` grant to `anon` would leave the whole scheme
+  bypassable through the RPC.
+- **Authorisation is membership, not authentication.** Policies test `orion_is_member()`, so a stranger who
+  self-registers — should signups ever be re-enabled by accident — authenticates but is still denied.
+
+No secret/service-role key may be used in the browser. Signups must remain disabled in
+Authentication → Providers → Email.
+
+### `orion_app_users`
+
+| Column | Type | Notes |
+|---|---|---|
+| `user_id` | uuid PK/FK | References `auth.users`, cascade delete. |
+| `display_name` | text | Shown for lock attribution. |
+| `role` | text | `owner`/`editor`/`viewer`. Present from the outset; not yet differentiated by policy. |
+| `created_at` | timestamptz | Creation time. |
+
+Members may `select` the registry. There is deliberately no insert/update/delete policy: it is mutable only
+from the SQL editor, so a compromised browser session cannot grant access to anyone else.
 
 ## Realtime
 
